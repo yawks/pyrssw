@@ -3,8 +3,8 @@ import lxml.etree
 import requests
 
 class EurosportHandler(RequestHandler):
-    def __init__(self, prefix, server_name, server_port):
-        super().__init__(prefix, server_name, server_port, "eurosport", "https://www.eurosport.fr/")
+    def __init__(self, url_prefix):
+        super().__init__(url_prefix, "eurosport", "https://www.eurosport.fr/")
     
     def getFeed(self, uri):
         feed = requests.get(url= "https://www.eurosport.fr/rss.xml", headers = {}).text

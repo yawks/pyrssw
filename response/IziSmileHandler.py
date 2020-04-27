@@ -5,8 +5,8 @@ import re
 import time
 
 class IzismileHandler(RequestHandler):
-    def __init__(self, prefix, server_name, server_port):
-        super().__init__(prefix, server_name, server_port, "izismile", "https://izismile.com/")
+    def __init__(self, url_prefix):
+        super().__init__(url_prefix, "izismile", "https://izismile.com/")
 
     
     def getFeed(self, uri):

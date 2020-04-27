@@ -1,6 +1,8 @@
 import os
 import importlib
 
+import ssl
+from http.server import HTTPServer
 from http.server import BaseHTTPRequestHandler
 
 from response.BadRequestHandler import BadRequestHandler
@@ -8,8 +10,10 @@ from response.IziSmileHandler import IzismileHandler
 from response.LesJoiesDuCodeHandler import LesJoiesDuCodeHandler
 from response.EvilmilkHandler import EvilmilkHandler
 from response.EurosportHandler import EurosportHandler
+from config.Config import Config
 
 import logging
+
 
 class Server(BaseHTTPRequestHandler):
     def do_HEAD(self):
@@ -18,23 +22,18 @@ class Server(BaseHTTPRequestHandler):
     def do_GET(self):
         split_path = self.path.split("/")
         module_name = split_path[1]
-        prefix = "http"
-        if hasattr(self.server.socket, "keyfile"):
-            prefix = "https"
-        logging.getLogger().info("prefix:"+prefix)
-
-        #TODO improve that with a dynamic loadings
+        # TODO improve that with a dynamic loadings
         if module_name == "izismile":
-            handler = IzismileHandler(prefix, self.server.server_name, self.server.server_port)
+            handler = IzismileHandler(self.server.getServingURLPrefix())
         elif module_name == "lesjoiesducode":
-            handler = LesJoiesDuCodeHandler(prefix, self.server.server_name, self.server.server_port)
+            handler = LesJoiesDuCodeHandler(self.server.getServingURLPrefix())
         elif module_name == "evilmilk":
-            handler = EvilmilkHandler(prefix, self.server.server_name, self.server.server_port)
+            handler = EvilmilkHandler(self.server.getServingURLPrefix())
         elif module_name == "eurosport":
-            handler = EurosportHandler(prefix, self.server.server_name, self.server.server_port)
+            handler = EurosportHandler(self.server.getServingURLPrefix())
         else:
-            handler =  BadRequestHandler(prefix, self.path)
-        
+            handler = BadRequestHandler(self.server.getServingURLPrefix(), self.path)
+
         handler.process(self.path[len(module_name)+1:])
         self.respond({
             'handler': handler
@@ -47,7 +46,8 @@ class Server(BaseHTTPRequestHandler):
 
         if status_code == 200:
             content = handler.getContents()
-            self.send_header('Content-type', handler.getContentType()+ '; charset=utf-8')
+            self.send_header(
+                'Content-type', handler.getContentType() + '; charset=utf-8')
         elif handler.getContents() != "":
             content = handler.getContents()
         else:
@@ -59,7 +59,42 @@ class Server(BaseHTTPRequestHandler):
             return content
         else:
             return bytes(content, 'UTF-8')
-            
+
     def respond(self, opts):
         response = self.handle_http(opts['handler'])
         self.wfile.write(response)
+
+
+class RSSHTTPServer(HTTPServer):
+    def __init__(self, config: Config):
+        self.config = config
+        super().__init__((config.getServerListeningHostName(),
+                          config.getServerListeningPort()), Server)
+
+        if self.getProtocol() == "https":
+            self.socket = ssl.wrap_socket(self.socket,
+                                          keyfile=config.getKeyFile(),
+                                          certfile=config.getCertFile(),
+                                          server_side=True)
+
+    def getConfig(self) -> Config:
+        return self.config
+
+    def getProtocol(self) -> str:
+        protocol = "http"
+        if not self.config.getKeyFile() is None and not self.config.getCertFile() is None:
+            protocol = "https"
+
+        return protocol
+
+    def getListeningURLPrefix(self):
+        return "%s://%s:%d" % (
+            self.getProtocol(),
+            self.config.getServerListeningHostName(),
+            self.config.getServerListeningPort())
+
+    def getServingURLPrefix(self):
+        return "%s://%s:%d" % (
+            self.getProtocol(),
+            self.config.getServerServingHostName(),
+            self.config.getServerListeningPort())

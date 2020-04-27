@@ -5,20 +5,16 @@ import traceback
 import urllib.parse
 
 class RequestHandler():
-    def __init__(self, prefix, server_name, server_port, handler_name, original_website):
+    def __init__(self, url_prefix, handler_name, original_website):
         self.contentType = ""
         self.handlerName = handler_name
         self.originalWebsite = original_website
-        self.url_prefix = "%s://%s:%s/%s/" % (prefix, server_name, str(server_port), self.handlerName)
-        #self.video_url_prefix = prefix + "://" + server_name + ":" + str(server_port) + "/video/"
+        self.url_prefix = "%s/%s/" % (url_prefix, handler_name)
         self.logger = logging.getLogger()
         self.contents = ""
         
     def _log(self, msg):
         self.logger.info("[" + datetime.datetime.now().strftime("%Y-%m-%d - %H:%M") + "] - - " + msg)
-
-    #def getVideoUrlPrefix(self):
-    #    return self.video_url_prefix
 
     def getContents(self):
         return self.contents

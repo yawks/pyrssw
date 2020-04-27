@@ -4,8 +4,8 @@ import requests
 import re
 
 class LesJoiesDuCodeHandler(RequestHandler):
-    def __init__(self, prefix, server_name, server_port):
-        super().__init__(prefix, server_name, server_port, "lesjoiesducode", "https://lesjoiesducode.fr/")
+    def __init__(self, url_prefix):
+        super().__init__(url_prefix, "lesjoiesducode", "https://lesjoiesducode.fr/")
 
     
     def getFeed(self, uri):

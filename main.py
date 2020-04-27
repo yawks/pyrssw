@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 from http.server import HTTPServer
 from server import Server
+from server import RSSHTTPServer
 import logging
 import os
-import ssl
 import sys
 import getopt
 import ntpath
@@ -14,23 +14,11 @@ def main(argv):
     config: Config = Config(parseCommandLine(argv))
 
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
-    httpd = HTTPServer((config.getServerListeningHostName(),
-                        config.getServerListeningPort()), Server)
-    httpd.server_name = config.getServerServingHostName()
-    http_prefix = "http"
-    if not config.getKeyFile() is None and not config.getCertFile() is None:
-        http_prefix = "https"
-        httpd.socket = ssl.wrap_socket(httpd.socket,
-                                       keyfile=config.getKeyFile(),
-                                       certfile=config.getCertFile(), server_side=True)
+    httpd = RSSHTTPServer(config)
 
-    logging.getLogger().info('Server Starts - %s://%s:%d serving %s://%s:%d urls' % (
-        http_prefix,
-        config.getServerListeningHostName(),
-        config.getServerListeningPort(),
-        http_prefix,
-        config.getServerServingHostName(),
-        config.getServerListeningPort()))
+    logging.getLogger().info('Server Starts - % serving %s urls' % (
+        httpd.getListeningURLPrefix(),
+        httpd.getServingURLPrefix()))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

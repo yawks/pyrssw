@@ -4,8 +4,8 @@ import requests
 import re
 
 class EvilmilkHandler(RequestHandler):
-    def __init__(self, prefix, server_name, server_port):
-        super().__init__(prefix, server_name, server_port, "evilmilk", "https://www.evilmilk.com/")
+    def __init__(self, url_prefix):
+        super().__init__(url_prefix, "evilmilk", "https://www.evilmilk.com/")
     
     def getFeed(self, uri):
         feed = requests.get(url= "https://www.evilmilk.com/rss.xml", headers = {}).text
