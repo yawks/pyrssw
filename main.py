@@ -1,69 +1,63 @@
 #!/usr/bin/env python3
-import time
 from http.server import HTTPServer
 from server import Server
-import socket
 import logging
 import os
 import ssl
 import sys
 import getopt
 import ntpath
-
-DEFAULT_HOST_NAME = socket.gethostbyaddr(socket.gethostname())[0]
-DEFAULT_PORT_NUMBER = 8001
+from config.Config import Config
 
 
 def main(argv):
-    hostname, port, keyfile, certfile = getHostNameFromCommandLineArgs(argv)
-    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
-    httpd = HTTPServer((DEFAULT_HOST_NAME, port), Server)
-    httpd.server_name = hostname
-    ssl_log_suffix = ""
-    if not keyfile is None and not certfile is None:
-        ssl_log_suffix = "over https "
-        httpd.socket = ssl.wrap_socket (httpd.socket,
-            keyfile=keyfile,
-            certfile=certfile, server_side=True)
+    config: Config = Config(parseCommandLine(argv))
 
-    print(time.asctime(), 'Server Starts %s- %s:%s' % (ssl_log_suffix, hostname, port))
+    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+    httpd = HTTPServer((config.getServerListeningHostName(),
+                        config.getServerListeningPort()), Server)
+    httpd.server_name = config.getServerServingHostName()
+    http_prefix = "http"
+    if not config.getKeyFile() is None and not config.getCertFile() is None:
+        http_prefix = "https"
+        httpd.socket = ssl.wrap_socket(httpd.socket,
+                                       keyfile=config.getKeyFile(),
+                                       certfile=config.getCertFile(), server_side=True)
+
+    logging.getLogger().info('Server Starts - %s://%s:%d serving %s://%s:%d urls' % (
+        http_prefix,
+        config.getServerListeningHostName(),
+        config.getServerListeningPort(),
+        http_prefix,
+        config.getServerServingHostName(),
+        config.getServerListeningPort()))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
     httpd.server_close()
-    print(time.asctime(), 'Server Stops - %s:%s' % (DEFAULT_HOST_NAME, port))
+    logging.getLogger().info('Server Stops')
 
-def getHostNameFromCommandLineArgs(argv):
-    hostname = DEFAULT_HOST_NAME
-    port = DEFAULT_PORT_NUMBER
-    keyfile = None
-    certfile = None
+
+def parseCommandLine(argv: list) -> str:
+    config_file = None
 
     try:
-        opts, args = getopt.getopt(argv[1:], "hn:p:k:c:", ["hostname=", "port=", "keyfile=", "certfile="])
+        opts, args = getopt.getopt(argv[1:], "hc:", ["config="])
     except getopt.GetoptError:
         print_help(argv[0], 2)
 
     for opt, arg in opts:
         if opt == '-h':
             print_help(argv[0], 0)
-        elif opt in ("-n", "--hostname"):
-            hostname = arg
-        elif opt in ("-p", "--port"):
-            if arg.isnumeric():
-                port = int(arg)
-            else:
-                print_help(argv[0], 2)
-        elif opt in ("-k", "--keyfile"):
-            keyfile = arg
-        elif opt in ("-c", "--certfile"):
-            certfile = arg
+        elif opt in ("-c", "--config"):
+            config_file = arg
 
-    return hostname, port, keyfile, certfile
+    return config_file
+
 
 def print_help(script_name, exit_code):
-    print(ntpath.basename(script_name) + ' -n <hostname> -p <port> -k <key file> -c <cert file>')
+    print(ntpath.basename(script_name) + ' -c <optional config file>')
     sys.exit(exit_code)
 
 
