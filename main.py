@@ -16,7 +16,7 @@ def main(argv):
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
     httpd = RSSHTTPServer(config)
 
-    logging.getLogger().info('Server Starts - % serving %s urls' % (
+    logging.getLogger().info('Server Starts - %s serving %s urls' % (
         httpd.getListeningURLPrefix(),
         httpd.getServingURLPrefix()))
     try:
