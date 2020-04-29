@@ -10,6 +10,7 @@ from response.IziSmileHandler import IzismileHandler
 from response.LesJoiesDuCodeHandler import LesJoiesDuCodeHandler
 from response.EvilmilkHandler import EvilmilkHandler
 from response.EurosportHandler import EurosportHandler
+from response.Sport24 import Sport24Handler
 from config.Config import Config
 
 import logging
@@ -31,6 +32,8 @@ class Server(BaseHTTPRequestHandler):
             handler = EvilmilkHandler(self.server.getServingURLPrefix())
         elif module_name == "eurosport":
             handler = EurosportHandler(self.server.getServingURLPrefix())
+        elif module_name == "sport24":
+            handler = Sport24Handler(self.server.getServingURLPrefix())
         else:
             handler = BadRequestHandler(self.server.getServingURLPrefix(), self.path)
 
