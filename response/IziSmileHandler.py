@@ -75,7 +75,7 @@ class IzismileHandler(RequestHandler):
         return content, url_next_page
 
     def _getPageFromUrl(self, url):
-        page = requests.get(url= url, headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0'})
+        page = requests.get(url= url, headers = super().getUserAgent())
         if page.text.find("You do not have access to the site.") > -1:
             time.sleep(0.1)
             page = requests.get(url= url, headers = {'User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0'})

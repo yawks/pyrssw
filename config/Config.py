@@ -54,7 +54,7 @@ class Config:
     
     def getServerServingHostName(self):
         serverHostName = self.getServerListeningHostName()
-        if 'server.serving_hostname' in self.config:
+        if 'server.serving_hostname' in self.config and self.config['server.serving_hostname'] != '':
             serverHostName = self.config['server.serving_hostname']
         
         return serverHostName

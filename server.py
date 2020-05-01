@@ -10,7 +10,9 @@ from response.IziSmileHandler import IzismileHandler
 from response.LesJoiesDuCodeHandler import LesJoiesDuCodeHandler
 from response.EvilmilkHandler import EvilmilkHandler
 from response.EurosportHandler import EurosportHandler
-from response.Sport24 import Sport24Handler
+from response.Sport24Handler import Sport24Handler
+from response.LeMondeHandler import LeMondeHandler
+from response.ThumbnailsHandler import ThumbnailsHandler
 from config.Config import Config
 
 import logging
@@ -34,6 +36,10 @@ class Server(BaseHTTPRequestHandler):
             handler = EurosportHandler(self.server.getServingURLPrefix())
         elif module_name == "sport24":
             handler = Sport24Handler(self.server.getServingURLPrefix())
+        elif module_name == "lemonde":
+            handler = LeMondeHandler(self.server.getServingURLPrefix())
+        elif module_name == "thumbnails":
+            handler = ThumbnailsHandler(self.server.getServingURLPrefix())
         else:
             handler = BadRequestHandler(self.server.getServingURLPrefix(), self.path)
 
