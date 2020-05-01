@@ -51,7 +51,7 @@ class Sport24Handler(RequestHandler):
 
         dom = lxml.etree.HTML(page.text)
         imgs = dom.xpath("//img[@srcset]")
-        img = ""
+        imgsrc = ""
         if len(imgs) > 0:
             imgsrc = imgs[0].get("srcset")
 
