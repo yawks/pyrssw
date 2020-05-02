@@ -5,9 +5,9 @@ import base64
 #This handler get the first thumbnail of Google Images for any query.
 class ThumbnailsHandler(RequestHandler):
     def __init__(self, url_prefix):
-        super().__init__(url_prefix, "thumbnails", "https://www.google.fr/search?source=lnms&tbm=isch&q=")
+        super().__init__(url_prefix, handler_name="thumbnails", original_website="https://www.google.fr/search?source=lnms&tbm=isch&q=")
     
-    def getContent(self, url):
+    def getContent(self, url: str, parameters: dict):
         content = ""
         response = requests.get(url, headers = super().getUserAgent())
        

@@ -3,41 +3,45 @@ import lxml.etree
 import requests
 import json
 import html
+import response.dom_utils
+
 
 class EurosportHandler(RequestHandler):
     def __init__(self, url_prefix):
-        super().__init__(url_prefix, "eurosport", "https://www.eurosport.fr/")
-        self.feed = "https://www.eurosport.fr/rss.xml"
-    
-    def getFeed(self, uri):
-        feed = requests.get(url= self.feed, headers = {}).text
+        super().__init__(url_prefix, handler_name="eurosport",
+                         original_website="https://www.eurosport.fr/", rss_url="https://www.eurosport.fr/rss.xml")
 
-        feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '') # I probably do not use etree as I should
+    def getFeed(self, parameters: dict):
+        feed = requests.get(url=self.rss_url, headers={}).text
+
+        # I probably do not use etree as I should
+        feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
         dom = lxml.etree.fromstring(feed)
-        
-        if len(uri) > 1:
-            #filter only on passed category, eg /eurosport/rss/tennis
+
+        if "filter" in parameters:
+            # filter only on passed category, eg /eurosport/rss/tennis
             others_than_listed = False
-            if uri[1:2] == "^": #other categories than listed
-                categories = uri[2:].split(",") #in case of many categories given, separated by comas
+            if parameters["filter"][:1] == "^":  # other categories than listed
+                # in case of many categories given, separated by comas
+                categories = parameters["filter"][1:].split(",")
                 others_than_listed = True
             else:
-                categories = uri[1:].split(",") #in case of many categories given, separated by comas
-            
-            #build xpath expression
-            xpath_expression = self._getXpathExpression(categories, others_than_listed)
+                # in case of many categories given, separated by comas
+                categories = parameters["filter"].split(",")
 
-            self._deleteNodes(dom.xpath(xpath_expression))
+            # build xpath expression
+            xpath_expression = self._getXpathExpression(
+                categories, others_than_listed)
 
-        #replace video links, they must be processed by getContent
+            response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
+
+        # replace video links, they must be processed by getContent
         for link in dom.xpath("//link"):
             if link.text.find("/video.shtml") > -1:
-                link.text = "%s%s" % (self.url_prefix, link.text)
-
+                link.text = "%s?url=%s" % (self.url_prefix, link.text)
 
         feed = lxml.etree.tostring(dom, encoding='unicode')
 
-            
         return feed
 
     def _getXpathExpression(self, categories, others_than_listed):
@@ -53,33 +57,35 @@ class EurosportHandler(RequestHandler):
                 xpath_expression += "not(category/text() = '%s')" % category
         return "//rss/channel/item[%s]" % xpath_expression
 
-    #find in rss file the item having the link_url and returns the description
+    # find in rss file the item having the link_url and returns the description
     def _getRSSLinkDescription(self, link_url):
         description = ""
-        feed = requests.get(url= self.feed, headers = {}).text
-        feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '') # I probably do not use etree as I should
+        feed = requests.get(url=self.rss_url, headers={}).text
+        # I probably do not use etree as I should
+        feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
         dom = lxml.etree.fromstring(feed)
-        descriptions = dom.xpath("//item/link/text()[contains(., '%s')]/../../description" % link_url)
-        if len(descriptions) >0:
+        descriptions = dom.xpath(
+            "//item/link/text()[contains(., '%s')]/../../description" % link_url)
+        if len(descriptions) > 0:
             description = html.unescape(descriptions[0].text)
 
         return description
 
-
-    def getContent(self, url):
+    def getContent(self, url: str, parameters: dict):
         content = ""
 
-        if url.find("/video.shtml") > -1 and url.find("_vid") >-1:
+        if url.find("/video.shtml") > -1 and url.find("_vid") > -1:
             content = self._getVideoContent(url)
 
-        return super().getWrappedHTMLContent(content)
+        return super().getWrappedHTMLContent(content, parameters)
 
     # video in eurosport website are loaded using some javascript
     # we build here a simplifed page with the rss.xml item description + a video object
     def _getVideoContent(self, url):
         vid = url[url.find("_vid")+len("_vid"):]
         vid = vid[:vid.find('/')]
-        page = requests.get(url = "https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid, headers = {})
+        page = requests.get(
+            url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid, headers={})
         j = json.loads(page.text)
 
         return """
@@ -92,8 +98,3 @@ class EurosportHandler(RequestHandler):
                         </p>
                         <p>%s</p>
                     </div>""" % (j["EmbedUrl"], j["Title"], j["VideoUrl"], self._getRSSLinkDescription(url[1:]))
-    
-
-    def _deleteNodes(self, nodes):
-        for node in list(nodes):
-            node.getparent().remove(node)
