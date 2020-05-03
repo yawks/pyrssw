@@ -3,6 +3,7 @@ import datetime
 import lxml
 import traceback
 import urllib.parse
+import re
 
 class RequestHandler():
     def __init__(self, url_prefix, handler_name, original_website, rss_url=""):
@@ -79,16 +80,17 @@ class RequestHandler():
     def _arrangeFeed(self, content: str) -> str:
         feed = content
 
-        feed = feed.replace('<?xml version="1.0" encoding="[uU][tT][fF]-8"?>', '') # I probably do not use etree as I should
+        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip() # I probably do not use etree as I should
+        feed = re.sub(r'<\?xml-stylesheet [^>]*?>', '', feed).strip()
         dom = lxml.etree.fromstring(feed)
 
         # copy picture url from enclosure to a img tag in description (or add a generated one)
         for item in dom.xpath("//item"):
             descriptions = item.xpath(".//description")
-            if len(descriptions) > 0 and descriptions[0].find('<img ') == -1: #
+            if len(descriptions) > 0 and descriptions[0].text.find('<img ') == -1: #
                 #if description does not have a picture, add one from enclosure or media:content tag if any
                 enclosures = item.xpath(".//enclosure")
-                medias = item.xpath(".//*[local-name()='content'][@url]")
+                medias = item.xpath(".//*[local-name()='content'][@url]") # media:content tag
                 img_url = ""
                 if len(enclosures) > 0:
                     img_url = enclosures[0].get('url')

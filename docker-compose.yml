@@ -1,8 +1,0 @@
-pyrssw:
-    image: pyrsswd:latest
-    volumes:
-        - resources/config.ini:etc/config.ini
-        - resources/localhost.crt:etc/localhost.crt
-        - resources/localhost.key:etc/localhost.key
-    ports:
-        - 8001:8001

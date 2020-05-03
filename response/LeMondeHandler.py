@@ -29,16 +29,46 @@ class LeMondeHandler(RequestHandler):
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
         dom = lxml.etree.fromstring(feed)
-        for item in dom.xpath("//item"):
-            medias = item.xpath(".//*[@url!='']")
-            descriptions = item.xpath(".//description")
-            if len(medias) > 0 and len(descriptions) > 0:
-                descriptions[0].text = '<img src="%s"/>%s' % (
-                    medias[0].get('url'), descriptions[0].text)
+
+        #available filters : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts
+        if "filter" in parameters:
+            # filter only on passed category
+            xpath_expression = self.getXpathExpressionForFilters(parameters)
+
+            response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
 
         feed = lxml.etree.tostring(dom, encoding='unicode')
 
         return feed
+
+    def getXpathExpressionForFilters(self, parameters):
+        # filter only on passed category
+        others_than_listed = False
+        if parameters["filter"][:1] == "^":  # other categories than listed
+            # in case of many categories given, separated by comas
+            categories = parameters["filter"][1:].split(",")
+            others_than_listed = True
+        else:
+            # in case of many categories given, separated by comas
+            categories = parameters["filter"].split(",")
+
+        # build xpath expression
+        xpath_expression = self._getXpathExpression(categories, others_than_listed)
+        return xpath_expression
+    
+    #TODO : export to dom_utils and use it in EurosportHandler as well
+    def _getXpathExpression(self, categories, others_than_listed):
+        xpath_expression = ""
+        for category in categories:
+            if others_than_listed:
+                if len(xpath_expression) > 0:
+                    xpath_expression += " or "
+                xpath_expression += "link[contains(text(), '/%s/')]" % category
+            else:
+                if len(xpath_expression) > 0:
+                    xpath_expression += " and "
+                xpath_expression += "not(link[contains(text(), '/%s/')])" % category
+        return "//rss/channel/item[%s]" % xpath_expression
 
     def _getAuthentificationSuffix(self, parameters: dict):
         suffix = ""
