@@ -9,12 +9,14 @@ class ThumbnailsHandler(RequestHandler):
     
     def getContent(self, url: str, parameters: dict):
         content = ""
-        response = requests.get(url, headers = super().getUserAgent())
-       
-        split = response.text.split("_setImgSrc(")
-        if len(split) > 1:
-            content = split[1].split(",")[2].replace("\\/","/").replace("\\x3d","=").split("'")[0]
-            content = base64.b64decode(content.encode())
+        if "request" in parameters:
+            request = parameters["request"].replace('\t','').replace('\n','').strip()
+            response = requests.get( self.originalWebsite + request, headers = super().getUserAgent())
+        
+            split = response.text.split("_setImgSrc(")
+            if len(split) > 1:
+                content = split[1].split(",")[2].replace("\\/","/").replace("\\x3d","=").split("'")[0]
+                content = base64.b64decode(content.encode())
         
         return content
     

@@ -23,8 +23,7 @@ class Server(BaseHTTPRequestHandler):
         return
 
     def do_GET(self):
-        split_path = self.path.split("/")
-        module_name = split_path[1]
+        module_name = self._parseModuleName()
         # TODO improve that with a dynamic loadings
         if module_name == "izismile":
             handler = IzismileHandler(self.server.getServingURLPrefix())
@@ -47,6 +46,16 @@ class Server(BaseHTTPRequestHandler):
         self.respond({
             'handler': handler
         })
+
+    def _parseModuleName(self):
+        module_name = ""
+        split_path = self.path.split('/')
+        if len(split_path) > 1:
+            module_name = split_path[1]
+            if module_name.find('?') > -1:
+                module_name = module_name.split('?')[0]
+
+        return module_name
 
     def handle_http(self, handler):
         status_code = handler.getStatus()

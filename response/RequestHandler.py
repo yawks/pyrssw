@@ -49,10 +49,10 @@ class RequestHandler():
 
     def process(self, url: str):
         try:
-            url, parameters = self._parseURL(url)
+            url, parameters = self._getModuleNameFromURL(url)
             if url.find("/rss") == 0:
                 self._log("%s /rss requested" % self.handlerName)
-                self.contents = self.getFeed(parameters)
+                self.contents = self._arrangeFeed(self.getFeed(parameters))
                 #add dark request for all rss links
                 self.contents = self.contents.replace("%s?" % self.url_prefix, "%s?%s" % (self.url_prefix, self.getDarkParameters(parameters)) )
                 self.contentType = 'text/xml'
@@ -74,9 +74,41 @@ class RequestHandler():
             self.setStatus(500)
             return False
     
-    def _parseURL(self, url):
-        parameters = {}
-        new_url = url
+
+    #arrange feed by adding some pictures in description, ...
+    def _arrangeFeed(self, content: str) -> str:
+        feed = content
+
+        feed = feed.replace('<?xml version="1.0" encoding="[uU][tT][fF]-8"?>', '') # I probably do not use etree as I should
+        dom = lxml.etree.fromstring(feed)
+
+        # copy picture url from enclosure to a img tag in description (or add a generated one)
+        for item in dom.xpath("//item"):
+            descriptions = item.xpath(".//description")
+            if len(descriptions) > 0 and descriptions[0].find('<img ') == -1: #
+                #if description does not have a picture, add one from enclosure or media:content tag if any
+                enclosures = item.xpath(".//enclosure")
+                medias = item.xpath(".//*[local-name()='content'][@url]")
+                img_url = ""
+                if len(enclosures) > 0:
+                    img_url = enclosures[0].get('url')
+                elif len(medias) > 0:
+                    img_url = medias[0].get('url')
+                
+                if img_url != "":
+                    descriptions[0].text = '<img src="%s"/>%s' % (img_url, descriptions[0].text)
+                else: #uses the ThumbnailHandler to fetch an image from google search images
+                    descriptions[0].text = '<img src="%s/thumbnails?request=%s"/>%s' % (
+                        self.url_root, urllib.parse.quote_plus(descriptions[0].text), descriptions[0].text)
+        
+        feed = lxml.etree.tostring(dom, encoding='unicode')
+
+        return feed
+
+    #get the module name
+    def _getModuleNameFromURL(self, url: str) -> [str, dict]:
+        parameters: dict = {}
+        new_url: str = url
         parts = url.split('?')
         if len(parts) > 1:
             new_url = parts[0]

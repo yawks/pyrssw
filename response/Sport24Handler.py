@@ -30,18 +30,6 @@ class Sport24Handler(RequestHandler):
 
         response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
 
-        # copy picture url from enclosure to a img tag in description (or add a generated one)
-        for item in dom.xpath("//item"):
-            enclosures = item.xpath(".//enclosure")
-            descriptions = item.xpath(".//description")
-            if len(descriptions) > 0:
-                if len(enclosures) > 0:
-                    descriptions[0].text = '<img src="%s"/>%s' % (
-                        enclosures[0].get('url'), descriptions[0].text)
-                else:
-                    descriptions[0].text = '<img src="%s/thumbnails?request=%s"/>%s' % (
-                        self.url_root, urllib.parse.quote_plus(descriptions[0].text), descriptions[0].text)
-
         feed = lxml.etree.tostring(dom, encoding='unicode')
         feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
 
