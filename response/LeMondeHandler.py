@@ -16,7 +16,7 @@ class LeMondeHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="lemonde",
                          original_website="https://www.lemonde.fr/", rss_url="https://www.lemonde.fr/rss/une.xml")
 
-    def getFeed(self, parameters: dict):
+    def getFeed(self, parameters: dict) -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         feed = feed.replace('<guid isPermaLink="false">', '<link>')
@@ -30,45 +30,17 @@ class LeMondeHandler(RequestHandler):
         feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
         dom = lxml.etree.fromstring(feed)
 
-        #available filters : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts
+        # available filters : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts
         if "filter" in parameters:
             # filter only on passed category
-            xpath_expression = self.getXpathExpressionForFilters(parameters)
+            xpath_expression = response.dom_utils.getXpathExpressionForFilters(
+                parameters, "link[contains(text(), '/%s/')]", "not(link[contains(text(), '/%s/')])")
 
             response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
 
         feed = lxml.etree.tostring(dom, encoding='unicode')
 
         return feed
-
-    def getXpathExpressionForFilters(self, parameters):
-        # filter only on passed category
-        others_than_listed = False
-        if parameters["filter"][:1] == "^":  # other categories than listed
-            # in case of many categories given, separated by comas
-            categories = parameters["filter"][1:].split(",")
-            others_than_listed = True
-        else:
-            # in case of many categories given, separated by comas
-            categories = parameters["filter"].split(",")
-
-        # build xpath expression
-        xpath_expression = self._getXpathExpression(categories, others_than_listed)
-        return xpath_expression
-    
-    #TODO : export to dom_utils and use it in EurosportHandler as well
-    def _getXpathExpression(self, categories, others_than_listed):
-        xpath_expression = ""
-        for category in categories:
-            if others_than_listed:
-                if len(xpath_expression) > 0:
-                    xpath_expression += " or "
-                xpath_expression += "link[contains(text(), '/%s/')]" % category
-            else:
-                if len(xpath_expression) > 0:
-                    xpath_expression += " and "
-                xpath_expression += "not(link[contains(text(), '/%s/')])" % category
-        return "//rss/channel/item[%s]" % xpath_expression
 
     def _getAuthentificationSuffix(self, parameters: dict):
         suffix = ""
@@ -78,7 +50,7 @@ class LeMondeHandler(RequestHandler):
 
         return suffix
 
-    def getContent(self, url: str, parameters: dict):
+    def getContent(self, url: str, parameters: dict) -> str:
         session: requests.Session = self._authent(parameters)
         try:
             page = session.get(url=url, headers=super().getUserAgent())
@@ -86,22 +58,26 @@ class LeMondeHandler(RequestHandler):
 
             dom = lxml.etree.HTML(content)
 
-            #deleteNodes(dom.xpath('//*[@class="meta meta__social   old__meta-social"]'))
-            #deleteNodes(dom.xpath('//*[@class="breadcrumb "]'))
+            response.dom_utils.deleteNodes(
+                dom.xpath('//*[contains(@class, "meta__social")]'))
+            response.dom_utils.deleteNodes(
+                dom.xpath('//*[contains(@class, "breadcrumb")]'))
+            response.dom_utils.deleteNodes(
+                dom.xpath('//*[contains(@class, "article__reactions")]'))
+            response.dom_utils.deleteNodes(
+                dom.xpath('//*[contains(@class, "services")]'))
+            response.dom_utils.deleteNodes(
+                dom.xpath('//*[contains(@class, "article__footer-single")]'))
 
-            c = response.dom_utils.getContent(
-                dom, ['//*[@class="article__wrapper  "]', '//*[@id="post-container"]'])
-            if c != "":
-                content = "<p><a href='%s'>Source</a></p>%s" % (url, c)
-                #content = content.replace("aria-hidden","dummy")
-                #content = content.replace("data-format","dummy")
+            content = response.dom_utils.getContent(
+                dom, ['//*[contains(@class, "zone--article")]', '//*[@id="post-container"]'])
 
         except Exception as e:
             raise e
         finally:
             self._unauthent(session)
 
-        return super().getWrappedHTMLContent(content, parameters)
+        return content
 
     def _authent(self, parameters: dict) -> requests.Session:
         session = requests.Session()

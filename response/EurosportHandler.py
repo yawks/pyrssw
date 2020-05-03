@@ -11,7 +11,7 @@ class EurosportHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="eurosport",
                          original_website="https://www.eurosport.fr/", rss_url="https://www.eurosport.fr/rss.xml")
 
-    def getFeed(self, parameters: dict):
+    def getFeed(self, parameters: dict)  -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
 
         # I probably do not use etree as I should
@@ -20,18 +20,9 @@ class EurosportHandler(RequestHandler):
 
         if "filter" in parameters:
             # filter only on passed category, eg /eurosport/rss/tennis
-            others_than_listed = False
-            if parameters["filter"][:1] == "^":  # other categories than listed
-                # in case of many categories given, separated by comas
-                categories = parameters["filter"][1:].split(",")
-                others_than_listed = True
-            else:
-                # in case of many categories given, separated by comas
-                categories = parameters["filter"].split(",")
+            xpath_expression = response.dom_utils.getXpathExpressionForFilters(
+                parameters, "category/text() = '%s'", "not(category/text() = '%s')")
 
-            # build xpath expression
-            xpath_expression = self._getXpathExpression(
-                categories, others_than_listed)
 
             response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
 
@@ -43,19 +34,6 @@ class EurosportHandler(RequestHandler):
         feed = lxml.etree.tostring(dom, encoding='unicode')
 
         return feed
-
-    def _getXpathExpression(self, categories, others_than_listed):
-        xpath_expression = ""
-        for category in categories:
-            if others_than_listed:
-                if len(xpath_expression) > 0:
-                    xpath_expression += " or "
-                xpath_expression += "category/text() = '%s'" % category
-            else:
-                if len(xpath_expression) > 0:
-                    xpath_expression += " and "
-                xpath_expression += "not(category/text() = '%s')" % category
-        return "//rss/channel/item[%s]" % xpath_expression
 
     # find in rss file the item having the link_url and returns the description
     def _getRSSLinkDescription(self, link_url):
@@ -71,13 +49,13 @@ class EurosportHandler(RequestHandler):
 
         return description
 
-    def getContent(self, url: str, parameters: dict):
+    def getContent(self, url: str, parameters: dict)  -> str:
         content = ""
 
         if url.find("/video.shtml") > -1 and url.find("_vid") > -1:
             content = self._getVideoContent(url)
 
-        return super().getWrappedHTMLContent(content, parameters)
+        return content
 
     # video in eurosport website are loaded using some javascript
     # we build here a simplifed page with the rss.xml item description + a video object

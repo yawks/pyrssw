@@ -11,7 +11,7 @@ class Sport24Handler(RequestHandler):
         super().__init__(url_prefix, handler_name="sport24", original_website="https://sport24.lefigaro.fr/",
                          rss_url="https://sport24.lefigaro.fr/rssfeeds/sport24-###.xml")
 
-    def getFeed(self, parameters: dict):
+    def getFeed(self, parameters: dict)  -> str:
         if "filter" in parameters and parameters["filter"] == ("tennis" or "football" or "rugby" or "cyclisme" or "golf"):
             # filter only on passed category, eg /sport24/rss/tennis
             feed = requests.get(url=self.rss_url.replace(
@@ -42,7 +42,7 @@ class Sport24Handler(RequestHandler):
 
         return feed
 
-    def getContent(self, url: str, parameters: dict):
+    def getContent(self, url: str, parameters: dict) -> str:
         page = requests.get(url=url, headers={})
         content = page.text
 
@@ -66,4 +66,4 @@ class Sport24Handler(RequestHandler):
 
             content = lxml.etree.tostring(contents[0], encoding='unicode')
 
-        return super().getWrappedHTMLContent(content, parameters)
+        return content

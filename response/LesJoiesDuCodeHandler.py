@@ -10,7 +10,7 @@ class LesJoiesDuCodeHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="lesjoiesducode",
                          original_website="https://lesjoiesducode.fr/", rss_url="http://lesjoiesducode.fr/rss")
 
-    def getFeed(self, parameters: dict):
+    def getFeed(self, parameters: dict)  -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
         feed = feed.replace("<link>", "<link>%s?url=" % self.url_prefix)
         feed = re.sub(
@@ -28,11 +28,11 @@ class LesJoiesDuCodeHandler(RequestHandler):
 
         return lxml.etree.tostring(dom, encoding='unicode')
 
-    def getContent(self, url: str, parameters: dict):
+    def getContent(self, url: str, parameters: dict)  -> str:
         page = requests.get(url=url, headers={})
         content = self._cleanContent(page.text)
         self.contentType = 'text/html'
-        return super().getWrappedHTMLContent(content, parameters)
+        return content
 
     def _cleanContent(self, c):
         content = ""

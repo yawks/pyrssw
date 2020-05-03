@@ -22,33 +22,33 @@ class RequestHandler():
     def _log(self, msg):
         self.logger.info("[" + datetime.datetime.now().strftime("%Y-%m-%d - %H:%M") + "] - - " + msg)
 
-    def getContents(self):
+    def getContents(self) -> str:
         return self.contents
 
-    def read(self):
+    def read(self) -> str:
         return self.contents
 
-    def setStatus(self, status):
+    def setStatus(self, status: int):
         self.status = status
 
-    def getStatus(self):
+    def getStatus(self) -> int:
         return self.status
 
-    def getContentType(self):
+    def getContentType(self)  -> str:
         return self.contentType 
 
-    def getType(self):
+    def getType(self)  -> str:
         return 'static'
     
     #must be overwritten by handlers
-    def getFeed(self, parameters: dict):
+    def getFeed(self, parameters: dict)  -> str:
         return ''
 
     #must be overwritten by handlers
-    def getContent(self, url: str, parameters: dict):
+    def getContent(self, url: str, parameters: dict)  -> str:
         return ''
 
-    def process(self, url: str):
+    def process(self, url: str) -> bool:
         try:
             url, parameters = self._getModuleNameFromURL(url)
             if url.find("/rss") == 0:
@@ -66,6 +66,8 @@ class RequestHandler():
                     self.contents = self.getContent(self.originalWebsite + request_url, parameters)
                 else:
                     self.contents = self.getContent(request_url, parameters)
+                
+                self._wrappedHTMLContent(parameters)
 
             self.setStatus(200)
             return True
@@ -123,15 +125,27 @@ class RequestHandler():
         return new_url, parameters
 
     #utility to get html content with header, body and some predefined styles
-    def getWrappedHTMLContent(self, content: str, parameters: dict):
+    def _wrappedHTMLContent(self, parameters: dict):
         dark_style: str = ""
+        source: str = ""
+        if "url" in parameters:
+            source = "<em><a href='%s'>Source</em>" % parameters["url"]
         if "dark" in parameters and parameters["dark"] == "true":
             dark_style = "body {color: white;background-color:black;}"
-        c = '<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><style>%s</style></head><body>' % dark_style
-        c += content
-        c += '</body></html>'
 
-        return c
+        #TODO remove head and body if previously exists and logs it
+
+        self.contents = """  <!DOCTYPE html>
+                    <html>
+                        <head>
+                            <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+                            <style>%s</style>
+                        </head>
+                        <body>
+                            %s
+                            %s
+                        </body>
+                    </html>""" % (dark_style, source, self.contents)
     
     def getDarkParameters(self, parameters: dict) -> str:
         dark_style: str = ""

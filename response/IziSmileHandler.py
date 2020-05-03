@@ -11,7 +11,7 @@ class IzismileHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="izismile",
                          original_website="https://izismile.com/", rss_url="https://feeds2.feedburner.com/izismile")
 
-    def getFeed(self, parameters: dict):
+    def getFeed(self, parameters: dict)  -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         feed = feed.replace('<guid isPermaLink="false">', '<link>')
@@ -21,7 +21,7 @@ class IzismileHandler(RequestHandler):
 
         return self._replaceURLs(feed)
 
-    def getContent(self, url: str, parameters: dict):
+    def getContent(self, url: str, parameters: dict)  -> str:
         content, url_next_page = self._getContent(url)
 
         if url_next_page != "":
@@ -29,7 +29,7 @@ class IzismileHandler(RequestHandler):
             next_content, url_next_page = self._getContent(url_next_page)
             content += next_content
 
-        return super().getWrappedHTMLContent(content, parameters)
+        return content
 
     def _getContent(self, url):
         url_next_page = ""

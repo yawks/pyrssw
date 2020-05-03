@@ -10,7 +10,7 @@ class EvilmilkHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="evilmilk",
                          original_website="https://www.evilmilk.com/", rss_url="https://www.evilmilk.com/rss.xml")
 
-    def getFeed(self, parameters: dict):
+    def getFeed(self, parameters: dict)  -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         feed = feed.replace('<guid isPermaLink="true">', '<link>')
@@ -19,7 +19,7 @@ class EvilmilkHandler(RequestHandler):
 
         return self._replaceURLs(feed)
 
-    def getContent(self, url: str, parameters: dict):
+    def getContent(self, url: str, parameters: dict)  -> str:
         page = requests.get(url=url, headers={})
         dom = lxml.etree.HTML(page.text)
 
@@ -46,7 +46,7 @@ class EvilmilkHandler(RequestHandler):
         content = content.replace('autoplay=""', '')
         content = content.replace('playsinline=""', '')
 
-        return super().getWrappedHTMLContent(content, parameters)
+        return content
 
     def _cleanContent(self, c):
         content = c.replace('<div class="break"/>', '')
