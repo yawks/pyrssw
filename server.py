@@ -25,8 +25,11 @@ class Server(BaseHTTPRequestHandler):
         for h in server.handlers:  # find handler from module_name
             if h.handlerName == module_name:
                 handler = h
+                logging.getLogger().info("handler '%s' found" % module_name)
+                break
 
         if handler is None:
+            logging.getLogger().error("handler '%s' NOT found" % module_name)
             handler = BadRequestHandler(
                 self.server.getServingURLPrefix(), self.path)
 
