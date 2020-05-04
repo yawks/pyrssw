@@ -6,7 +6,7 @@ import html
 import response.dom_utils
 
 
-class EurosportHandler(RequestHandler):
+class PyRSSWRequestHandler(RequestHandler):
     def __init__(self, url_prefix):
         super().__init__(url_prefix, handler_name="eurosport",
                          original_website="https://www.eurosport.fr/", rss_url="https://www.eurosport.fr/rss.xml")
@@ -23,7 +23,6 @@ class EurosportHandler(RequestHandler):
             xpath_expression = response.dom_utils.getXpathExpressionForFilters(
                 parameters, "category/text() = '%s'", "not(category/text() = '%s')")
 
-
             response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
 
         # replace video links, they must be processed by getContent
@@ -35,8 +34,8 @@ class EurosportHandler(RequestHandler):
 
         return feed
 
-    # find in rss file the item having the link_url and returns the description
-    def _getRSSLinkDescription(self, link_url):
+    def _getRSSLinkDescription(self, link_url: str) -> str:
+        """find in rss file the item having the link_url and returns the description"""
         description = ""
         feed = requests.get(url=self.rss_url, headers={}).text
         # I probably do not use etree as I should
@@ -54,12 +53,14 @@ class EurosportHandler(RequestHandler):
 
         if url.find("/video.shtml") > -1 and url.find("_vid") > -1:
             content = self._getVideoContent(url)
+        else:
+            content = requests.get(url, headers={}).text
 
         return content
 
-    # video in eurosport website are loaded using some javascript
-    # we build here a simplifed page with the rss.xml item description + a video object
-    def _getVideoContent(self, url):
+    def _getVideoContent(self, url: str) -> str:
+        """ video in eurosport website are loaded using some javascript
+            we build here a simplifed page with the rss.xml item description + a video object"""
         vid = url[url.find("_vid")+len("_vid"):]
         vid = vid[:vid.find('/')]
         page = requests.get(

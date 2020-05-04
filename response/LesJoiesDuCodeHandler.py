@@ -5,7 +5,7 @@ import re
 import response.dom_utils
 
 
-class LesJoiesDuCodeHandler(RequestHandler):
+class PyRSSWRequestHandler(RequestHandler):
     def __init__(self, url_prefix):
         super().__init__(url_prefix, handler_name="lesjoiesducode",
                          original_website="https://lesjoiesducode.fr/", rss_url="http://lesjoiesducode.fr/rss")

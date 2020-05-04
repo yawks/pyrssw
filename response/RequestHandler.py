@@ -5,6 +5,8 @@ import traceback
 import urllib.parse
 import re
 
+HTML_CONTENT_TYPE = "text/html; charset=utf-8"
+
 class RequestHandler():
     def __init__(self, url_prefix, handler_name, original_website, rss_url=""):
         self.contentType = ""
@@ -56,10 +58,11 @@ class RequestHandler():
                 self.contents = self._arrangeFeed(self.getFeed(parameters))
                 #add dark request for all rss links
                 self.contents = self.contents.replace("%s?" % self.url_prefix, "%s?%s" % (self.url_prefix, self.getDarkParameters(parameters)) )
-                self.contentType = 'text/xml'
+                self.contentType = "text/xml; charset=utf-8"
             else:
                 self._log("%s content page requested: %s" % (self.handlerName, url))
                 request_url = url
+                self.contentType = HTML_CONTENT_TYPE #default contentType, can be overridden by handlers
                 if "url" in parameters:
                     request_url = parameters["url"]
                 if not request_url.startswith("https://") and not request_url.startswith("http://"):
@@ -67,13 +70,15 @@ class RequestHandler():
                 else:
                     self.contents = self.getContent(request_url, parameters)
                 
-                self._wrappedHTMLContent(parameters)
+                if self.getContentType() == HTML_CONTENT_TYPE: #in case of overridden content type
+                    self._wrappedHTMLContent(parameters)
 
             self.setStatus(200)
             return True
 
         except Exception as e:
             self.contents = "<html><body>" + url + "<br/>"+ str(e) +"<br/><pre>" + traceback.format_exc() + "</pre></body></html>"
+            self.contentType = "text/html; utf-8"
             self.setStatus(500)
             return False
     

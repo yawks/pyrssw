@@ -11,7 +11,7 @@ URL_CONNECTION = "https://secure.lemonde.fr/sfuser/connexion"
 URL_DECONNECTION = "https://secure.lemonde.fr/sfuser/deconnexion"
 
 
-class LeMondeHandler(RequestHandler):
+class PyRSSWRequestHandler(RequestHandler):
     def __init__(self, url_prefix):
         super().__init__(url_prefix, handler_name="lemonde",
                          original_website="https://www.lemonde.fr/", rss_url="https://www.lemonde.fr/rss/une.xml")
@@ -25,9 +25,8 @@ class LeMondeHandler(RequestHandler):
         feed = feed.replace('<link>', '<link>%s?%surl=' % (
             self.url_prefix, self._getAuthentificationSuffix(parameters)))
 
-        # copy picture url from media to a img tag in description
         # I probably do not use etree as I should
-        feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
+        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
         dom = lxml.etree.fromstring(feed)
 
         # available filters : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts

@@ -6,7 +6,7 @@ import time
 import response.dom_utils
 
 
-class IzismileHandler(RequestHandler):
+class PyRSSWRequestHandler(RequestHandler):
     def __init__(self, url_prefix):
         super().__init__(url_prefix, handler_name="izismile",
                          original_website="https://izismile.com/", rss_url="https://feeds2.feedburner.com/izismile")

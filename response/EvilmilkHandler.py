@@ -5,7 +5,7 @@ import re
 import response.dom_utils
 
 
-class EvilmilkHandler(RequestHandler):
+class PyRSSWRequestHandler(RequestHandler):
     def __init__(self, url_prefix):
         super().__init__(url_prefix, handler_name="evilmilk",
                          original_website="https://www.evilmilk.com/", rss_url="https://www.evilmilk.com/rss.xml")
@@ -41,7 +41,6 @@ class EvilmilkHandler(RequestHandler):
                 lxml.etree.tostring(dom, encoding='unicode'))
         content = self._cleanContent(content)
 
-        #content = super()._replaceVideosByGifImages(lxml.etree.HTML(content))
         content = content.replace("<video ", "<video controls ")
         content = content.replace('autoplay=""', '')
         content = content.replace('playsinline=""', '')

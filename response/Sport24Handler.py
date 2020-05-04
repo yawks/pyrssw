@@ -6,7 +6,7 @@ import urllib
 import response.dom_utils
 
 
-class Sport24Handler(RequestHandler):
+class PyRSSWRequestHandler(RequestHandler):
     def __init__(self, url_prefix):
         super().__init__(url_prefix, handler_name="sport24", original_website="https://sport24.lefigaro.fr/",
                          rss_url="https://sport24.lefigaro.fr/rssfeeds/sport24-###.xml")

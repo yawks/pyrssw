@@ -6,41 +6,29 @@ from http.server import HTTPServer
 from http.server import BaseHTTPRequestHandler
 
 from response.BadRequestHandler import BadRequestHandler
-from response.IziSmileHandler import IzismileHandler
-from response.LesJoiesDuCodeHandler import LesJoiesDuCodeHandler
-from response.EvilmilkHandler import EvilmilkHandler
-from response.EurosportHandler import EurosportHandler
-from response.Sport24Handler import Sport24Handler
-from response.LeMondeHandler import LeMondeHandler
-from response.ThumbnailsHandler import ThumbnailsHandler
 from config.Config import Config
-
+import glob
+import importlib
 import logging
 
 
 class Server(BaseHTTPRequestHandler):
+
     def do_HEAD(self):
         return
 
     def do_GET(self):
         module_name = self._parseModuleName()
-        # TODO improve that with a dynamic loadings
-        if module_name == "izismile":
-            handler = IzismileHandler(self.server.getServingURLPrefix())
-        elif module_name == "lesjoiesducode":
-            handler = LesJoiesDuCodeHandler(self.server.getServingURLPrefix())
-        elif module_name == "evilmilk":
-            handler = EvilmilkHandler(self.server.getServingURLPrefix())
-        elif module_name == "eurosport":
-            handler = EurosportHandler(self.server.getServingURLPrefix())
-        elif module_name == "sport24":
-            handler = Sport24Handler(self.server.getServingURLPrefix())
-        elif module_name == "lemonde":
-            handler = LeMondeHandler(self.server.getServingURLPrefix())
-        elif module_name == "thumbnails":
-            handler = ThumbnailsHandler(self.server.getServingURLPrefix())
-        else:
-            handler = BadRequestHandler(self.server.getServingURLPrefix(), self.path)
+        server: RSSHTTPServer = self.server
+        handler = None
+
+        for h in server.handlers:  # find handler from module_name
+            if h.handlerName == module_name:
+                handler = h
+
+        if handler is None:
+            handler = BadRequestHandler(
+                self.server.getServingURLPrefix(), self.path)
 
         handler.process(self.path[len(module_name)+1:])
         self.respond({
@@ -64,8 +52,7 @@ class Server(BaseHTTPRequestHandler):
 
         if status_code == 200:
             content = handler.getContents()
-            self.send_header(
-                'Content-type', handler.getContentType() + '; charset=utf-8')
+            self.send_header('Content-type', handler.getContentType())
         elif handler.getContents() != "":
             content = handler.getContents()
         else:
@@ -94,6 +81,16 @@ class RSSHTTPServer(HTTPServer):
                                           keyfile=config.getKeyFile(),
                                           certfile=config.getCertFile(),
                                           server_side=True)
+        # load handlers
+        self.handlers: list = []
+        for handler in glob.glob("response/*Handler.py"):
+            # do not load generic handlers
+            if not handler.endswith("BadRequestHandler.py") and not handler.endswith("RequestHandler.py"):
+                moduleName = ".%s" % os.path.basename(handler).strip(".py")
+                module = importlib.import_module(
+                    moduleName, package="response")
+                self.handlers.append(module.PyRSSWRequestHandler(
+                    self.getServingURLPrefix()))
 
     def getConfig(self) -> Config:
         return self.config
