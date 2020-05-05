@@ -91,6 +91,7 @@ class RequestHandler():
                     self.contents = self.get_content(request_url, parameters)
 
                 if self.content_type == self.HTML_CONTENT_TYPE: #if not overridden by handlers
+                    self._replace_prefix_urls()
                     self._wrapped_html_content(parameters)
 
             self.set_status(200)
@@ -171,9 +172,6 @@ class RequestHandler():
                                 a {
                                     color:#0080ff
                                 }
-                                * {
-                                    font-family: "Marr Sans",Helvetica,Arial,Roboto,sans-serif
-                                }
                             }
                         """
 
@@ -182,7 +180,12 @@ class RequestHandler():
                     <html>
                         <head>
                             <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-                            <style>%s</style>
+                            <style>
+                            %s
+                            * {
+                                font-family: "Marr Sans",Helvetica,Arial,Roboto,sans-serif
+                            }
+                            </style>
                         </head>
                         <body>
                             %s
@@ -199,3 +202,13 @@ class RequestHandler():
         if "dark" in parameters and parameters["dark"] == "true":
             dark_style = "dark=true&amp;"
         return dark_style
+    
+    def _replace_prefix_urls(self):
+        self.contents = self.contents.replace("a href='" + self.original_website,
+                            "a href='" + self.url_prefix)
+        self.contents = self.contents.replace(
+            'a href="' + self.original_website, 'a href="' + self.url_prefix)
+        self.contents = self.contents.replace('href="/', 'href="' + self.original_website)
+        self.contents = self.contents.replace("href='/", "href='" + self.original_website)
+        self.contents = self.contents.replace('src="/', 'src="' + self.original_website)
+        self.contents = self.contents.replace("src='/", "src='" + self.original_website)

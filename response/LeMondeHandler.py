@@ -80,6 +80,7 @@ class PyRSSWRequestHandler(RequestHandler):
                 '//*[contains(@class, "services")]',
                 '//*[contains(@class, "article__footer-single")]',
                 '//*[contains(@class, "wp-socializer")]',
+                '//*[contains(@class, "insert")]',
                 '//*[@id="comments"]',                              #blog
                 '//*[contains(@class, "post-navigation")]'          #blog
                 '//*[contains(@class, "entry-footer")]'             #blog

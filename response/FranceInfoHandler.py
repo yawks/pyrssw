@@ -54,7 +54,6 @@ class PyRSSWRequestHandler(RequestHandler):
 
         content = re.sub(r'src="data:image[^"]*', '', content)
         content = content.replace("data-src", "style='height:100%;width:100%' src")
-        content = self._replace_prefix_urls(content)
         dom = etree.HTML(content)
 
         response.dom_utils.delete_xpaths(dom, [
@@ -71,17 +70,4 @@ class PyRSSWRequestHandler(RequestHandler):
         content = response.dom_utils.get_content(
             dom, ['//div[contains(@class, "content")]', '//div[contains(@class,"article-detail-block")]'])
         
-        return content
-
-
-    def _replace_prefix_urls(self, c: str) -> str:
-        content = c.replace("a href='" + self.original_website,
-                            "a href='" + self.url_prefix)
-        content = content.replace(
-            'a href="' + self.original_website, 'a href="' + self.url_prefix)
-        content = content.replace('href="/', 'href="' + self.original_website)
-        content = content.replace("href='/", "href='" + self.original_website)
-        content = content.replace('src="/', 'src="' + self.original_website)
-        content = content.replace("src='/", "src='" + self.original_website)
-
         return content

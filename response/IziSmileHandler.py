@@ -11,16 +11,16 @@ class PyRSSWRequestHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="izismile",
                          original_website="https://izismile.com/", rss_url="https://feeds2.feedburner.com/izismile")
 
-    def get_feed(self, parameters: dict)  -> str:
+    def get_feed(self, parameters: dict) -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         feed = feed.replace('<guid isPermaLink="false">', '<link>')
         feed = feed.replace('</guid>', '</link>')
         feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
 
-        return self._replace_urls(feed)
+        return feed
 
-    def get_content(self, url: str, parameters: dict)  -> str:
+    def get_content(self, url: str, parameters: dict) -> str:
         content, url_next_page = self._get_content(url)
 
         if url_next_page != "":
@@ -66,11 +66,11 @@ class PyRSSWRequestHandler(RequestHandler):
 
         post_lists = dom.xpath('//*[@id="post-list"]')
         if len(post_lists) > 0:
-            content = self._replace_urls(etree.tostring(
-                dom.xpath('//*[@id="post-list"]')[0], encoding='unicode'))
+            content = etree.tostring(
+                dom.xpath('//*[@id="post-list"]')[0], encoding='unicode')
         else:
-            content = self._replace_urls(
-                etree.tostring(dom, encoding='unicode'))
+            content = etree.tostring(dom, encoding='unicode')
+
         content = self._clean_content(content)
 
         return content, url_next_page
@@ -91,17 +91,7 @@ class PyRSSWRequestHandler(RequestHandler):
         content = re.sub(r'<div class="imgbox">(.*)</div>',
                          r"\1", content, flags=re.S)
         content = content.replace('id="post-list"', 'id="mainbody"')
-        return content
 
-    def _replace_urls(self, c):
-        content = c.replace("a href='https://izismile.com/",
-                            "a href='" + self.url_prefix)
-        content = content.replace(
-            'a href="https://izismile.com/', 'a href="' + self.url_prefix)
-        content = content.replace('href="/', 'href="https://izismile.com/')
-        content = content.replace("href='/", "href='https://izismile.com/")
-        content = content.replace('src="/', 'src="https://izismile.com/')
-        content = content.replace("src='/", "src='https://izismile.com/")
         content = content.replace("<img", "<br/><br/><img")
         content = content.replace('<div class="tools" style="display: none;"/>',
                                   '<div class="tools" style="display: block;"/>')
