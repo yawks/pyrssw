@@ -1,5 +1,5 @@
 from response.RequestHandler import RequestHandler
-import lxml.etree
+from lxml import etree
 import requests
 import re
 import response.dom_utils
@@ -16,7 +16,7 @@ class PyRSSWRequestHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="lesjoiesducode",
                          original_website="https://lesjoiesducode.fr/", rss_url="http://lesjoiesducode.fr/rss")
 
-    def getFeed(self, parameters: dict) -> str:
+    def get_feed(self, parameters: dict) -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
         feed = feed.replace("<link>", "<link>%s?url=" % self.url_prefix)
         feed = re.sub(
@@ -25,26 +25,26 @@ class PyRSSWRequestHandler(RequestHandler):
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
         
-        dom = lxml.etree.fromstring(feed)
+        dom = etree.fromstring(feed)
         for item in dom.xpath('//item'):
             for child in item.getchildren():  # did not find how to xpath content:encoded tag
                 if child.tag.endswith("encoded"):
-                    c = self._cleanContent(
+                    c = self._clean_content(
                         '<div class="blog-post">' + child.text + '</div>')
                     child.text = c  # "<![CDATA[" + c + "]]>"
 
-        return lxml.etree.tostring(dom, encoding='unicode')
+        return etree.tostring(dom, encoding='unicode')
 
-    def getContent(self, url: str, parameters: dict) -> str:
+    def get_content(self, url: str, parameters: dict) -> str:
         page = requests.get(url=url, headers={})
-        content = self._cleanContent(page.text)
+        content = self._clean_content(page.text)
         return content
 
-    def _cleanContent(self, c):
+    def _clean_content(self, c):
         content = ""
         if not c is None:
-            dom = lxml.etree.HTML(c)
-            response.dom_utils.deleteXPaths(dom, [
+            dom = etree.HTML(c)
+            response.dom_utils.delete_xpaths(dom, [
                 '//*[@class="permalink-pagination"]',
                 '//*[@class="social-share"]',
                 '//*[@class="post-author"]'
@@ -54,13 +54,13 @@ class PyRSSWRequestHandler(RequestHandler):
             for obj in objs:
                 if obj.attrib["data"].lower().endswith(".gif"):
                     src = obj.attrib["data"]
-                    img = lxml.etree.Element("img")
+                    img = etree.Element("img")
                     img.set("src", src)
                     obj.getparent().getparent().getparent().getparent().append(img)
 
-            response.dom_utils.deleteNodes(dom.xpath('//video'))
+            response.dom_utils.delete_nodes(dom.xpath('//video'))
 
-            content = response.dom_utils.getContent(
+            content = response.dom_utils.get_content(
                 dom, ['//div[contains(@class, "blog-post")]', '//div[contains(@class,"blog-post-content")]'])
 
             content = content.replace('<div class="blog-post">', '')

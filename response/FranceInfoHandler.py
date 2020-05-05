@@ -1,10 +1,7 @@
 from response.RequestHandler import RequestHandler
-import lxml.etree
+from lxml import etree
 import requests
-import string
 import re
-import http.cookiejar
-import urllib.parse
 import response.dom_utils
 
 class PyRSSWRequestHandler(RequestHandler):
@@ -16,7 +13,7 @@ class PyRSSWRequestHandler(RequestHandler):
      - filters : politique, faits-divers, societe, economie, monde, culture, sports, sante, environnement, ...
      
        to invert filtering, prefix it with: ^
-       eg : 
+       eg :
          - /franceinfo/rss?filter=politique            #only feeds about politique
          - /franceinfo/rss?filter=politique,societe    #only feeds about politique and societe
          - /franceinfo/rss?filter=^politique,societe   #all feeds but politique and societe
@@ -29,7 +26,7 @@ class PyRSSWRequestHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="franceinfo",
                          original_website="http://www.franceinfo.fr/", rss_url="http://www.franceinfo.fr/rss.xml")
 
-    def getFeed(self, parameters: dict) -> str:
+    def get_feed(self, parameters: dict) -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
         
         feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
@@ -37,31 +34,31 @@ class PyRSSWRequestHandler(RequestHandler):
 
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = lxml.etree.fromstring(feed)
+        dom = etree.fromstring(feed)
 
         if "filter" in parameters:
             # filter only on passed category
-            xpath_expression = response.dom_utils.getXpathExpressionForFilters(
+            xpath_expression = response.dom_utils.get_xpath_expression_for_filters(
                 parameters, "link[contains(text(), '/%s/')]", "not(link[contains(text(), '/%s/')])")
 
-            response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
+            response.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
-        feed = lxml.etree.tostring(dom, encoding='unicode')
+        feed = etree.tostring(dom, encoding='unicode')
 
         return feed
 
     
-    def getContent(self, url: str, parameters: dict) -> str:
-        page = requests.get(url=url, headers=super().getUserAgent())
+    def get_content(self, url: str, parameters: dict) -> str:
+        page = requests.get(url=url, headers=super().get_user_agent())
         content = page.text
 
         content = re.sub(r'src="data:image[^"]*', '', content)
         content = content.replace("data-src", "style='height:100%;width:100%' src")
-        content = self._replacePrefixURLs(content)
-        dom = lxml.etree.HTML(content)
+        content = self._replace_prefix_urls(content)
+        dom = etree.HTML(content)
 
-        response.dom_utils.deleteXPaths(dom, [
-            '//*[contains(@class, "block-share")]', 
+        response.dom_utils.delete_xpaths(dom, [
+            '//*[contains(@class, "block-share")]',
             '//*[@id="newsletter-onvousrepond"]',
             '//*[contains(@class, "partner-block")]',
             '//*[contains(@class, "a-lire-aussi")]',
@@ -71,20 +68,20 @@ class PyRSSWRequestHandler(RequestHandler):
             '//*[contains(@class, "col-right")]'
         ])
             
-        content = response.dom_utils.getContent(
+        content = response.dom_utils.get_content(
             dom, ['//div[contains(@class, "content")]', '//div[contains(@class,"article-detail-block")]'])
         
         return content
 
 
-    def _replacePrefixURLs(self, c: str) -> str:
-        content = c.replace("a href='" + self.originalWebsite,
+    def _replace_prefix_urls(self, c: str) -> str:
+        content = c.replace("a href='" + self.original_website,
                             "a href='" + self.url_prefix)
         content = content.replace(
-            'a href="' + self.originalWebsite, 'a href="' + self.url_prefix)
-        content = content.replace('href="/', 'href="' + self.originalWebsite)
-        content = content.replace("href='/", "href='" + self.originalWebsite)
-        content = content.replace('src="/', 'src="' + self.originalWebsite)
-        content = content.replace("src='/", "src='" + self.originalWebsite)
+            'a href="' + self.original_website, 'a href="' + self.url_prefix)
+        content = content.replace('href="/', 'href="' + self.original_website)
+        content = content.replace("href='/", "href='" + self.original_website)
+        content = content.replace('src="/', 'src="' + self.original_website)
+        content = content.replace("src='/", "src='" + self.original_website)
 
         return content

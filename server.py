@@ -1,5 +1,6 @@
 import os
 import importlib
+from response.EurosportHandler import PyRSSWRequestHandler
 
 import ssl
 from http.server import HTTPServer
@@ -12,7 +13,7 @@ from config.Config import Config
 import glob
 import importlib
 import logging
-from typing import List
+from typing import List, Type
 
 import base64
 
@@ -24,15 +25,15 @@ class Server(BaseHTTPRequestHandler):
 
     def do_GET(self):
         server: PyRSSWHTTPServer = self.server
-        if self.checkAuth(self.headers, server.auth_key):
-            module_name = self._parseModuleName()
-            handler = None
+        if self.check_auth(self.headers, server.auth_key):
+            module_name = self._parse_module_name()
+            handler: RequestHandler = None
 
             if module_name == "":  # root page
                 handler = HelpHandler(server.handlers)
             else:
                 for h in server.handlers:  # find handler from module_name
-                    if h.handlerName == module_name:
+                    if h.handler_name == module_name:
                         handler = h
                         break
 
@@ -47,12 +48,12 @@ class Server(BaseHTTPRequestHandler):
         else:
             logging.getLogger().error("Invalid credentials")
             self.send_response(401)
-            self.send_header("WWW-Authenticate", "Basic realm=\"PyRSSW Realm\"")
+            self.send_header("WWW-Authenticate",
+                             "Basic realm=\"PyRSSW Realm\"")
             self.send_header("Content-type", "application/json")
             self.end_headers()
 
-
-    def checkAuth(self, headers, auth_key):
+    def check_auth(self, headers, auth_key):
         """ Process basic auth authentication check """
         auth_ok = False
         if auth_key is None:
@@ -65,7 +66,7 @@ class Server(BaseHTTPRequestHandler):
 
         return auth_ok
 
-    def _parseModuleName(self):
+    def _parse_module_name(self):
         module_name = ""
         split_path = self.path.split('/')
         if len(split_path) > 1:
@@ -75,18 +76,18 @@ class Server(BaseHTTPRequestHandler):
 
         return module_name
 
-    def handle_http(self, handler):
+    def handle_http(self, handler: RequestHandler):
         content = None
-        status_code = handler.getStatus()
+        status_code = handler.get_status()
 
         self.send_response(status_code)
 
         if status_code != 401:
             if status_code == 200:
-                content = handler.getContents()
-                self.send_header('Content-type', handler.getContentType())
-            elif handler.getContents() != "":
-                content = handler.getContents()
+                content = handler.get_contents()
+                self.send_header('Content-type', handler.get_content_type())
+            elif handler.get_contents() != "":
+                content = handler.get_contents()
             else:
                 content = "404 Not Found"
 
@@ -106,57 +107,53 @@ class Server(BaseHTTPRequestHandler):
 class PyRSSWHTTPServer(HTTPServer):
     def __init__(self, config: Config):
         self.config = config
-        super().__init__((config.getServerListeningHostName(),
-                          config.getServerListeningPort()), Server)
+        super().__init__((config.get_server_listening_hostname(),
+                          config.get_server_listening_port()), Server)
 
-        if self.getProtocol() == "https":
+        if self.get_protocol() == "https":
             self.socket = ssl.wrap_socket(self.socket,
-                                          keyfile=config.getKeyFile(),
-                                          certfile=config.getCertFile(),
+                                          keyfile=config.get_key_file(),
+                                          certfile=config.get_cert_file(),
                                           server_side=True)
-        # load handlers
-        self._loadHandlers()
+        self._load_handlers()
+        self._load_auth_key()
 
-        self._loadAuthKey()
-
-    def _loadAuthKey(self):
+    def _load_auth_key(self):
         self.auth_key = None
-        login, password = self.config.getBasicAuthCredentials()
-        if not login is None and not password is None:
+        login, password = self.config.get_basic_auth_credentials()
+        if login != "" and password != "":
             self.auth_key = base64.b64encode(
                 bytes('%s:%s' % (login, password), 'utf-8')).decode('ascii')
         else:
             logging.getLogger().info("No basic auth credentials defined in config.ini")
 
-    def _loadHandlers(self):
+    def _load_handlers(self):
         self.handlers: List[RequestHandler] = []
         for handler in glob.glob("response/*Handler.py"):
-
-            moduleName = ".%s" % os.path.basename(handler).strip(".py")
-            module = importlib.import_module(
-                moduleName, package="response")
+            module_name = ".%s" % os.path.basename(handler).strip(".py")
+            module = importlib.import_module(module_name, package="response")
             if hasattr(module, 'PyRSSWRequestHandler'):
                 self.handlers.append(module.PyRSSWRequestHandler(
-                    self.getServingURLPrefix()))
+                    self.get_serving_url_prefix()))
 
-    def getConfig(self) -> Config:
+    def get_config(self) -> Config:
         return self.config
 
-    def getProtocol(self) -> str:
+    def get_protocol(self) -> str:
         protocol = "http"
-        if not self.config.getKeyFile() is None and not self.config.getCertFile() is None:
+        if not self.config.get_key_file() is None and not self.config.get_cert_file() is None:
             protocol = "https"
 
         return protocol
 
-    def getListeningURLPrefix(self):
+    def get_listening_url_prefix(self):
         return "%s://%s:%d" % (
-            self.getProtocol(),
-            self.config.getServerListeningHostName(),
-            self.config.getServerListeningPort())
+            self.get_protocol(),
+            self.config.get_server_listening_hostname(),
+            self.config.get_server_listening_port())
 
-    def getServingURLPrefix(self):
+    def get_serving_url_prefix(self):
         return "%s://%s:%d" % (
-            self.getProtocol(),
-            self.config.getServerServingHostName(),
-            self.config.getServerListeningPort())
+            self.get_protocol(),
+            self.config.get_server_serving_hostname(),
+            self.config.get_server_listening_port())

@@ -1,5 +1,5 @@
 from response.RequestHandler import RequestHandler
-import lxml.etree
+from lxml import etree
 import requests
 import json
 import html
@@ -14,7 +14,7 @@ class PyRSSWRequestHandler(RequestHandler):
     RSS parameters:
      - filter : tennis, football, rugby
        to invert filtering, prefix it with: ^
-       eg : 
+       eg :
          - /eurosport/rss?filter=tennis             #only feeds about tennis
          - /eurosport/rss?filter=football,tennis    #only feeds about football and tennis
          - /eurosport/rss?filter=^football,tennis   #all feeds but football and tennis
@@ -27,36 +27,36 @@ class PyRSSWRequestHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="eurosport",
                          original_website="https://www.eurosport.fr/", rss_url="https://www.eurosport.fr/rss.xml")
 
-    def getFeed(self, parameters: dict)  -> str:
+    def get_feed(self, parameters: dict)  -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
 
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
-        dom = lxml.etree.fromstring(feed)
+        dom = etree.fromstring(feed)
 
         if "filter" in parameters:
             # filter only on passed category, eg /eurosport/rss/tennis
-            xpath_expression = response.dom_utils.getXpathExpressionForFilters(
+            xpath_expression = response.dom_utils.get_xpath_expression_for_filters(
                 parameters, "category/text() = '%s'", "not(category/text() = '%s')")
 
-            response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
+            response.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         # replace video links, they must be processed by getContent
         for link in dom.xpath("//link"):
             if link.text.find("/video.shtml") > -1:
                 link.text = "%s?url=%s" % (self.url_prefix, link.text)
 
-        feed = lxml.etree.tostring(dom, encoding='unicode')
+        feed = etree.tostring(dom, encoding='unicode')
 
         return feed
 
-    def _getRSSLinkDescription(self, link_url: str) -> str:
+    def _get_rss_link_description(self, link_url: str) -> str:
         """find in rss file the item having the link_url and returns the description"""
         description = ""
         feed = requests.get(url=self.rss_url, headers={}).text
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
-        dom = lxml.etree.fromstring(feed)
+        dom = etree.fromstring(feed)
         descriptions = dom.xpath(
             "//item/link/text()[contains(., '%s')]/../../description" % link_url)
         if len(descriptions) > 0:
@@ -64,17 +64,17 @@ class PyRSSWRequestHandler(RequestHandler):
 
         return description
 
-    def getContent(self, url: str, parameters: dict)  -> str:
+    def get_content(self, url: str, parameters: dict)  -> str:
         content = ""
 
         if url.find("/video.shtml") > -1 and url.find("_vid") > -1:
-            content = self._getVideoContent(url)
+            content = self._get_video_content(url)
         else:
             content = requests.get(url, headers={}).text
 
         return content
 
-    def _getVideoContent(self, url: str) -> str:
+    def _get_video_content(self, url: str) -> str:
         """ video in eurosport website are loaded using some javascript
             we build here a simplifed page with the rss.xml item description + a video object"""
         vid = url[url.find("_vid")+len("_vid"):]
@@ -92,4 +92,4 @@ class PyRSSWRequestHandler(RequestHandler):
                             </video>
                         </p>
                         <p>%s</p>
-                    </div>""" % (j["EmbedUrl"], j["Title"], j["VideoUrl"], self._getRSSLinkDescription(url[1:]))
+                    </div>""" % (j["EmbedUrl"], j["Title"], j["VideoUrl"], self._get_rss_link_description(url[1:]))

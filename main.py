@@ -11,14 +11,14 @@ from config.Config import Config
 
 
 def main(argv):
-    config: Config = Config(parseCommandLine(argv))
+    config: Config = Config(parse_command_line(argv))
 
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
     httpd = PyRSSWHTTPServer(config)
 
     logging.getLogger().info('Server Starts - %s serving %s urls' % (
-        httpd.getListeningURLPrefix(),
-        httpd.getServingURLPrefix()))
+        httpd.get_listening_url_prefix(),
+        httpd.get_serving_url_prefix()))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -27,8 +27,8 @@ def main(argv):
     logging.getLogger().info('Server Stops')
 
 
-def parseCommandLine(argv: list) -> str:
-    config_file = None
+def parse_command_line(argv: list) -> str:
+    config_file = ""
 
     try:
         opts, args = getopt.getopt(argv[1:], "hc:", ["config="])

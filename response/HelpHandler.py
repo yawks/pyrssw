@@ -7,8 +7,8 @@ class HelpHandler(RequestHandler):
     def __init__(self, handlers: List[RequestHandler]):
         super().__init__("", "help", "")
         self.handlers = handlers
-    
-    def getContent(self, url:str, parameters: list) -> str:
+
+    def get_content(self, url:str, parameters: dict) -> str:
         content = "<pre>"
         for handler in self.handlers:
             content += "<hr/><br/><a href='%srss'>%s</a>\n\n" % (handler.url_prefix, handler.__module__.split('.')[1])

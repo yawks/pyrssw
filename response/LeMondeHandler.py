@@ -1,15 +1,12 @@
 from response.RequestHandler import RequestHandler
-import lxml.etree
+from lxml import etree
 import requests
-import string
 import re
-import http.cookiejar
 import urllib.parse
 import response.dom_utils
 
 URL_CONNECTION = "https://secure.lemonde.fr/sfuser/connexion"
 URL_DECONNECTION = "https://secure.lemonde.fr/sfuser/deconnexion"
-
 
 class PyRSSWRequestHandler(RequestHandler):
     """Handler for french <a href="https://www.lemonde.fr">Le Monde</a> website.
@@ -19,7 +16,7 @@ class PyRSSWRequestHandler(RequestHandler):
     RSS parameters:
      - filter : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts
        to invert filtering, prefix it with: ^
-       eg : 
+       eg :
          - /lemonde/rss?filter=politique            #only feeds about politique
          - /lemonde/rss?filter=politique,societe    #only feeds about politique and societe
          - /lemonde/rss?filter=^politique,societe   #all feeds but politique and societe
@@ -34,28 +31,29 @@ class PyRSSWRequestHandler(RequestHandler):
         super().__init__(url_prefix, handler_name="lemonde",
                          original_website="https://www.lemonde.fr/", rss_url="https://www.lemonde.fr/rss/une.xml")
 
-    def getFeed(self, parameters: dict) -> str:
+    def get_feed(self, parameters: dict) -> str:
         feed = requests.get(url=self.rss_url, headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
-        feed = feed.replace('<guid isPermaLink="false">', '<link>')
-        feed = feed.replace('<guid isPermaLink="true">', '<link>')
+        link = '<link>'
+        feed = feed.replace('<guid isPermaLink="false">', link)
+        feed = feed.replace('<guid isPermaLink="true">', link)
         feed = feed.replace('</guid>', '</link>')
-        feed = feed.replace('<link>', '<link>%s?%surl=' % (
+        feed = feed.replace(link, '<link>%s?%surl=' % (
             self.url_prefix, self._getAuthentificationSuffix(parameters)))
 
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = lxml.etree.fromstring(feed)
+        dom = etree.fromstring(feed)
 
         # available filters : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts
         if "filter" in parameters:
             # filter only on passed category
-            xpath_expression = response.dom_utils.getXpathExpressionForFilters(
+            xpath_expression = response.dom_utils.get_xpath_expression_for_filters(
                 parameters, "link[contains(text(), '/%s/')]", "not(link[contains(text(), '/%s/')])")
 
-            response.dom_utils.deleteNodes(dom.xpath(xpath_expression))
+            response.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
-        feed = lxml.etree.tostring(dom, encoding='unicode')
+        feed = etree.tostring(dom, encoding='unicode')
 
         return feed
 
@@ -67,15 +65,15 @@ class PyRSSWRequestHandler(RequestHandler):
 
         return suffix
 
-    def getContent(self, url: str, parameters: dict) -> str:
+    def get_content(self, url: str, parameters: dict) -> str:
         session: requests.Session = self._authent(parameters)
         try:
-            page = session.get(url=url, headers=super().getUserAgent())
+            page = session.get(url=url, headers=super().get_user_agent())
             content = page.text
 
-            dom = lxml.etree.HTML(content)
+            dom = etree.HTML(content)
 
-            response.dom_utils.deleteXPaths(dom, [
+            response.dom_utils.delete_xpaths(dom, [
                 '//*[contains(@class, "meta__social")]',
                 '//*[contains(@class, "breadcrumb")]',
                 '//*[contains(@class, "article__reactions")]',
@@ -85,11 +83,11 @@ class PyRSSWRequestHandler(RequestHandler):
                 '//*[@id="comments"]',                              #blog
                 '//*[contains(@class, "post-navigation")]'          #blog
                 '//*[contains(@class, "entry-footer")]'             #blog
-            ]) 
+            ])
 
             #le monde rss provides many sub websites with different html architecture
-            content = response.dom_utils.getContent(dom, [
-                    '//*[contains(@class, "zone--article")]', 
+            content = response.dom_utils.get_content(dom, [
+                    '//*[contains(@class, "zone--article")]',
                     '//*[@id="post-container"]',
                     '//*[@id="main"]'                           # blog
                 ])
@@ -102,8 +100,8 @@ class PyRSSWRequestHandler(RequestHandler):
         return content
 
     def _authent(self, parameters: dict) -> requests.Session:
-        session = requests.Session()
-        page = session.get(url=URL_CONNECTION, headers=super().getUserAgent())
+        session: requests.Session = requests.Session()
+        page = session.get(url=URL_CONNECTION, headers=super().get_user_agent())
         if "login" in parameters and "password" in parameters:
             idx = page.text.find("connection[_token]")
             if idx > -1:
@@ -118,12 +116,12 @@ class PyRSSWRequestHandler(RequestHandler):
                     "connection[save]": "",
                     "connection[newsletters]": "[]",
                     "connection[_token]": token}
-                page = session.post(
-                    url=URL_CONNECTION, data=data, headers=self._getHeaders(URL_CONNECTION))
+                session.post(
+                    url=URL_CONNECTION, data=data, headers=self._get_headers(URL_CONNECTION))
 
         return session
 
-    def _getHeaders(self, referer):
+    def _get_headers(self, referer):
         headers = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
             "Accept-Encoding": "gzip, deflate, br",
@@ -133,7 +131,7 @@ class PyRSSWRequestHandler(RequestHandler):
             "Origin": "https://secure.lemonde.fr/",
             "Host": "secure.lemonde.fr",
             "Upgrade-Insecure-Requests": "1",
-            "User-Agent": super().getUserAgent()["User-Agent"],
+            "User-Agent": super().get_user_agent()["User-Agent"],
             "Connection": "keep-alive",
             "Pragma": "no-cache",
             "Referer": referer
@@ -141,5 +139,5 @@ class PyRSSWRequestHandler(RequestHandler):
         return headers
 
     def _unauthent(self, session: requests.Session):
-        session.get(url=URL_DECONNECTION, headers=self._getHeaders("/"))
+        session.get(url=URL_DECONNECTION, headers=self._get_headers("/"))
         session.close()
