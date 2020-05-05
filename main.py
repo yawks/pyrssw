@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from http.server import HTTPServer
 from server import Server
-from server import RSSHTTPServer
+from server import PyRSSWHTTPServer
 import logging
 import os
 import sys
@@ -14,7 +14,7 @@ def main(argv):
     config: Config = Config(parseCommandLine(argv))
 
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
-    httpd = RSSHTTPServer(config)
+    httpd = PyRSSWHTTPServer(config)
 
     logging.getLogger().info('Server Starts - %s serving %s urls' % (
         httpd.getListeningURLPrefix(),

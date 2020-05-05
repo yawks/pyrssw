@@ -12,6 +12,24 @@ URL_DECONNECTION = "https://secure.lemonde.fr/sfuser/deconnexion"
 
 
 class PyRSSWRequestHandler(RequestHandler):
+    """Handler for french <a href="https://www.lemonde.fr">Le Monde</a> website.
+
+    Handler name: lemonde
+
+    RSS parameters:
+     - filter : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts
+       to invert filtering, prefix it with: ^
+       eg : 
+         - /lemonde/rss?filter=politique            #only feeds about politique
+         - /lemonde/rss?filter=politique,societe    #only feeds about politique and societe
+         - /lemonde/rss?filter=^politique,societe   #all feeds but politique and societe
+     - login : if you have an account you can use it to fetch full articles available only for subscribers
+     - password : password of your account
+    
+    Content:
+        Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
+    """
+
     def __init__(self, url_prefix):
         super().__init__(url_prefix, handler_name="lemonde",
                          original_website="https://www.lemonde.fr/", rss_url="https://www.lemonde.fr/rss/une.xml")
@@ -57,19 +75,24 @@ class PyRSSWRequestHandler(RequestHandler):
 
             dom = lxml.etree.HTML(content)
 
-            response.dom_utils.deleteNodes(
-                dom.xpath('//*[contains(@class, "meta__social")]'))
-            response.dom_utils.deleteNodes(
-                dom.xpath('//*[contains(@class, "breadcrumb")]'))
-            response.dom_utils.deleteNodes(
-                dom.xpath('//*[contains(@class, "article__reactions")]'))
-            response.dom_utils.deleteNodes(
-                dom.xpath('//*[contains(@class, "services")]'))
-            response.dom_utils.deleteNodes(
-                dom.xpath('//*[contains(@class, "article__footer-single")]'))
+            response.dom_utils.deleteXPaths(dom, [
+                '//*[contains(@class, "meta__social")]',
+                '//*[contains(@class, "breadcrumb")]',
+                '//*[contains(@class, "article__reactions")]',
+                '//*[contains(@class, "services")]',
+                '//*[contains(@class, "article__footer-single")]',
+                '//*[contains(@class, "wp-socializer")]',
+                '//*[@id="comments"]',                              #blog
+                '//*[contains(@class, "post-navigation")]'          #blog
+                '//*[contains(@class, "entry-footer")]'             #blog
+            ]) 
 
-            content = response.dom_utils.getContent(
-                dom, ['//*[contains(@class, "zone--article")]', '//*[@id="post-container"]'])
+            #le monde rss provides many sub websites with different html architecture
+            content = response.dom_utils.getContent(dom, [
+                    '//*[contains(@class, "zone--article")]', 
+                    '//*[@id="post-container"]',
+                    '//*[@id="main"]'                           # blog
+                ])
 
         except Exception as e:
             raise e
@@ -97,7 +120,8 @@ class PyRSSWRequestHandler(RequestHandler):
                     "connection[_token]": token}
                 page = session.post(
                     url=URL_CONNECTION, data=data, headers=self._getHeaders(URL_CONNECTION))
-            return session
+
+        return session
 
     def _getHeaders(self, referer):
         headers = {

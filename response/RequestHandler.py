@@ -8,6 +8,17 @@ import re
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 
 class RequestHandler():
+    """Main instance for every handler.
+
+    getFeed, getContent and optionnally getContentType must be overridden by every new Handlers.
+
+    - getFeed :
+        Takes a dictionary of parameters and must return the xml of the rss feed
+
+    - getContent :
+        Takes an url and a dictionary of parameters and must return the result content.
+        If the content returned is not HTML, the function getContentType must also be overridden (see ThumbnailsHandler.py)
+    """
     def __init__(self, url_prefix, handler_name, original_website, rss_url=""):
         self.contentType = ""
         self.handlerName = handler_name
@@ -51,6 +62,7 @@ class RequestHandler():
         return ''
 
     def process(self, url: str) -> bool:
+        """process the url, finds the handler to use depending on the url"""
         try:
             url, parameters = self._getModuleNameFromURL(url)
             if url.find("/rss") == 0:
@@ -70,7 +82,7 @@ class RequestHandler():
                 else:
                     self.contents = self.getContent(request_url, parameters)
                 
-                if self.getContentType() == HTML_CONTENT_TYPE: #in case of overridden content type
+                if self.getContentType() == HTML_CONTENT_TYPE: #in case of overridden content type, not very clean :S
                     self._wrappedHTMLContent(parameters)
 
             self.setStatus(200)
@@ -83,8 +95,9 @@ class RequestHandler():
             return False
     
 
-    #arrange feed by adding some pictures in description, ...
+    
     def _arrangeFeed(self, content: str) -> str:
+        """arrange feed by adding some pictures in description, ..."""
         feed = content
 
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip() # I probably do not use etree as I should
@@ -112,10 +125,10 @@ class RequestHandler():
         
         feed = lxml.etree.tostring(dom, encoding='unicode')
 
-        return feed
+        return '<?xml version="1.0" encoding="UTF-8"?>\n' + feed
 
-    #get the module name
     def _getModuleNameFromURL(self, url: str) -> [str, dict]:
+        """get the module name and the url requested from the url"""
         parameters: dict = {}
         new_url: str = url
         parts = url.split('?')
@@ -129,18 +142,30 @@ class RequestHandler():
 
         return new_url, parameters
 
-    #utility to get html content with header, body and some predefined styles
     def _wrappedHTMLContent(self, parameters: dict):
+        """wrap the html content with header, body and some predefined styles"""
         dark_style: str = ""
         source: str = ""
         if "url" in parameters:
             source = "<em><a href='%s'>Source</em>" % parameters["url"]
         if "dark" in parameters and parameters["dark"] == "true":
-            dark_style = "body {color: white;background-color:black;}"
+            dark_style = """@media (prefers-color-scheme: dark) {
+                                body {
+                                    background-color: #111;
+                                    color: #ccc;
+                                }
+                                a { 
+                                    color:#0080ff
+                                }
+                                * {
+                                    font-family: "Marr Sans",Helvetica,Arial,Roboto,sans-serif
+                                }
+                            }
+                        """
 
         #TODO remove head and body if previously exists and logs it
 
-        self.contents = """  <!DOCTYPE html>
+        self.contents = """<!DOCTYPE html>
                     <html>
                         <head>
                             <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -148,11 +173,15 @@ class RequestHandler():
                         </head>
                         <body>
                             %s
+                            <br/>
+                            <br/>
+                            <hr/>
                             %s
                         </body>
-                    </html>""" % (dark_style, source, self.contents)
+                    </html>""" % (dark_style, self.contents, source)
     
     def getDarkParameters(self, parameters: dict) -> str:
+        """get the url parameter if dark=true is defined in parameters"""
         dark_style: str = ""
         if "dark" in parameters and parameters["dark"] == "true":
             dark_style = "dark=true&amp;"

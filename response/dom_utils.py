@@ -1,8 +1,8 @@
 import lxml.etree
+from typing import List
 
-
-#get content of first found xpath in the list of xpath expressions
 def getContent(dom: lxml.etree, xpaths: list) -> str:
+    """get content of first found xpath in the list of xpath expressions"""
     content = ""
     for xpath in xpaths:
         results = dom.xpath(xpath)
@@ -12,8 +12,13 @@ def getContent(dom: lxml.etree, xpaths: list) -> str:
 
     return content
 
-#delete list of nodes
+def deleteXPaths(dom: lxml.etree, xpaths: List[str]):
+    """delete nodes of the given dom matching xpath exrepssions"""
+    for xpath in xpaths:
+        deleteNodes(dom.xpath(xpath))
+
 def deleteNodes(nodes):
+    """delete list of nodes"""
     for node in list(nodes):
         node.getparent().remove(node)
 

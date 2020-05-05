@@ -7,6 +7,22 @@ import response.dom_utils
 
 
 class PyRSSWRequestHandler(RequestHandler):
+    """Handler for french <a href="https://www.eurosport.fr">Eurosport</a> website.
+
+    Handler name: eurosport
+
+    RSS parameters:
+     - filter : tennis, football, rugby
+       to invert filtering, prefix it with: ^
+       eg : 
+         - /eurosport/rss?filter=tennis             #only feeds about tennis
+         - /eurosport/rss?filter=football,tennis    #only feeds about football and tennis
+         - /eurosport/rss?filter=^football,tennis   #all feeds but football and tennis
+    
+    Content:
+        Content remains Eurosport links except for video pages.
+        Video pages in the eurosport website are dynamically built using some javascript, the handler provide a simple page with a HTML5 video object embedding the video.
+    """
     def __init__(self, url_prefix):
         super().__init__(url_prefix, handler_name="eurosport",
                          original_website="https://www.eurosport.fr/", rss_url="https://www.eurosport.fr/rss.xml")
