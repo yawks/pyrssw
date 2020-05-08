@@ -1,23 +1,32 @@
-from response.RequestHandler import RequestHandler
-from lxml import etree
-import requests
 import re
-import response.dom_utils
+
+import requests
+from lxml import etree
+
+import utils.dom_utils
+from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 
 
-class PyRSSWRequestHandler(RequestHandler):
+class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
     """Handler for Les Joies du Code website.
 
     Most of the time the feed is enough to display the content of each entry.
 
-    RSS parameters: None 
+    RSS parameters: None
     """
-    def __init__(self, url_prefix):
-        super().__init__(url_prefix, handler_name="lesjoiesducode",
-                         original_website="https://lesjoiesducode.fr/", rss_url="http://lesjoiesducode.fr/rss")
+    
+    @staticmethod
+    def get_handler_name() -> str:
+        return "lesjoiesducode"
+
+    def get_original_website(self) -> str:
+        return "https://lesjoiesducode.fr/"
+
+    def get_rss_url(self) -> str:
+        return "http://lesjoiesducode.fr/rss"
 
     def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.rss_url, headers={}).text
+        feed = requests.get(url=self.get_rss_url(), headers={}).text
         feed = feed.replace("<link>", "<link>%s?url=" % self.url_prefix)
         feed = re.sub(
             r'<guid isPermaLink="false">https://lesjoiesducode.fr/\?p=[^<]*</guid>', r"", feed)
@@ -44,7 +53,7 @@ class PyRSSWRequestHandler(RequestHandler):
         content = ""
         if not c is None:
             dom = etree.HTML(c)
-            response.dom_utils.delete_xpaths(dom, [
+            utils.dom_utils.delete_xpaths(dom, [
                 '//*[@class="permalink-pagination"]',
                 '//*[@class="social-share"]',
                 '//*[@class="post-author"]'
@@ -58,9 +67,9 @@ class PyRSSWRequestHandler(RequestHandler):
                     img.set("src", src)
                     obj.getparent().getparent().getparent().getparent().append(img)
 
-            response.dom_utils.delete_nodes(dom.xpath('//video'))
+            utils.dom_utils.delete_nodes(dom.xpath('//video'))
 
-            content = response.dom_utils.get_content(
+            content = utils.dom_utils.get_content(
                 dom, ['//div[contains(@class, "blog-post")]', '//div[contains(@class,"blog-post-content")]'])
 
             content = content.replace('<div class="blog-post">', '')

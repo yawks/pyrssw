@@ -1,17 +1,24 @@
-from response.RequestHandler import RequestHandler
-from lxml import etree
-import requests
 import re
-import response.dom_utils
+import requests
+from lxml import etree
+import utils.dom_utils
+from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 
 
-class PyRSSWRequestHandler(RequestHandler):
-    def __init__(self, url_prefix):
-        super().__init__(url_prefix, handler_name="evilmilk",
-                         original_website="https://www.evilmilk.com/", rss_url="https://www.evilmilk.com/rss.xml")
+class EvilmilkHandler(PyRSSWRequestHandler):
+    
+    @staticmethod
+    def get_handler_name() -> str:
+        return "evilmilk"
+
+    def get_original_website(self) -> str:
+        return "https://www.evilmilk.com/"
+
+    def get_rss_url(self) -> str:
+        return "https://www.evilmilk.com/rss.xml"
 
     def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.rss_url, headers={}).text
+        feed = requests.get(url=self.get_rss_url(), headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         feed = feed.replace('<guid isPermaLink="true">', '<link>')
         feed = feed.replace('</guid>', '</link>')
@@ -23,16 +30,18 @@ class PyRSSWRequestHandler(RequestHandler):
         page = requests.get(url=url, headers={})
         dom = etree.HTML(page.text)
 
-        response.dom_utils.delete_nodes(dom.xpath('//*[@class="content-info"]'))
-        response.dom_utils.delete_nodes(dom.xpath('//*[@class="modal"]'))
-        response.dom_utils.delete_nodes(
+        utils.dom_utils.delete_nodes(
+            dom.xpath('//*[@class="content-info"]'))
+        utils.dom_utils.delete_nodes(dom.xpath('//*[@class="modal"]'))
+        utils.dom_utils.delete_nodes(
             dom.xpath('//*[@class="comments text-center"]'))
-        response.dom_utils.delete_nodes(dom.xpath('//*[@id="undercomments"]'))
-        response.dom_utils.delete_nodes(dom.xpath('//*[@style="padding:10px"]'))
-        response.dom_utils.delete_nodes(dom.xpath('//*[@class="hrdash"]'))
-        response.dom_utils.delete_nodes(
+        utils.dom_utils.delete_nodes(dom.xpath('//*[@id="undercomments"]'))
+        utils.dom_utils.delete_nodes(
+            dom.xpath('//*[@style="padding:10px"]'))
+        utils.dom_utils.delete_nodes(dom.xpath('//*[@class="hrdash"]'))
+        utils.dom_utils.delete_nodes(
             dom.xpath('//*[@class="row heading bottomnav"]'))
-        response.dom_utils.delete_nodes(dom.xpath('//*[@id="picdumpnav"]'))
+        utils.dom_utils.delete_nodes(dom.xpath('//*[@id="picdumpnav"]'))
 
         main_bodies = dom.xpath('//*[@id="mainbody"]')
         if len(main_bodies) > 0:

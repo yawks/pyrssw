@@ -1,18 +1,28 @@
-from response.RequestHandler import RequestHandler
-from lxml import etree
-import requests
 import re
 import time
-import response.dom_utils
+
+import requests
+from lxml import etree
+
+from handlers.launcher_handler import USER_AGENT
+from pyrssw_handlers.abstract_pyrssw_request_handler import \
+    PyRSSWRequestHandler
 
 
-class PyRSSWRequestHandler(RequestHandler):
-    def __init__(self, url_prefix):
-        super().__init__(url_prefix, handler_name="izismile",
-                         original_website="https://izismile.com/", rss_url="https://feeds2.feedburner.com/izismile")
+class IzismileHandler(PyRSSWRequestHandler):
+    
+    @staticmethod
+    def get_handler_name() -> str:
+        return "izismile"
+    
+    def get_original_website(self) -> str:
+        return "https://izismile.com/"
+
+    def get_rss_url(self) -> str:
+        return "https://feeds2.feedburner.com/izismile"
 
     def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.rss_url, headers={}).text
+        feed = requests.get(url=self.get_rss_url(), headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         feed = feed.replace('<guid isPermaLink="false">', '<link>')
         feed = feed.replace('</guid>', '</link>')
@@ -76,7 +86,7 @@ class PyRSSWRequestHandler(RequestHandler):
         return content, url_next_page
 
     def _get_page_from_url(self, url):
-        page = requests.get(url=url, headers=super().get_user_agent())
+        page = requests.get(url=url, headers={"User-Agent" : USER_AGENT})
         if page.text.find("You do not have access to the site.") > -1:
             time.sleep(0.1)
             page = requests.get(url=url, headers={

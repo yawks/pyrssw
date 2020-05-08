@@ -1,5 +1,5 @@
 import socket
-from typing import Tuple, Dict
+from typing import Dict, Optional, Tuple
 
 DEFAULT_HOST_NAME = socket.gethostbyaddr(socket.gethostname())[0]
 DEFAULT_PORT_NUMBER = 8001
@@ -47,15 +47,15 @@ class Config:
 
         return server_port
 
-    def get_key_file(self) -> str:
-        key_file = ""
+    def get_key_file(self) -> Optional[str]:
+        key_file = None
         if SERVER_KEYFILE_KEY in self.configuration:
             key_file = self.configuration[SERVER_KEYFILE_KEY]
 
         return key_file
 
-    def get_cert_file(self) -> str:
-        cert_file = ""
+    def get_cert_file(self) -> Optional[str]:
+        cert_file = None
         if SERVER_CERTFILE_KEY in self.configuration:
             cert_file = self.configuration[SERVER_CERTFILE_KEY]
 
@@ -68,9 +68,9 @@ class Config:
 
         return server_hostname
 
-    def get_basic_auth_credentials(self) -> Tuple[str, str]:
-        login = ""
-        password = ""
+    def get_basic_auth_credentials(self) -> Tuple[Optional[str], Optional[str]]:
+        login = None
+        password = None
         if SERVER_BASICAUTH_LOGIN_KEY in self.configuration and SERVER_BASICAUTH_PASSWORD_KEY and self.configuration[SERVER_BASICAUTH_LOGIN_KEY] != '' and self.configuration[SERVER_BASICAUTH_PASSWORD_KEY] != '':
             login = self.configuration[SERVER_BASICAUTH_LOGIN_KEY]
             password = self.configuration[SERVER_BASICAUTH_PASSWORD_KEY]

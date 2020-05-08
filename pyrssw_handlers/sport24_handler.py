@@ -1,22 +1,31 @@
-from response.RequestHandler import RequestHandler
-from lxml import etree
-import requests
 import string
 import urllib
-import response.dom_utils
+
+import requests
+from lxml import etree
+
+import utils.dom_utils
+from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 
 
-class PyRSSWRequestHandler(RequestHandler):
-    def __init__(self, url_prefix):
-        super().__init__(url_prefix, handler_name="sport24", original_website="https://sport24.lefigaro.fr/",
-                         rss_url="https://sport24.lefigaro.fr/rssfeeds/sport24-%s.xml")
+class Sport24Handler(PyRSSWRequestHandler):
+    
+    @staticmethod
+    def get_handler_name() -> str:
+        return "sport24"
+
+    def get_original_website(self) -> str:
+        return "https://sport24.lefigaro.fr/"
+
+    def get_rss_url(self) -> str:
+        return "https://sport24.lefigaro.fr/rssfeeds/sport24-%s.xml"
 
     def get_feed(self, parameters: dict)  -> str:
         if "filter" in parameters and parameters["filter"] == ("tennis" or "football" or "rugby" or "cyclisme" or "golf"):
             # filter only on passed category, eg /sport24/rss/tennis
-            feed = requests.get(url=self.rss_url % parameters["filter"], headers={}).text
+            feed = requests.get(url=self.get_rss_url() % parameters["filter"], headers={}).text
         else:
-            feed = requests.get(url=self.rss_url % "accueil", headers={}).text
+            feed = requests.get(url=self.get_rss_url() % "accueil", headers={}).text
 
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
@@ -26,7 +35,7 @@ class PyRSSWRequestHandler(RequestHandler):
         if "filter" in parameters and parameters["filter"] == "flash":
             xpath_expression = "//item[enclosure]"
 
-        response.dom_utils.delete_nodes(dom.xpath(xpath_expression))
+        utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         feed = etree.tostring(dom, encoding='unicode')
         feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
@@ -50,8 +59,8 @@ class PyRSSWRequestHandler(RequestHandler):
         if len(imgs) > 0:
             imgsrc = imgs[0].get("srcset")
 
-        response.dom_utils.delete_nodes(dom.xpath('//*[@class="s24-art-cross-linking"]'))
-        response.dom_utils.delete_nodes(dom.xpath('//*[@class="s24-art-pub-top"]'))
+        utils.dom_utils.delete_nodes(dom.xpath('//*[@class="s24-art-cross-linking"]'))
+        utils.dom_utils.delete_nodes(dom.xpath('//*[@class="s24-art-pub-top"]'))
 
         contents = dom.xpath('//*[@class="s24-art__content s24-art__resize"]')
         if len(contents) > 0:

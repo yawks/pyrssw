@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-from http.server import HTTPServer
-from server import Server
-from server import PyRSSWHTTPServer
+from server.pyrssw_server import PyRSSWHTTPServer
 import logging
 import os
 import sys
 import getopt
 import ntpath
-from config.Config import Config
+from config.config import Config
 
 
 def main(argv):
@@ -31,7 +29,7 @@ def parse_command_line(argv: list) -> str:
     config_file = ""
 
     try:
-        opts, args = getopt.getopt(argv[1:], "hc:", ["config="])
+        opts, _ = getopt.getopt(argv[1:], "hc:", ["config="])
     except getopt.GetoptError:
         print_help(argv[0], 2)
 

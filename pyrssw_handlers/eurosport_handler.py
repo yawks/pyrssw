@@ -1,12 +1,14 @@
-from response.RequestHandler import RequestHandler
-from lxml import etree
-import requests
-import json
 import html
-import response.dom_utils
+import json
+
+import requests
+from lxml import etree
+
+import utils.dom_utils
+from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 
 
-class PyRSSWRequestHandler(RequestHandler):
+class EurosportHandler(PyRSSWRequestHandler):
     """Handler for french <a href="https://www.eurosport.fr">Eurosport</a> website.
 
     Handler name: eurosport
@@ -23,12 +25,19 @@ class PyRSSWRequestHandler(RequestHandler):
         Content remains Eurosport links except for video pages.
         Video pages in the eurosport website are dynamically built using some javascript, the handler provide a simple page with a HTML5 video object embedding the video.
     """
-    def __init__(self, url_prefix):
-        super().__init__(url_prefix, handler_name="eurosport",
-                         original_website="https://www.eurosport.fr/", rss_url="https://www.eurosport.fr/rss.xml")
+    
+    @staticmethod
+    def get_handler_name() -> str:
+        return "eurosport"
+
+    def get_original_website(self) -> str:
+        return "https://www.eurosport.fr/"
+    
+    def get_rss_url(self) -> str:
+        return "https://www.eurosport.fr/rss.xml"
 
     def get_feed(self, parameters: dict)  -> str:
-        feed = requests.get(url=self.rss_url, headers={}).text
+        feed = requests.get(url=self.get_rss_url(), headers={}).text
 
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
@@ -36,10 +45,10 @@ class PyRSSWRequestHandler(RequestHandler):
 
         if "filter" in parameters:
             # filter only on passed category, eg /eurosport/rss/tennis
-            xpath_expression = response.dom_utils.get_xpath_expression_for_filters(
+            xpath_expression = utils.dom_utils.get_xpath_expression_for_filters(
                 parameters, "category/text() = '%s'", "not(category/text() = '%s')")
 
-            response.dom_utils.delete_nodes(dom.xpath(xpath_expression))
+            utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         # replace video links, they must be processed by getContent
         for link in dom.xpath("//link"):
@@ -53,7 +62,7 @@ class PyRSSWRequestHandler(RequestHandler):
     def _get_rss_link_description(self, link_url: str) -> str:
         """find in rss file the item having the link_url and returns the description"""
         description = ""
-        feed = requests.get(url=self.rss_url, headers={}).text
+        feed = requests.get(url=self.get_rss_url(), headers={}).text
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
         dom = etree.fromstring(feed)
