@@ -33,4 +33,5 @@ class ThumbnailHandler(RequestHandler):
             content = base64.b64decode("R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==".encode())
 
         self.content_type = "image/webp"
+        #TODO : improve this, and avoid type ignore
         self.contents = content #type: ignore

@@ -1,3 +1,4 @@
 lxml
 requests
 typing_extensions
+cryptography

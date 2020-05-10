@@ -1,29 +1,33 @@
+import base64
 import re
 import traceback
 import urllib.parse
 from typing import List, Optional, Tuple
 
+from cryptography.fernet import Fernet
 from lxml import etree
-
 from typing_extensions import Type
 
 from handlers.request_handler import RequestHandler
-from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
+from pyrssw_handlers.abstract_pyrssw_request_handler import \
+    PyRSSWRequestHandler
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
 
+
 class LauncherHandler(RequestHandler):
     """Handler which launches custom PyRSSWRequestHandler"""
 
-    def __init__(self, module_name: str, handlers: List[Type[PyRSSWRequestHandler]], serving_url_prefix: Optional[str], url: str):
+    def __init__(self, module_name: str, handlers: List[Type[PyRSSWRequestHandler]], serving_url_prefix: Optional[str], url: str, crypto_key: bytes):
         super().__init__()
         self.handler: Optional[PyRSSWRequestHandler] = None
-        self.serving_url_prefix = serving_url_prefix
+        self.serving_url_prefix: Optional[str] = serving_url_prefix
         self.handler_url_prefix: str = "%s/%s" % (
             serving_url_prefix, module_name)
-        self.url = url
+        self.url: str = url
+        self.crypto: Fernet = Fernet(crypto_key)
         for h in handlers:  # find handler from module_name
             if h.get_handler_name() == module_name:
                 self.handler = h(self.handler_url_prefix)
@@ -134,9 +138,26 @@ class LauncherHandler(RequestHandler):
                 keyv = param.split('=')
                 if len(keyv) == 2:
                     parameters[urllib.parse.unquote_plus(
-                        keyv[0])] = urllib.parse.unquote_plus(keyv[1])
+                        keyv[0])] = self._get_parameter_value(keyv[1])
 
         return new_url, parameters
+
+    def _get_parameter_value(self, v: str) -> str:
+        """Get the parameter value. If the value were crypted, decrypt it.
+
+        Arguments:
+            v {str} -- given value from url
+
+        Returns:
+            str -- value url decoded and decrypted (if needed)
+        """
+        value = urllib.parse.unquote_plus(v)
+        try:
+            value = self.crypto.decrypt(value.encode('ascii'))
+        except Exception:
+            pass
+
+        return value
 
     def _wrapped_html_content(self, parameters: dict):
         """wrap the html content with header, body and some predefined styles"""

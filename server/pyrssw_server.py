@@ -93,3 +93,6 @@ class PyRSSWHTTPServer(HTTPServer, AbstractPyRSSWHTTPServer):
 
     def get_handlers(self) -> List[Type[PyRSSWRequestHandler]]:
         return self.handlers
+    
+    def get_crypto_key(self) -> bytes:
+        return self.config.get_crypto_key()

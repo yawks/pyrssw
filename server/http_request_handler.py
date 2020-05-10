@@ -38,13 +38,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     handler = ThumbnailHandler(suffix_url)
                 else:  # use a custom handler via LauncherHandler
                     handler = LauncherHandler(module_name, server.get_handlers(),
-                                            server.get_serving_url_prefix(), suffix_url)
+                                              server.get_serving_url_prefix(), suffix_url,
+                                              server.get_crypto_key())
             except Exception as e:
-                handler = BadRequestHandler("Error : %s\n%s" % (str(e),self.path))
+                handler = BadRequestHandler(
+                    "Error : %s\n%s" % (str(e), self.path))
 
             self.respond({'handler': handler})
 
-        else:
+        else:  # basic auth required
             logging.getLogger().error("Invalid credentials")
             self.send_response(401)
             self.send_header("WWW-Authenticate",

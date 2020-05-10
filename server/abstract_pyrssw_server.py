@@ -10,6 +10,10 @@ class AbstractPyRSSWHTTPServer(ABC):
     @abstractmethod
     def get_auth_key(self) -> Optional[str]:
         pass
+
+    @abstractmethod
+    def get_crypto_key(self) -> bytes:
+        pass
     
     @abstractmethod
     def get_handlers(self) -> List[Type[PyRSSWRequestHandler]]:
