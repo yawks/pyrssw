@@ -12,6 +12,7 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
 URL_CONNECTION = "https://secure.lemonde.fr/sfuser/connexion"
 URL_DECONNECTION = "https://secure.lemonde.fr/sfuser/deconnexion"
 
+
 class LeMondeHandler(PyRSSWRequestHandler):
     """Handler for french <a href="https://www.lemonde.fr">Le Monde</a> website.
 
@@ -26,7 +27,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
          - /lemonde/rss?filter=^politique,societe   #all feeds but politique and societe
      - login : if you have an account you can use it to fetch full articles available only for subscribers
      - password : password of your account
-    
+
     Content:
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
     """
@@ -70,15 +71,16 @@ class LeMondeHandler(PyRSSWRequestHandler):
     def _getAuthentificationSuffix(self, parameters: dict):
         suffix = ""
         if "login" in parameters and "password" in parameters:
-            suffix = "login=%s&amp;password=%s&amp;" % (urllib.parse.quote_plus(
-                parameters["login"]), urllib.parse.quote_plus(parameters["password"]))
+            suffix = "login=%s&amp;password=%s&amp;" % (
+                urllib.parse.quote_plus(self.encrypt(parameters["login"])),
+                urllib.parse.quote_plus(self.encrypt(parameters["password"])))
 
         return suffix
 
     def get_content(self, url: str, parameters: dict) -> str:
         session: requests.Session = self._authent(parameters)
         try:
-            page = session.get(url=url, headers={"User-Agent" : USER_AGENT})
+            page = session.get(url=url, headers={"User-Agent": USER_AGENT})
             content = page.text
 
             dom = etree.HTML(content)
@@ -91,19 +93,19 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 '//*[contains(@class, "article__footer-single")]',
                 '//*[contains(@class, "wp-socializer")]',
                 '//*[contains(@class, "insert")]',
-                '//*[@id="comments"]',                              #blog
-                '//*[contains(@class, "post-navigation")]',         #blog
-                '//*[contains(@class, "entry-footer")]',            #blog
-                '//*[contains(@class, "catcher")]'                  #tribune
+                '//*[@id="comments"]',  # blog
+                '//*[contains(@class, "post-navigation")]',  # blog
+                '//*[contains(@class, "entry-footer")]',  # blog
+                '//*[contains(@class, "catcher")]'  # tribune
             ])
 
-            #le monde rss provides many sub websites with different html architecture
+            # le monde rss provides many sub websites with different html architecture
             content = utils.dom_utils.get_content(dom, [
-                    '//*[contains(@class, "zone--article")]',
-                    '//*[contains(@class, "article--content")]',    #tribune
-                    '//*[@id="post-container"]',
-                    '//*[@id="main"]'                               # blog
-                ])
+                '//*[contains(@class, "zone--article")]',
+                '//*[contains(@class, "article--content")]',  # tribune
+                '//*[@id="post-container"]',
+                '//*[@id="main"]'                               # blog
+            ])
 
         except Exception as e:
             raise e
@@ -114,7 +116,8 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
     def _authent(self, parameters: dict) -> requests.Session:
         session: requests.Session = requests.Session()
-        page = session.get(url=URL_CONNECTION, headers={"User-Agent" : USER_AGENT})
+        page = session.get(url=URL_CONNECTION, headers={
+                           "User-Agent": USER_AGENT})
         if "login" in parameters and "password" in parameters:
             idx = page.text.find("connection[_token]")
             if idx > -1:

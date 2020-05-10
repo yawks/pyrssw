@@ -1,12 +1,18 @@
 from abc import ABCMeta, abstractmethod
 from typing import Optional
 
+from cryptography.fernet import Fernet
+
 
 class PyRSSWRequestHandler(metaclass=ABCMeta):
 
-    def __init__(self, url_prefix: Optional[str] = ""):
+    def __init__(self, fernet: Fernet, url_prefix: Optional[str] = ""):
         self.url_prefix = url_prefix
-    
+        self.fernet = fernet
+
+    def encrypt(self, value) -> str:
+        return self.fernet.encrypt(value.encode("ascii")).decode('ascii')
+
     @classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, "get_original_website") and
@@ -51,7 +57,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
         Returns:
             str -- original url website
         """
-    
+
     @abstractmethod
     def get_rss_url(self) -> str:
         """Returns the url of the rss feed

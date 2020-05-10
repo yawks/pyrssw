@@ -1,4 +1,3 @@
-import base64
 import re
 import traceback
 import urllib.parse
@@ -27,10 +26,10 @@ class LauncherHandler(RequestHandler):
         self.handler_url_prefix: str = "%s/%s" % (
             serving_url_prefix, module_name)
         self.url: str = url
-        self.crypto: Fernet = Fernet(crypto_key)
+        self.fernet: Fernet = Fernet(crypto_key)
         for h in handlers:  # find handler from module_name
             if h.get_handler_name() == module_name:
-                self.handler = h(self.handler_url_prefix)
+                self.handler = h(self.fernet, self.handler_url_prefix)
                 break
 
         if not self.handler is None:
@@ -153,7 +152,7 @@ class LauncherHandler(RequestHandler):
         """
         value = urllib.parse.unquote_plus(v)
         try:
-            value = self.crypto.decrypt(value.encode('ascii'))
+            value = self.fernet.decrypt(value.encode("ascii")).decode("ascii")
         except Exception:
             pass
 

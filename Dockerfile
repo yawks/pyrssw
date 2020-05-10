@@ -4,4 +4,4 @@ COPY . /app
 WORKDIR /app
 
 RUN pip install -r requirements.txt
-CMD ["python", "./main.py", "-c", "reources/config.ini"]
+CMD ["python", "./main.py", "-c", "resources/config.ini"]
