@@ -26,8 +26,9 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
         return "http://lesjoiesducode.fr/rss"
 
     def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.get_rss_url(), headers={}).text
-        feed = feed.replace("<link>", "<link>%s?url=" % self.url_prefix)
+        r = requests.get(url=self.get_rss_url(), headers={})
+        r.encoding = 'utf-8' #force encoding
+        feed = r.text.replace("<link>", "<link>%s?url=" % self.url_prefix)
         feed = re.sub(
             r'<guid isPermaLink="false">https://lesjoiesducode.fr/\?p=[^<]*</guid>', r"", feed)
         

@@ -61,7 +61,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
     
     def get_content(self, url: str, parameters: dict) -> str:
         page = requests.get(url=url, headers={"User-Agent" : USER_AGENT})
-        content = page.text
+        content = page.text.replace(">",">\n")
 
         content = re.sub(r'src="data:image[^"]*', '', content)
         content = content.replace("data-src", "style='height:100%;width:100%' src")
@@ -75,10 +75,17 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//aside[contains(@class, "tags")]',
             '//*[contains(@class, "breadcrumb")]',
             '//*[contains(@class, "col-left")]',
-            '//*[contains(@class, "col-right")]'
+            '//*[contains(@class, "col-right")]',
+            '//*[contains(@class, "social-aside")]',            #france3 regions
+            '//*[contains(@class, "aside-img__content")]',      #france3 regions
+            '//*[contains(@class, "social-button-content")]',   #france3 regions
+            '//*[contains(@class, "tags-button-content")]'      #france3 regions
         ])
             
         content = utils.dom_utils.get_content(
-            dom, ['//div[contains(@class, "content")]', '//div[contains(@class,"article-detail-block")]'])
+            dom, ['//div[contains(@class,"article-detail-block")]',
+                  '//article[contains(@id,"node")]',                #france3 regions
+                  '//article[contains(@class,"content-live")]',     #live
+                  '//div[contains(@class, "content")]'])
         
         return content

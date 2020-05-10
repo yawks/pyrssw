@@ -92,15 +92,17 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 '//*[contains(@class, "wp-socializer")]',
                 '//*[contains(@class, "insert")]',
                 '//*[@id="comments"]',                              #blog
-                '//*[contains(@class, "post-navigation")]'          #blog
-                '//*[contains(@class, "entry-footer")]'             #blog
+                '//*[contains(@class, "post-navigation")]',         #blog
+                '//*[contains(@class, "entry-footer")]',            #blog
+                '//*[contains(@class, "catcher")]'                  #tribune
             ])
 
             #le monde rss provides many sub websites with different html architecture
             content = utils.dom_utils.get_content(dom, [
                     '//*[contains(@class, "zone--article")]',
+                    '//*[contains(@class, "article--content")]',    #tribune
                     '//*[@id="post-container"]',
-                    '//*[@id="main"]'                           # blog
+                    '//*[@id="main"]'                               # blog
                 ])
 
         except Exception as e:
