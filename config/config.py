@@ -1,5 +1,7 @@
+import logging
 import socket
 from typing import Dict, Optional, Tuple
+
 from cryptography.fernet import Fernet
 
 DEFAULT_HOST_NAME = socket.gethostbyaddr(socket.gethostname())[0]
@@ -14,6 +16,7 @@ SERVER_BASICAUTH_PASSWORD_KEY = "server.basicauth.password"
 SERVER_SERVING_HOSTNAME_KEY = "server.serving_hostname"
 SERVER_CRYPTO_KEY = "server.crypto_key"
 
+
 class Config:
     """handle the optional config file"""
 
@@ -23,8 +26,8 @@ class Config:
         if config_file != "":
             self.configuration = self.load_properties()
 
-    def load_properties(self, sep: str ='=', comment_char: str ='#', section_char: str ='[') -> dict:
-        #credits: https://stackoverflow.com/questions/3595363/properties-file-in-python-similar-to-java-properties
+    def load_properties(self, sep: str = '=', comment_char: str = '#', section_char: str = '[') -> dict:
+        # credits: https://stackoverflow.com/questions/3595363/properties-file-in-python-similar-to-java-properties
         props = {}
         with open(self.config_file, "rt") as f:
             for line in f:
@@ -79,16 +82,16 @@ class Config:
             password = self.configuration[SERVER_BASICAUTH_PASSWORD_KEY]
 
         return login, password
-    
+
     def get_crypto_key(self) -> bytes:
         if not SERVER_CRYPTO_KEY in self.configuration or self.configuration[SERVER_CRYPTO_KEY] == '':
             # automatically writes a crypto key
+            logging.getLogger().info("No %s defined, creating one and add it to the %s file" %
+                                     (SERVER_CRYPTO_KEY, self.config_file))
             crypto_key = Fernet.generate_key()
             f = open(self.config_file, "a")
-            f.write("\n%s=%s" % (SERVER_CRYPTO_KEY, crypto_key))
+            f.write("\n%s=%s" % (SERVER_CRYPTO_KEY, crypto_key.decode('ascii')))
         else:
             crypto_key = self.configuration[SERVER_CRYPTO_KEY].encode('ascii')
-        
+
         return crypto_key
-
-
