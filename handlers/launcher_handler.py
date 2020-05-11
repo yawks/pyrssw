@@ -9,7 +9,7 @@ from typing_extensions import Type
 
 from handlers.request_handler import RequestHandler
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
-    PyRSSWRequestHandler
+    PyRSSWRequestHandler, ENCRYPTED_PREFIX
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
@@ -151,10 +151,12 @@ class LauncherHandler(RequestHandler):
             str -- value url decoded and decrypted (if needed)
         """
         value = urllib.parse.unquote_plus(v)
-        try:
-            value = self.fernet.decrypt(value.encode("ascii")).decode("ascii")
-        except Exception:
-            pass
+        if not self.fernet is None and value.find(ENCRYPTED_PREFIX) > -1:
+            try:
+                value = self.fernet.decrypt(
+                    value.encode("ascii")).decode("ascii")
+            except Exception as e:
+                self._log("Error decrypting '%s' : %s" % (value, str(e)))
 
         return value
 

@@ -3,15 +3,18 @@ from typing import Optional
 
 from cryptography.fernet import Fernet
 
+# this prefix is added to encrypted values to help the url parameters finder knowing which parameters must be decrypted
+ENCRYPTED_PREFIX = "!e:"
+
 
 class PyRSSWRequestHandler(metaclass=ABCMeta):
 
-    def __init__(self, fernet: Fernet, url_prefix: Optional[str] = ""):
+    def __init__(self, fernet: Optional[Fernet] = None, url_prefix: Optional[str] = ""):
         self.url_prefix = url_prefix
         self.fernet = fernet
 
     def encrypt(self, value) -> str:
-        return self.fernet.encrypt(value.encode("ascii")).decode('ascii')
+        return "%s%s" % (ENCRYPTED_PREFIX, self.fernet.encrypt(value.encode("ascii")).decode('ascii'))
 
     @classmethod
     def __subclasshook__(cls, subclass):
