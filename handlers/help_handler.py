@@ -28,3 +28,6 @@ class HelpHandler(RequestHandler):
                 content += "<hr/><br/>Error with module : <i>%s</i>\n%s\n\n" % (
                     module_name, str(e))
         self.contents = content + "</pre>"
+    
+    def get_content_type(self) -> str:
+        return "text/html"

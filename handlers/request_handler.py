@@ -18,9 +18,6 @@ class RequestHandler():
     def get_contents(self) -> str:
         return self.contents
 
-    def read(self) -> str:
-        return self.contents
-
     def set_status(self, status: int):
         self.status = status
 
@@ -30,5 +27,3 @@ class RequestHandler():
     def get_content_type(self) -> str:
         return self.content_type
 
-    def get_type(self) -> str:
-        return 'static'

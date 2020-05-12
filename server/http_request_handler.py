@@ -1,16 +1,16 @@
 import logging
 from http.server import BaseHTTPRequestHandler
 from typing import Optional, cast
-from zipfile import error
 
+from config.config import Config
 from handlers.bad_request_handler import BadRequestHandler
 from handlers.help_handler import HelpHandler
 from handlers.launcher_handler import LauncherHandler
 from handlers.request_handler import RequestHandler
 from handlers.thumbnails_handler import ThumbnailHandler
-from pyrssw_handlers.abstract_pyrssw_request_handler import \
-    PyRSSWRequestHandler
+from pyrssw_handlers.handlers_manager import HandlersManager
 from server.abstract_pyrssw_server import AbstractPyRSSWHTTPServer
+from server.pyrssw_wsgi import WSGILauncherHandler
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -26,25 +26,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         server: AbstractPyRSSWHTTPServer = cast(
             AbstractPyRSSWHTTPServer, self.server)
         if self.check_auth(self.headers, server.get_auth_key()):
-            try:
-                module_name = self._parse_module_name()
-                handler: Optional[RequestHandler] = None
-                suffix_url: str = self.path[len(module_name)+1:]
 
-                if module_name == "":  # root page
-                    handler = HelpHandler(
-                        server.get_handlers(), server.get_serving_url_prefix())
-                elif module_name == "thumbnails":
-                    handler = ThumbnailHandler(suffix_url)
-                else:  # use a custom handler via LauncherHandler
-                    handler = LauncherHandler(module_name, server.get_handlers(),
-                                              server.get_serving_url_prefix(), suffix_url,
-                                              server.get_crypto_key())
-            except Exception as e:
-                handler = BadRequestHandler(
-                    "Error : %s\n%s" % (str(e), self.path))
+            launcher: WSGILauncherHandler = WSGILauncherHandler(self.path, server.get_serving_url_prefix())
 
-            self.respond({'handler': handler})
+            self.respond({'handler': launcher.get_handler()})
 
         else:  # basic auth required
             logging.getLogger().error("Invalid credentials")
