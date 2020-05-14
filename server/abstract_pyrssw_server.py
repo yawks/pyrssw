@@ -12,13 +12,5 @@ class AbstractPyRSSWHTTPServer(ABC):
         pass
 
     @abstractmethod
-    def get_crypto_key(self) -> bytes:
-        pass
-    
-    @abstractmethod
-    def get_handlers(self) -> List[Type[PyRSSWRequestHandler]]:
-        pass
-
-    @abstractmethod
     def get_serving_url_prefix(self) -> Optional[str]:
         pass
