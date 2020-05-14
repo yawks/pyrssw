@@ -107,7 +107,7 @@ class LauncherHandler(RequestHandler):
                         descriptions[0].text = '<img src="%s"/>%s' % (
                             img_url, descriptions[0].text)
                     else:  # uses the ThumbnailHandler to fetch an image from google search images
-                        descriptions[0].text = '<img src="%s/thumbnails/%s"/>%s' % (
+                        descriptions[0].text = '<img src="%s/thumbnails?request=%s"/>%s' % (
                             self.serving_url_prefix, urllib.parse.quote_plus(descriptions[0].text), descriptions[0].text)
 
             self.contents = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
@@ -153,8 +153,9 @@ class LauncherHandler(RequestHandler):
         value = urllib.parse.unquote_plus(v)
         if not self.fernet is None and value.find(ENCRYPTED_PREFIX) > -1:
             try:
+                crypted_value = value[len(ENCRYPTED_PREFIX):]
                 value = self.fernet.decrypt(
-                    value.encode("ascii")).decode("ascii")
+                    crypted_value.encode("ascii")).decode("ascii")
             except Exception as e:
                 self._log("Error decrypting '%s' : %s" % (value, str(e)))
 

@@ -16,8 +16,24 @@ from utils.arguments import parse_command_line
 def application(environ, start_response):
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
     Config.instance().load_config_file(parse_command_line(sys.argv))
+
+    http: str = "http"
+    if "HTTP_X_FORWARDED_PROTO" in environ:
+        http = environ["HTTP_X_FORWARDED_PROTO"]
+    elif "UWSGI_ROUTER" in environ:
+        http = environ["UWSGI_ROUTER"]
+
+    suffix: str = ""
+    if "HTTP_X_ORIGINAL_URI" in environ:
+        original_uri: str = environ["HTTP_X_ORIGINAL_URI"]
+        suffix = original_uri[:len(original_uri)-len(environ["REQUEST_URI"])]
+
+    url_prefix: str = "%s://%s%s" % (http,
+                                     environ["HTTP_HOST"],
+                                     suffix)
+
     launcher: WSGILauncherHandler = WSGILauncherHandler(
-        environ["REQUEST_URI"], environ["HTTP_HOST"])
+        environ["REQUEST_URI"], url_prefix)
     handler: RequestHandler = launcher.get_handler()
     headers = [("Content-type", handler.get_content_type())]
     start_response(str(handler.get_status()), headers)

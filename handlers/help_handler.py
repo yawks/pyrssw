@@ -20,7 +20,7 @@ class HelpHandler(RequestHandler):
             module_name = handler_type.__module__.split('.')[1]
             try:
                 handler_type()  # try to intanciate the class to display error if any
-                content += "<hr/><br/><a href='/%s/rss'>%s</a>\n\n" % (
+                content += "<hr/><br/><a href='%s/rss'>%s</a>\n\n" % (
                     handler_type.get_handler_name(), handler_type.get_handler_name())
                 if not handler_type.__doc__ is None:
                     content += handler_type.__doc__ + "\n\n"
