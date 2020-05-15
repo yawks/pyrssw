@@ -208,16 +208,21 @@ class LauncherHandler(RequestHandler):
         return dark_style
 
     def _replace_prefix_urls(self):
+        """Replace relative urls by absolute urls using handler prefix url"""
+
+        def _replace_urls_process_links(dom: etree, attribute: str):
+            for o in dom.xpath("//*[@%s]" % attribute):
+                if o.attrib[attribute].startswith("//"):
+                    protocol: str = "http:"
+                    if self.handler.get_original_website().find("https") > -1:
+                        protocol = "https:"
+                    o.attrib[attribute] = protocol + o.attrib[attribute]
+                elif o.attrib[attribute].startswith("/"):
+                    o.attrib[attribute] = self.handler.get_original_website(
+                    ) + o.attrib[attribute][1:]
+
         if self.handler.get_original_website() != '':
-            self.contents = self.contents.replace("a href='" + self.handler.get_original_website(),
-                                                  "a href='" + self.handler_url_prefix)
-            self.contents = self.contents.replace(
-                'a href="' + self.handler.get_original_website(), 'a href="' + self.handler_url_prefix)
-            self.contents = self.contents.replace(
-                'href="/', 'href="' + self.handler.get_original_website())
-            self.contents = self.contents.replace(
-                "href='/", "href='" + self.handler.get_original_website())
-            self.contents = self.contents.replace(
-                'src="/', 'src="' + self.handler.get_original_website())
-            self.contents = self.contents.replace(
-                "src='/", "src='" + self.handler.get_original_website())
+            dom = etree.HTML(self.contents)
+            _replace_urls_process_links(dom, "href")
+            _replace_urls_process_links(dom, "src")
+            self.contents = etree.tostring(dom, encoding='unicode')
