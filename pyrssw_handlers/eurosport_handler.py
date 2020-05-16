@@ -90,6 +90,7 @@ class EurosportHandler(PyRSSWRequestHandler):
     def _get_content(self, url: str) -> str:
         content = requests.get(url, headers={"User-Agent": USER_AGENT}).text
         content = content.replace(">", ">\n")
+        # in the majority of eurosport pages a json object contains all the content in tag with id __NEXT_DATA__
         idx = content.find("__NEXT_DATA__")
         if idx > -1:
             offset = content[idx:].find(">")
@@ -97,7 +98,9 @@ class EurosportHandler(PyRSSWRequestHandler):
 
             data = json.loads(content[idx+offset+1:idx+offset+end])
             articles = utils.json_utils.get_nodes_by_name(data, "article")
-            content = ArticleBuilder(articles[0]).build_article()
+            for article in articles:
+                if "publicationTime" in article:
+                    content = ArticleBuilder(article).build_article()
 
         return content
 
@@ -134,7 +137,8 @@ class ArticleBuilder():
         if "title" in self.data:
             content += "<h1>%s</h1>" % self.data["title"]
         if "picture" in self.data and "url" in ["picture"]:
-            content += "<img %s src=\"%s\"/>" % ('width="100%"', self.data["picture"]["url"])
+            content += "<img %s src=\"%s\"/>" % (
+                'width="100%"', self.data["picture"]["url"])
         content += self._build_content_from_json(self.data)
         content += "</html>"
 
@@ -149,7 +153,8 @@ class ArticleBuilder():
                     if entry["node"] == "paragraph":
                         content += self._build_entry("p", entry["content"])
                     elif entry["node"] == "blockquote":
-                        content += self._build_entry("blockquote", entry["content"])
+                        content += self._build_entry("blockquote",
+                                                     entry["content"])
                     elif entry["node"] == "h2":
                         content += self._build_entry("h2", entry["content"])
                     elif entry["node"] == "picture":
@@ -157,7 +162,8 @@ class ArticleBuilder():
                     elif entry["node"] == "video":
                         content += self._build_video(entry["content"])
                     else:
-                        logging.getLogger().debug("Tag '%s' not handled" % entry["node"])
+                        logging.getLogger().debug(
+                            "Tag '%s' not handled" % entry["node"])
 
         return content
 
@@ -190,21 +196,32 @@ class ArticleBuilder():
 
         return "<img %s %s/>" % ('width="100%"', content)
 
-    def _build_entry(self, tag: str, content_list: list) -> str: #NOSONAR
+    def _build_entry(self, tag: str, content_list: list) -> str:  # NOSONAR
         content: str = "<%s>" % tag
         style: str = "%s"
-        for c in content_list:
-            style = self._get_style(c)
-            if "type" in c:
-                if c["type"] == "text" and "content" in c:
-                    content += style % c["content"]
-                elif (c["type"] == "hyperlink" or c["type"] == "story") and "url" in c and "label" in c:
-                    content += style % "<a href=\"%s\">%s</a>" % (c["url"], c["label"])
-                elif c["type"] == "internal" and "url" in c:
-                    content += style % self._build_img(c)
-
-        return style % ("%s</%s>" % (content, tag))
+        
+        for entry in content_list:
+            content += self._build_entry_content(tag, entry)
+            
+        return style % ("%s</%s>\n" % (content, tag))
     
+    def _build_entry_content(self, tag, entry) -> str:
+        content: str = ""
+        style = self._get_style(entry)
+        if "type" in entry:
+            if entry["type"] == "text" and "content" in entry:
+                if isinstance(entry["content"], list):
+                    for c in entry["content"]:
+                        content += self._build_entry_content(tag, c)
+                else:
+                    content += style % entry["content"]
+            elif (entry["type"] == "hyperlink" or entry["type"] == "story") and "url" in entry and "label" in entry:
+                content += style % "<a href=\"%s\">%s</a>" % (
+                    entry["url"], entry["label"])
+            elif entry["type"] == "internal" and "url" in entry:
+                content += style % self._build_img(entry)
+
+        return content
 
     def _get_style(self, content_dict: dict):
         style: str = "%s"
@@ -214,7 +231,5 @@ class ArticleBuilder():
                     style = style % "<b>%s</b>"
                 elif st == "italic":
                     style = style % "<i>%s/</i>"
-        
-        return style
 
-    
+        return style
