@@ -1,15 +1,17 @@
 import re
 import traceback
-import urllib.parse
+
 from typing import List, Optional, Tuple
+import urllib.parse as urlparse
+from urllib.parse import parse_qs, quote_plus, unquote_plus
 
 from cryptography.fernet import Fernet
 from lxml import etree
 from typing_extensions import Type
 
 from handlers.request_handler import RequestHandler
-from pyrssw_handlers.abstract_pyrssw_request_handler import \
-    PyRSSWRequestHandler, ENCRYPTED_PREFIX
+from pyrssw_handlers.abstract_pyrssw_request_handler import (
+    ENCRYPTED_PREFIX, PyRSSWRequestHandler)
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
@@ -62,7 +64,8 @@ class LauncherHandler(RequestHandler):
             self.set_status(500)
 
     def _process_content(self, url, parameters):
-        self._log("content page requested: %s" % url)
+        self._log("content page requested: %s" % re.sub(
+            "%s[^\\s&]*" % ENCRYPTED_PREFIX, "XXXX", url))  # anonymize crypted params in logs
         request_url = url
         self.content_type = HTML_CONTENT_TYPE
         if "url" in parameters:
@@ -82,6 +85,7 @@ class LauncherHandler(RequestHandler):
         self.contents = self.handler.get_feed(parameters)
         self._arrange_feed()
         # add dark request for all rss links if required
+        #TODO : avoid handler name
         self.contents = self.contents.replace("%s?" % self.handler_url_prefix, "%s?%s" % (
             self.handler_url_prefix, self._get_dark_parameters(parameters)))
 
@@ -94,26 +98,58 @@ class LauncherHandler(RequestHandler):
                 r'<\?xml [^>]*?>', '', self.contents).strip()
             self.contents = re.sub(
                 r'<\?xml-stylesheet [^>]*?>', '', self.contents).strip()
-            dom = etree.fromstring(self.contents)
+            try:
+                dom = etree.fromstring(self.contents)
 
-            # copy picture url from enclosure to a img tag in description (or add a generated one)
-            for item in dom.xpath("//item"):
-                descriptions = item.xpath(".//description")
-                if len(descriptions) > 0 and descriptions[0].text.find('<img ') == -1:
-                    # if description does not have a picture, add one from enclosure or media:content tag if any
-                    img_url = self._get_img_url(item)
+                # copy picture url from enclosure to a img tag in description (or add a generated one)
+                for item in dom.xpath("//item"):
+                    descriptions = item.xpath(".//description")
 
-                    if img_url != "":
-                        descriptions[0].text = '<img src="%s"/>%s' % (
-                            img_url, descriptions[0].text)
-                    else:  # uses the ThumbnailHandler to fetch an image from google search images
-                        descriptions[0].text = '<img src="%s/thumbnails?request=%s"/>%s' % (
-                            self.serving_url_prefix, urllib.parse.quote_plus(descriptions[0].text), descriptions[0].text)
+                    if len(descriptions) > 0 and not descriptions[0].text is None and len(descriptions[0].xpath('.//img')) == 0:
+                        # if description does not have a picture, add one from enclosure or media:content tag if any
+                        img_url: str = self._get_img_url(item)
 
-            self.contents = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
-                etree.tostring(dom, encoding='unicode')
+                        if img_url == "":
+                            # uses the ThumbnailHandler to fetch an image from google search images
+                            img_url = "%s/thumbnails?request=%s" % (
+                                self.serving_url_prefix, quote_plus(etree.tostring(descriptions[0], encoding='unicode')))
 
-    def _get_img_url(self, node: etree):
+                        img = etree.Element("img")
+                        img.set("src", img_url)
+                        descriptions[0].append(img)
+
+                    #source: Optional[str] = self._get_source(item)
+                    descriptions[0].append(self._get_source(item))
+
+                self.contents = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
+                    etree.tostring(dom, encoding='unicode')
+            except Exception as e:
+                self._log(
+                    "Unable to parse rss feed, let's proceed anyway: %s" % str(e))
+
+    def _get_source(self, node: etree) -> Optional[etree._Element]:
+        """get source url from link in 'url' parameter
+
+        Arguments:
+            node {etree} -- rss item node
+
+        Returns:
+            etree -- a node having the source url
+        """
+        n: etree = None
+        links = node.xpath(".//link")
+        if len(links) > 0:
+            parsed = urlparse.urlparse(links[0].text.strip())
+            if "url" in parse_qs(parsed.query):
+                a = etree.Element("a")
+                a.set("href", parse_qs(parsed.query)["url"][0])
+                a.text = "Source"
+                n = etree.Element("p")
+                n.append(a)
+                #source = "\n\t<p><a href=\"%s\">Source</a><p>" % parse_qs(parsed.query)["url"][0]
+        return n
+
+    def _get_img_url(self, node: etree) -> str:
         """ get img url from enclosure or media:content tag if any """
         img_url = ""
         enclosures = node.xpath(".//enclosure")
@@ -127,6 +163,7 @@ class LauncherHandler(RequestHandler):
 
     def _get_module_name_from_url(self, url: str) -> Tuple[str, dict]:
         """get the module name and the url requested from the url"""
+        # TODO use urlparse
         parameters: dict = {}
         new_url: str = url
         parts = url.split('?')
@@ -136,7 +173,7 @@ class LauncherHandler(RequestHandler):
             for param in params:
                 keyv = param.split('=')
                 if len(keyv) == 2:
-                    parameters[urllib.parse.unquote_plus(
+                    parameters[unquote_plus(
                         keyv[0])] = self._get_parameter_value(keyv[1])
 
         return new_url, parameters
@@ -150,14 +187,14 @@ class LauncherHandler(RequestHandler):
         Returns:
             str -- value url decoded and decrypted (if needed)
         """
-        value = urllib.parse.unquote_plus(v)
+        value = unquote_plus(v)
         if not self.fernet is None and value.find(ENCRYPTED_PREFIX) > -1:
             try:
                 crypted_value = value[len(ENCRYPTED_PREFIX):]
                 value = self.fernet.decrypt(
                     crypted_value.encode("ascii")).decode("ascii")
             except Exception as e:
-                self._log("Error decrypting '%s' : %s" % (value, str(e)))
+                self._log("Error decrypting : %s" % str(e))
 
         return value
 

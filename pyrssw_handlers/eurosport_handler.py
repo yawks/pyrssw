@@ -205,7 +205,7 @@ class ArticleBuilder():
             
         return style % ("%s</%s>\n" % (content, tag))
     
-    def _build_entry_content(self, tag, entry) -> str:
+    def _build_entry_content(self, tag, entry) -> str: #NOSONAR
         content: str = ""
         style = self._get_style(entry)
         if "type" in entry:

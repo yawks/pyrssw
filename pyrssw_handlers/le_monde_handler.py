@@ -107,8 +107,6 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 '//*[@id="main"]'                               # blog
             ])
 
-        except Exception as e:
-            raise e
         finally:
             self._unauthent(session)
 

@@ -23,8 +23,10 @@ class IzismileHandler(PyRSSWRequestHandler):
 
     def get_feed(self, parameters: dict) -> str:
         feed = requests.get(url=self.get_rss_url(), headers={}).text
+        feed = feed[feed.find("<"):] #avoid php errors at the beginning when any
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
-        feed = feed.replace('<guid isPermaLink="false">', '<link>')
+        feed = feed.replace('<guid isPermaLink="false">', '<link>') #NOSONAR
+        feed = feed.replace('<guid isPermaLink="true">', '<link>')
         feed = feed.replace('</guid>', '</link>')
         feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
 
@@ -57,6 +59,7 @@ class IzismileHandler(PyRSSWRequestHandler):
                 video = etree.Element("video")
                 video.set("controls", "")
                 video.set("preload", "auto")
+                video.set("poster", "")
 
                 source = etree.Element("source")
                 source.set("src", parent.attrib["href"])

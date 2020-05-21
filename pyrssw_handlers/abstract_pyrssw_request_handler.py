@@ -10,7 +10,7 @@ ENCRYPTED_PREFIX = "!e:"
 class PyRSSWRequestHandler(metaclass=ABCMeta):
 
     def __init__(self, fernet: Optional[Fernet] = None, url_prefix: Optional[str] = ""):
-        self.url_prefix = url_prefix
+        self.url_prefix: Optional[str] = url_prefix
         self.fernet = fernet
 
     def encrypt(self, value) -> str:

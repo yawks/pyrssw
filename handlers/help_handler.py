@@ -1,6 +1,5 @@
-import traceback
 from typing import List, Optional
-
+from cryptography.fernet import Fernet
 from typing_extensions import Type
 
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
@@ -15,7 +14,12 @@ class HelpHandler(RequestHandler):
         self.handler_types: List[Type[PyRSSWRequestHandler]] = handler_types
         self.url_prefix = url_prefix
 
-        content: str = "<pre>"
+        content: str = """
+<form action="%s" method="post">
+    <label for="field">Field to crypt: </label>
+    <input type="text" name="field" id="name" required>
+</form>
+<pre>""" % self.url_prefix
         for handler_type in self.handler_types:
             module_name = handler_type.__module__.split('.')[1]
             try:

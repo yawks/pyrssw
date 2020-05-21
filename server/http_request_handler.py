@@ -1,16 +1,14 @@
 import logging
+import re
 from http.server import BaseHTTPRequestHandler
-from typing import Optional, cast
-
-from config.config import Config
-from handlers.bad_request_handler import BadRequestHandler
-from handlers.help_handler import HelpHandler
-from handlers.launcher_handler import LauncherHandler
+from typing import cast
+from urllib.parse import unquote_plus
+from cryptography.fernet import Fernet
+from handlers.launcher_handler import ENCRYPTED_PREFIX
 from handlers.request_handler import RequestHandler
-from handlers.thumbnails_handler import ThumbnailHandler
-from pyrssw_handlers.handlers_manager import HandlersManager
 from server.abstract_pyrssw_server import AbstractPyRSSWHTTPServer
-from server.pyrssw_wsgi import WSGILauncherHandler
+from server.pyrssw_wsgi import HandlersManager, WSGILauncherHandler
+from config.config import Config
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -22,12 +20,31 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         return
 
+    def do_POST(self):
+        # <--- Gets the size of data
+        content_length = int(self.headers['Content-Length'])
+        # <--- Gets the data itself
+        post_data = self.rfile.read(content_length)
+        logging.info("POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n",
+                     str(self.path), str(self.headers), post_data.decode('utf-8'))
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        HandlersManager.instance().get_handlers()
+        fernet = Fernet(Config.instance().get_crypto_key())
+        self.wfile.write(("Crypted field: %s" % fernet.encrypt(unquote_plus(
+            post_data.decode("utf-8")).split("=")[1].encode("utf-8")).decode("utf-8")).encode("utf-8"))
+
     def do_GET(self):
+        self._process_request()
+
+    def _process_request(self):
         server: AbstractPyRSSWHTTPServer = cast(
             AbstractPyRSSWHTTPServer, self.server)
         if self.check_auth(self.headers, server.get_auth_key()):
 
-            launcher: WSGILauncherHandler = WSGILauncherHandler(self.path, server.get_serving_url_prefix())
+            launcher: WSGILauncherHandler = WSGILauncherHandler(
+                self.path, server.get_serving_url_prefix())
 
             self.respond({'handler': launcher.get_handler()})
 
@@ -61,6 +78,17 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 module_name = module_name.split('?')[0]
 
         return module_name
+
+    def log_message(self, format, *args):
+        params = []
+        for arg in args:
+            if isinstance(arg, str):
+                # anonymize crypted strings in logs
+                params.append(re.sub("%s[^\\s&]*" %
+                                     ENCRYPTED_PREFIX, "XXXX", arg))
+            else:
+                params.append(arg)
+        logging.getLogger().info(format % tuple(params))
 
     def handle_http(self, handler: RequestHandler) -> bytes:
         content = None

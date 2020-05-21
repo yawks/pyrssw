@@ -55,6 +55,8 @@ class EvilmilkHandler(PyRSSWRequestHandler):
         content = content.replace("<video ", "<video controls ")
         content = content.replace('autoplay=""', '')
         content = content.replace('playsinline=""', '')
+        content = re.sub(r'poster=(["\'])/',
+                         r'poster=\1https://www.evilmilk.com/', content)
 
         return content
 
