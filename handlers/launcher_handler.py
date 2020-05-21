@@ -15,8 +15,8 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import (
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
-
+#USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
+USER_AGENT = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0"
 
 class LauncherHandler(RequestHandler):
     """Handler which launches custom PyRSSWRequestHandler"""
