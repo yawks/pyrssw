@@ -25,3 +25,11 @@ def get_nodes_by_name(json, node_name: str) -> List[dict]:
         pass
 
     return nodes
+
+
+def get_node_value_if_exists(node, key):
+    value: str = ""
+    if key in node and not node[key] is None:
+        value = node[key]
+    
+    return value
