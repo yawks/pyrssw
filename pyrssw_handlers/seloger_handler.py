@@ -1,20 +1,22 @@
+import datetime
 import json
+import os
+import pickle
 import re
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
-import random
+
 import requests
 from lxml import etree
-from fake_useragent import UserAgent
+
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 from utils.json_utils import get_node_value_if_exists
-import itertools as it
 
 
 class SeLogerHandler(PyRSSWRequestHandler):
-    """Handler for SeLoger
+    """Handler for SeLoger, french real estate website
 
     Handler name: seloger
 
@@ -40,15 +42,15 @@ class SeLogerHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return ""
 
-    def get_feed(self, parameters: dict) -> str:
+    def get_feed(self, parameters: dict, session: requests.Session) -> str:
         items: str = ""
         if "criteria" in parameters:
             url = "%slist.htm=?%s" % (
                 self.get_original_website(), unquote_plus(parameters["criteria"]))
-            content: str = requests.get(
+
+            content: str = session.get(
                 url,
-                headers=self._get_headers(),
-                cookies=self._get_cookies()
+                headers=self._get_headers()
             ).text
 
             json_obj: Optional[dict] = self._load_json(content)
@@ -79,12 +81,14 @@ class SeLogerHandler(PyRSSWRequestHandler):
                 %s
             </description>
             <link>
-                %s?url=%s
+                %s
             </link>
         </item>""" % (location, price, small_description,
                             img_url, location, price, small_description,
                             other_imgs,
-                            self.url_prefix, url_detail)
+                            self._get_url_prefix(self.get_handler_url_with_parameters({"url": url_detail})))
+                with open("tmpfile", "wb") as f:
+                    pickle.dump(session, f)
 
         return """<rss version="2.0">
     <channel>
@@ -93,6 +97,15 @@ class SeLogerHandler(PyRSSWRequestHandler):
         %s
     </channel>
 </rss>""" % items
+
+    def _get_url_prefix(self, url_detail: str) -> Optional[str]:
+        new_url: Optional[str] = url_detail
+
+        if url_detail.find("bellesdemeures.com") > -1:
+            # sometimes seloger links are from bellesdemeures website, use the right handler then
+            new_url = url_detail.replace("/seloger", "/bellesdemeures")
+
+        return new_url
 
     def _get_headers(self):
         return {
@@ -104,8 +117,8 @@ class SeLogerHandler(PyRSSWRequestHandler):
             "Upgrade-Insecure-Requests": "1",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0"
         }
-
-    def _get_cookies(self):
+    """
+    de f _get_cookies(self):
         return {
             "AA_Test_House": "a",
             "AA_Test_g": "h",
@@ -119,7 +132,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
             "uuid230": "1a2052a9-62e5-4bca-a104-b4edf5d7ebf1",
             "visitId": "%d-%d" % (random.randrange(100000000000, 999999999999), random.randrange(1000000000, 9999999999))
         }
-
+    """
     def _process_images(self, card: dict) -> Tuple[str, str]:
         img_url: str = ""
         other_imgs: str = ""
@@ -161,10 +174,9 @@ class SeLogerHandler(PyRSSWRequestHandler):
 
         return json_obj
 
-    def get_content(self, url: str, parameters: dict) -> str:
-        page = requests.get(url=url,
-            headers=self._get_headers(),
-            cookies=self._get_cookies())
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+        page = session.get(url=url,
+                           headers=self._get_headers())
         dom = etree.HTML(page.text)
 
         utils.dom_utils.delete_xpaths(dom, [
@@ -173,9 +185,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
             '//button',
             '//svg'
         ])
-
-
-        #move images to a readable node
+        # move images to a readable node
         cpt = 1
         nodes = dom.xpath("//*[contains(@class,\"ShowMoreText\")]//p")
         if len(nodes) > 0:
@@ -184,7 +194,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
                 new_img = etree.Element("img")
                 new_img.attrib["src"] = div.attrib["data-background"]
                 new_img.attrib["alt"] = "Images #%d" % cpt
-                
+
                 node.append(new_img)
                 node.append(etree.Element("br"))
                 node.append(etree.Element("br"))

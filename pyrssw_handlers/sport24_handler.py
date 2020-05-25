@@ -1,5 +1,4 @@
 import string
-import urllib
 
 import requests
 from lxml import etree
@@ -20,12 +19,12 @@ class Sport24Handler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://sport24.lefigaro.fr/rssfeeds/sport24-%s.xml"
 
-    def get_feed(self, parameters: dict)  -> str:
+    def get_feed(self, parameters: dict, session: requests.Session)  -> str:
         if "filter" in parameters and parameters["filter"] == ("tennis" or "football" or "rugby" or "cyclisme" or "golf"):
             # filter only on passed category, eg /sport24/rss/tennis
-            feed = requests.get(url=self.get_rss_url() % parameters["filter"], headers={}).text
+            feed = session.get(url=self.get_rss_url() % parameters["filter"], headers={}).text
         else:
-            feed = requests.get(url=self.get_rss_url() % "accueil", headers={}).text
+            feed = session.get(url=self.get_rss_url() % "accueil", headers={}).text
 
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
@@ -37,8 +36,10 @@ class Sport24Handler(PyRSSWRequestHandler):
 
         utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
+        for link in dom.xpath("//item/link"):
+            link.text = self.get_handler_url_with_parameters({"url": link.text.strip()})
+
         feed = etree.tostring(dom, encoding='unicode')
-        feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
 
         title = ""
         if "filter" in parameters:
@@ -49,8 +50,8 @@ class Sport24Handler(PyRSSWRequestHandler):
 
         return feed
 
-    def get_content(self, url: str, parameters: dict) -> str:
-        page = requests.get(url=url, headers={})
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+        page = session.get(url=url, headers={})
         content = page.text
 
         dom = etree.HTML(page.text)

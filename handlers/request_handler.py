@@ -5,9 +5,11 @@ import logging
 class RequestHandler():
     """Main instance for every handler."""
 
+    contents: str = ""
+    content_type: str = ""
+    session_id: str = ""
+
     def __init__(self):
-        self.contents: str = ""
-        self.content_type: str = ""
         self.logger = logging.getLogger()
         self.status: int = 200 #by default
 

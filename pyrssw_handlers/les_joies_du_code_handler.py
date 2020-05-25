@@ -25,8 +25,8 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "http://lesjoiesducode.fr/rss"
 
-    def get_feed(self, parameters: dict) -> str:
-        r = requests.get(url=self.get_rss_url(), headers={})
+    def get_feed(self, parameters: dict, session: requests.Session) -> str:
+        r = session.get(url=self.get_rss_url(), headers={})
         r.encoding = 'utf-8' #force encoding
         feed = r.text.replace("<link>", "<link>%s?url=" % self.url_prefix)
         feed = re.sub(
@@ -45,8 +45,8 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
 
         return etree.tostring(dom, encoding='unicode')
 
-    def get_content(self, url: str, parameters: dict) -> str:
-        page = requests.get(url=url, headers={})
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+        page = session.get(url=url, headers={})
         content = self._clean_content(page.text)
         return content
 

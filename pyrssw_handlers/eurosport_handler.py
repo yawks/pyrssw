@@ -40,8 +40,8 @@ class EurosportHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://www.eurosport.fr/rss.xml"
 
-    def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.get_rss_url(), headers={}).text
+    def get_feed(self, parameters: dict, session: requests.Session) -> str:
+        feed = session.get(url=self.get_rss_url(), headers={}).text
 
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
@@ -57,7 +57,8 @@ class EurosportHandler(PyRSSWRequestHandler):
         # replace video links, they must be processed by getContent
         for link in dom.xpath("//link"):
             # if link.text.find("/video.shtml") > -1:
-            link.text = "%s?url=%s" % (self.url_prefix, link.text)
+            link.text = "%s" % self.get_handler_url_with_parameters(
+                {"url": link.text})
 
         feed = etree.tostring(dom, encoding='unicode')
 
@@ -77,18 +78,18 @@ class EurosportHandler(PyRSSWRequestHandler):
 
         return description
 
-    def get_content(self, url: str, parameters: dict) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
         content = ""
 
         if url.find("/video.shtml") > -1 and url.find("_vid") > -1:
-            content = self._get_video_content(url)
+            content = self._get_video_content(url, session)
         else:
-            content = self._get_content(url)
+            content = self._get_content(url, session)
 
         return content
 
-    def _get_content(self, url: str) -> str:
-        content = requests.get(url, headers={"User-Agent": USER_AGENT}).text
+    def _get_content(self, url: str, session: requests.Session) -> str:
+        content = session.get(url, headers={"User-Agent": USER_AGENT}).text
         content = content.replace(">", ">\n")
         # in the majority of eurosport pages a json object contains all the content in tag with id __NEXT_DATA__
         idx = content.find("__NEXT_DATA__")
@@ -104,12 +105,12 @@ class EurosportHandler(PyRSSWRequestHandler):
 
         return content
 
-    def _get_video_content(self, url: str) -> str:
+    def _get_video_content(self, url: str, session: requests.Session) -> str:
         """ video in eurosport website are loaded using some javascript
             we build here a simplifed page with the rss.xml item description + a video object"""
         vid = url[url.find("_vid")+len("_vid"):]
         vid = vid[:vid.find('/')]
-        page = requests.get(
+        page = session.get(
             url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid, headers={"User-Agent": USER_AGENT})
         j = json.loads(page.text)
 
@@ -117,12 +118,18 @@ class EurosportHandler(PyRSSWRequestHandler):
                     <div>
                         <p>
                             <a href="%s"><p>%s</p></a>
-                            <video controls="" preload="auto">
+                            <video width="100%%" controls="" preload="auto">
                                 <source src="%s" />
                             </video>
                         </p>
                         <p>%s</p>
-                    </div>""" % (j["EmbedUrl"], j["Title"], j["VideoUrl"], self._get_rss_link_description(url[1:]))
+                    </div>""" % (j["EmbedUrl"],
+                                 j["Title"],
+                                 j["VideoUrl"],
+                                 self._get_rss_link_description(url[1:])
+                                 .replace("\\u0027", "'")
+                                 .replace("/>", "/><br/><br/>")
+                                 .replace("<img", "<img width=\"100%\""))
 
 
 class ArticleBuilder():
@@ -137,8 +144,7 @@ class ArticleBuilder():
         if "title" in self.data:
             content += "<h1>%s</h1>" % self.data["title"]
         if "picture" in self.data and "url" in ["picture"]:
-            content += "<img %s src=\"%s\"/>" % (
-                'width="100%"', self.data["picture"]["url"])
+            content += "<img width=\"100%%\" src=\"%s\"/>" % self.data["picture"]["url"]
         content += self._build_content_from_json(self.data)
         content += "</html>"
 
@@ -180,7 +186,7 @@ class ArticleBuilder():
             page = requests.get(
                 url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % content_dict["databaseId"], headers={"User-Agent": USER_AGENT})
             j = json.loads(page.text)
-            content = """<video controls="" preload="auto" poster="%s">
+            content = """<video width="100%%" controls="" preload="auto" poster="%s">
                                 <source src="%s" />
                             </video><p><i><small>%s</small></i></p>""" % (poster, j["VideoUrl"], title)
 
@@ -194,18 +200,18 @@ class ArticleBuilder():
         if "url" in content_dict:
             content += " src=\"%s\"%s" % (content_dict["url"], alt)
 
-        return "<img %s %s/>" % ('width="100%"', content)
+        return "<img width=\"100%%\" %s/>" % content
 
     def _build_entry(self, tag: str, content_list: list) -> str:  # NOSONAR
         content: str = "<%s>" % tag
         style: str = "%s"
-        
+
         for entry in content_list:
             content += self._build_entry_content(tag, entry)
-            
+
         return style % ("%s</%s>\n" % (content, tag))
-    
-    def _build_entry_content(self, tag, entry) -> str: #NOSONAR
+
+    def _build_entry_content(self, tag, entry) -> str:  # NOSONAR
         content: str = ""
         style = self._get_style(entry)
         if "type" in entry:

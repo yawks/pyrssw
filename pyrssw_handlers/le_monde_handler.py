@@ -42,8 +42,8 @@ class LeMondeHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://www.lemonde.fr/rss/une.xml"
 
-    def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.get_rss_url(), headers={}).text
+    def get_feed(self, parameters: dict, session: requests.Session) -> str:
+        feed = session.get(url=self.get_rss_url(), headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         link = '<link>'
         feed = feed.replace('<guid isPermaLink="false">', link)
@@ -77,8 +77,8 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
         return suffix
 
-    def get_content(self, url: str, parameters: dict) -> str:
-        session: requests.Session = self._authent(parameters)
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+        self._authent(parameters, session)
         try:
             page = session.get(url=url, headers={"User-Agent": USER_AGENT})
             content = page.text
@@ -109,11 +109,9 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
         finally:
             self._unauthent(session)
-
         return content
 
-    def _authent(self, parameters: dict) -> requests.Session:
-        session: requests.Session = requests.Session()
+    def _authent(self, parameters: dict, session: requests.Session):
         page = session.get(url=URL_CONNECTION, headers={
                            "User-Agent": USER_AGENT})
         if "login" in parameters and "password" in parameters:
@@ -133,7 +131,6 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 session.post(
                     url=URL_CONNECTION, data=data, headers=self._get_headers(URL_CONNECTION))
 
-        return session
 
     def _get_headers(self, referer):
         headers = {
@@ -154,4 +151,4 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
     def _unauthent(self, session: requests.Session):
         session.get(url=URL_DECONNECTION, headers=self._get_headers("/"))
-        session.close()
+        #session.close()

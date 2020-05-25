@@ -1,14 +1,17 @@
 import logging
 import re
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler
 from typing import cast
 from urllib.parse import unquote_plus
+
 from cryptography.fernet import Fernet
-from handlers.launcher_handler import ENCRYPTED_PREFIX
+
+from config.config import Config
+from handlers.launcher_handler import ENCRYPTED_PREFIX, SESSION_DURATION
 from handlers.request_handler import RequestHandler
 from server.abstract_pyrssw_server import AbstractPyRSSWHTTPServer
 from server.pyrssw_wsgi import HandlersManager, WSGILauncherHandler
-from config.config import Config
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -46,7 +49,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             launcher: WSGILauncherHandler = WSGILauncherHandler(
                 self.path, server.get_serving_url_prefix())
 
-            self.respond({'handler': launcher.get_handler()})
+            self.respond({'handler': launcher.get_handler(SimpleCookie(self.headers.get("Cookie")))})
 
         else:  # basic auth required
             logging.getLogger().error("Invalid credentials")
@@ -99,7 +102,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if status_code != 401:
             if status_code == 200:
                 content = handler.get_contents()
-                self.send_header('Content-type', handler.get_content_type())
+                self.send_header("Content-type", handler.get_content_type())
+                cookie = SimpleCookie()
+                cookie["sessionId"] = handler.session_id
+                cookie["sessionId"]['expires'] = SESSION_DURATION
+                self.send_header("Set-Cookie", cookie["sessionId"].OutputString())
             elif handler.get_contents() != "":
                 content = handler.get_contents()
             else:

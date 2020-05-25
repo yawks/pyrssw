@@ -37,8 +37,8 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://www.futura-sciences.com/rss/actualites.xml"
 
-    def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.get_rss_url(), headers={"User-Agent": USER_AGENT}).text
+    def get_feed(self, parameters: dict, session: requests.Session) -> str:
+        feed = session.get(url=self.get_rss_url(), headers={"User-Agent": USER_AGENT}).text
         
         feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
         feed = feed.replace('<link>', '<link>%s?url=' % (self.url_prefix))
@@ -59,8 +59,8 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         return feed
 
     
-    def get_content(self, url: str, parameters: dict) -> str:
-        page = requests.get(url=url, headers={"User-Agent" : USER_AGENT})
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+        page = session.get(url=url, headers={"User-Agent" : USER_AGENT})
         content = page.text.replace(">",">\n")
 
         content = re.sub(r'src="data:image[^"]*', '', content)

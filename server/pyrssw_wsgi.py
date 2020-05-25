@@ -1,12 +1,13 @@
 import logging
 import os
 import sys
+from http.cookies import SimpleCookie
 from typing import Optional
-
+import random
 from config.config import Config
 from handlers.bad_request_handler import BadRequestHandler
 from handlers.help_handler import HelpHandler
-from handlers.launcher_handler import LauncherHandler
+from handlers.launcher_handler import LauncherHandler, SESSION_DURATION
 from handlers.request_handler import RequestHandler
 from handlers.thumbnails_handler import ThumbnailHandler
 from pyrssw_handlers.handlers_manager import HandlersManager
@@ -34,8 +35,15 @@ def application(environ, start_response):
 
     launcher: WSGILauncherHandler = WSGILauncherHandler(
         environ["REQUEST_URI"], url_prefix)
-    handler: RequestHandler = launcher.get_handler()
-    headers = [("Content-type", handler.get_content_type())]
+    handler: RequestHandler = launcher.get_handler(
+        SimpleCookie(environ["HTTP_COOKIE"]))
+
+    cookie = SimpleCookie()
+    cookie["sessionId"] = handler.session_id
+    cookie["sessionId"]['expires'] = SESSION_DURATION
+    headers = [("Content-type", handler.get_content_type()),
+               ("Set-Cookie", cookie["sessionId"].OutputString())]
+
     start_response(str(handler.get_status()), headers)
     contents = handler.get_contents()
     if isinstance(contents, str):
@@ -48,7 +56,7 @@ class WSGILauncherHandler:
         self.path: str = path
         self.serving_url_prefix: Optional[str] = serving_url_prefix
 
-    def get_handler(self) -> RequestHandler:
+    def get_handler(self, cookies: SimpleCookie) -> RequestHandler:
         try:
             module_name = self._parse_module_name()
             handler: Optional[RequestHandler] = None
@@ -61,7 +69,8 @@ class WSGILauncherHandler:
             else:  # use a custom handler via LauncherHandler
                 handler = LauncherHandler(module_name, HandlersManager.instance().get_handlers(),
                                           self.serving_url_prefix, suffix_url,
-                                          Config.instance().get_crypto_key())
+                                          Config.instance().get_crypto_key(),
+                                          self._get_sessionid(cookies))
         except Exception as e:
             handler = BadRequestHandler(
                 "Error : %s\n%s" % (str(e), self.path))
@@ -77,3 +86,21 @@ class WSGILauncherHandler:
                 module_name = module_name.split('?')[0]
 
         return module_name
+
+    def _get_sessionid(self, cookies: SimpleCookie) -> str:
+        """Return the session id from cookie if exists, other generates a random one
+
+        Arguments:
+            cookies {SimpleCookie} -- cookies
+
+        Returns:
+            str -- a string representing an integer: the sessionId
+        """
+        sessionid: str = ""
+
+        if "sessionId" in cookies:
+            sessionid = cookies["sessionId"].value
+        else:
+            sessionid = str(random.randrange(100000, 999999999999))
+
+        return sessionid

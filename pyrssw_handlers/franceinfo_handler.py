@@ -37,12 +37,11 @@ class FranceInfoHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "http://www.franceinfo.fr/rss.xml"
 
-    def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.get_rss_url(), headers={}).text
+    def get_feed(self, parameters: dict, session: requests.Session) -> str:
+        feed = session.get(url=self.get_rss_url(), headers={}).text
         
         feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
-        feed = feed.replace('<link>', '<link>%s?url=' % (self.url_prefix))
-
+        
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
         dom = etree.fromstring(feed)
@@ -54,13 +53,16 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
             utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
+        for link in dom.xpath("//item/link"):
+            link.text = self.get_handler_url_with_parameters({"url": link.text.strip()})
+
         feed = etree.tostring(dom, encoding='unicode')
 
         return feed
 
     
-    def get_content(self, url: str, parameters: dict) -> str:
-        page = requests.get(url=url, headers={"User-Agent" : USER_AGENT})
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+        page = session.get(url=url, headers={"User-Agent" : USER_AGENT})
         content = page.text.replace(">",">\n")
 
         content = re.sub(r'src="data:image[^"]*', '', content)

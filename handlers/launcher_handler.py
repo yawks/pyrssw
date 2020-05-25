@@ -1,10 +1,10 @@
 import re
 import traceback
-
-from typing import List, Optional, Tuple
 import urllib.parse as urlparse
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, quote_plus, unquote_plus
 
+import requests
 from cryptography.fernet import Fernet
 from lxml import etree
 from typing_extensions import Type
@@ -12,15 +12,26 @@ from typing_extensions import Type
 from handlers.request_handler import RequestHandler
 from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)
+from storage.article_store import ArticleStore
+from storage.session_store import SessionStore
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
 
+# duration in minutes of a session
+SESSION_DURATION = 30 * 60
+
+
 class LauncherHandler(RequestHandler):
     """Handler which launches custom PyRSSWRequestHandler"""
 
-    def __init__(self, module_name: str, handlers: List[Type[PyRSSWRequestHandler]], serving_url_prefix: Optional[str], url: str, crypto_key: bytes):
+    def __init__(self, module_name: str,
+                 handlers: List[Type[PyRSSWRequestHandler]],
+                 serving_url_prefix: Optional[str],
+                 url: str,
+                 crypto_key: bytes,
+                 session_id: str):
         super().__init__()
         self.handler: Optional[PyRSSWRequestHandler] = None
         self.serving_url_prefix: Optional[str] = serving_url_prefix
@@ -28,6 +39,7 @@ class LauncherHandler(RequestHandler):
             serving_url_prefix, module_name)
         self.url: str = url
         self.fernet: Fernet = Fernet(crypto_key)
+        self.session_id = session_id
         for h in handlers:  # find handler from module_name
             if h.get_handler_name() == module_name:
                 self.handler = h(self.fernet, self.handler_url_prefix)
@@ -39,10 +51,10 @@ class LauncherHandler(RequestHandler):
             raise Exception("No handler found for name '%s'" % module_name)
 
     def process(self):
-        """process the url, finds the handler to use depending on the url"""
+        """process the url"""
         try:
-            url, parameters = self._get_module_name_from_url(self.url)
-            if url.find("/rss") == 0:
+            path, parameters = self._extract_path_and_parameters(self.url)
+            if path.find("/rss") == 0:
                 self._process_rss(parameters)
             else:
                 self._process_content(self.url, parameters)
@@ -65,30 +77,36 @@ class LauncherHandler(RequestHandler):
     def _process_content(self, url, parameters):
         self._log("content page requested: %s" % re.sub(
             "%s[^\\s&]*" % ENCRYPTED_PREFIX, "XXXX", url))  # anonymize crypted params in logs
-        request_url = url
+        requested_url = url
         self.content_type = HTML_CONTENT_TYPE
+        session: requests.Session = SessionStore.instance().get_session(self.session_id)
         if "url" in parameters:
-            request_url = parameters["url"]
-        if not request_url.startswith("https://") and not request_url.startswith("http://"):
+            requested_url = parameters["url"]
+        if not requested_url.startswith("https://") and not requested_url.startswith("http://"):
             self.contents = self.handler.get_content(
-                self.handler.get_original_website() + request_url, parameters)
+                self.handler.get_original_website() + requested_url, parameters, session)
         else:
-            self.contents = self.handler.get_content(request_url, parameters)
+            self.contents = self.handler.get_content(
+                requested_url, parameters, session)
+
+        SessionStore.instance().upsert_session(self.session_id, session)
+
+        if "userid" in parameters:  # if user wants to keep trace of read articles
+            ArticleStore.instance().insert_article_as_read(
+                parameters["userid"], requested_url)
 
         self._replace_prefix_urls()
         self._wrapped_html_content(parameters)
 
-    def _process_rss(self, parameters):
+    def _process_rss(self, parameters: Dict[str, str]):
         self._log("/rss requested")
+        session: requests.Session = SessionStore.instance().get_session(self.session_id)
         self.content_type = FEED_XML_CONTENT_TYPE
-        self.contents = self.handler.get_feed(parameters)
-        self._arrange_feed()
-        # add dark request for all rss links if required
-        #TODO : avoid handler name
-        self.contents = self.contents.replace("%s?" % self.handler_url_prefix, "%s?%s" % (
-            self.handler_url_prefix, self._get_dark_parameters(parameters)))
+        self.contents = self.handler.get_feed(parameters, session)
+        self._arrange_feed(parameters)
+        SessionStore.instance().upsert_session(self.session_id, session)
 
-    def _arrange_feed(self):
+    def _arrange_feed(self, parameters: Dict[str, str]):
         """arrange feed by adding some pictures in description, ..."""
 
         if len(self.contents.strip()) > 0:
@@ -102,29 +120,73 @@ class LauncherHandler(RequestHandler):
 
                 # copy picture url from enclosure to a img tag in description (or add a generated one)
                 for item in dom.xpath("//item"):
-                    descriptions = item.xpath(".//description")
-
-                    if len(descriptions) > 0 and not descriptions[0].text is None and len(descriptions[0].xpath('.//img')) == 0:
-                        # if description does not have a picture, add one from enclosure or media:content tag if any
-                        img_url: str = self._get_img_url(item)
-
-                        if img_url == "":
-                            # uses the ThumbnailHandler to fetch an image from google search images
-                            img_url = "%s/thumbnails?request=%s" % (
-                                self.serving_url_prefix, quote_plus(etree.tostring(descriptions[0], encoding='unicode')))
-
-                        img = etree.Element("img")
-                        img.set("src", img_url)
-                        descriptions[0].append(img)
-
-                    #source: Optional[str] = self._get_source(item)
-                    descriptions[0].append(self._get_source(item))
+                    if self._arrange_feed_keep_item(item, parameters):
+                        self._arrange_item(item)
+                        self._arrange_feed_link(item, parameters)
+                    else:
+                        item.getparent().remove(item)
 
                 self.contents = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
                     etree.tostring(dom, encoding='unicode')
             except Exception as e:
                 self._log(
                     "Unable to parse rss feed, let's proceed anyway: %s" % str(e))
+
+    def _arrange_feed_keep_item(self, item: etree._Element, parameters: Dict[str, str]) -> bool:
+        """return true if the item must not be deleted.
+        The item must be deleted if the article has already been read.
+
+        Arguments:
+            item {etree._Element} -- rss feed item
+            parameters {Dict[str, str]} -- url paramters which may contain the userid which is associated to read articles
+
+        Returns:
+            bool -- true if the item must not be deleted
+        """
+        feed_keep_item: bool = True
+        if "userid" in parameters:
+            for link in item.xpath(".//link"):  # NOSONAR
+                parsed = urlparse.urlparse(link.text.strip())
+                if "url" in parse_qs(parsed.query):
+                    feed_keep_item = not ArticleStore.instance().has_article_been_read(
+                        parameters["userid"], parse_qs(parsed.query)["url"][0])
+
+        return feed_keep_item
+
+    def _arrange_item(self, item: etree._Element):
+        descriptions = item.xpath(".//description")
+
+        if len(descriptions) > 0 and not descriptions[0].text is None and len(descriptions[0].xpath('.//img')) == 0:
+            # if description does not have a picture, add one from enclosure or media:content tag if any
+            img_url: str = self._get_img_url(item)
+
+            if img_url == "":
+                # uses the ThumbnailHandler to fetch an image from google search images
+                img_url = "%s/thumbnails?request=%s" % (
+                    self.serving_url_prefix, quote_plus(etree.tostring(descriptions[0], encoding='unicode')))
+
+            img = etree.Element("img")
+            img.set("src", img_url)
+            descriptions[0].append(img)
+
+        descriptions[0].append(self._get_source(item))
+
+    def _arrange_feed_link(self, item: etree._Element, parameters: Dict[str, str]):
+        """arrange feed link, by adding dark and userid parameters if required
+
+        Arguments:
+            item {etree._Element} -- rss item
+            parameters {Dict[str, str]} -- url parameters, one of them may be the dark boolean
+        """
+        suffix_url: str = ""
+        if "dark" in parameters and parameters["dark"] == "true":
+            suffix_url = "&dark=true"
+        if "userid" in parameters:
+            suffix_url += "&userid=%s" % parameters["userid"]
+
+        if suffix_url != "":
+            for link in item.xpath(".//link"):
+                link.text = "%s%s" % (link.text.strip(), suffix_url)
 
     def _get_source(self, node: etree) -> Optional[etree._Element]:
         """get source url from link in 'url' parameter
@@ -145,11 +207,17 @@ class LauncherHandler(RequestHandler):
                 a.text = "Source"
                 n = etree.Element("p")
                 n.append(a)
-                #source = "\n\t<p><a href=\"%s\">Source</a><p>" % parse_qs(parsed.query)["url"][0]
         return n
 
     def _get_img_url(self, node: etree) -> str:
-        """ get img url from enclosure or media:content tag if any """
+        """get img url from enclosure or media:content tag if any
+
+        Arguments:
+            node {etree} -- item node of rss feed
+
+        Returns:
+            str -- the url of the image found in enclosure or media:content tag
+        """
         img_url = ""
         enclosures = node.xpath(".//enclosure")
         # media:content tag
@@ -160,22 +228,23 @@ class LauncherHandler(RequestHandler):
             img_url = medias[0].get('url')
         return img_url
 
-    def _get_module_name_from_url(self, url: str) -> Tuple[str, dict]:
-        """get the module name and the url requested from the url"""
-        # TODO use urlparse
-        parameters: dict = {}
-        new_url: str = url
-        parts = url.split('?')
-        if len(parts) > 1:
-            new_url = parts[0]
-            params = parts[1].split('&')
-            for param in params:
-                keyv = param.split('=')
-                if len(keyv) == 2:
-                    parameters[unquote_plus(
-                        keyv[0])] = self._get_parameter_value(keyv[1])
+    def _extract_path_and_parameters(self, url: str) -> Tuple[str, dict]:
+        """Extract url path and parameters (and decrypt them if they were crypted)
 
-        return new_url, parameters
+        Arguments:
+            url {str} -- url (path + parameters, fragments are ignored)
+
+        Returns:
+            Tuple[str, dict] -- the path and the parameters in a dictionary
+        """
+        parsed = urlparse.urlparse(url)
+        path: str = parsed.netloc + parsed.path
+        parameters: dict = {}
+        params: dict = parse_qs(parsed.query)
+        for k in params:
+            parameters[k] = self._get_parameter_value(params[k][0])
+
+        return path, parameters
 
     def _get_parameter_value(self, v: str) -> str:
         """Get the parameter value. If the value were crypted, decrypt it.
@@ -199,23 +268,28 @@ class LauncherHandler(RequestHandler):
 
     def _wrapped_html_content(self, parameters: dict):
         """wrap the html content with header, body and some predefined styles"""
-        dark_style: str = ""
+        style: str = """
+                #pyrssw_wrapper {
+                    max-width:800px;
+                    text-align:justify;
+                    margin:auto;
+                    line-height:1.6em;
+                }
+        """
         source: str = ""
         if "url" in parameters:
             source = "<em><a href='%s'>Source</em>" % parameters["url"]
         if "dark" in parameters and parameters["dark"] == "true":
-            dark_style = """@media (prefers-color-scheme: dark) {
-                                body {
-                                    background-color: #111;
-                                    color: #ccc;
-                                }
-                                a {
-                                    color:#0080ff
-                                }
-                            }
-                        """
+            style += """
+                body {
+                    background-color: #1e1e1e;
+                    color: #d4d4d4;
+                }
+                a {
+                    color:#0080ff
+                }
+            """
 
-        # TODO remove head and body if previously exists and logs it
         self.contents = """<!DOCTYPE html>
                     <html>
                         <head>
@@ -228,20 +302,15 @@ class LauncherHandler(RequestHandler):
                             </style>
                         </head>
                         <body>
-                            %s
-                            <br/>
-                            <br/>
-                            <hr/>
-                            %s
+                            <div id=\"pyrssw_wrapper\">
+                                %s
+                                <br/>
+                                <br/>
+                                <hr/>
+                                %s
+                            </div>
                         </body>
-                    </html>""" % (dark_style, self.contents, source)
-
-    def _get_dark_parameters(self, parameters: dict) -> str:
-        """get the url parameter if dark=true is defined in parameters"""
-        dark_style: str = ""
-        if "dark" in parameters and parameters["dark"] == "true":
-            dark_style = "dark=true&amp;"
-        return dark_style
+                    </html>""" % (style, self.contents, source)
 
     def _replace_prefix_urls(self):
         """Replace relative urls by absolute urls using handler prefix url"""
@@ -262,4 +331,5 @@ class LauncherHandler(RequestHandler):
             if not dom is None:
                 _replace_urls_process_links(dom, "href")
                 _replace_urls_process_links(dom, "src")
-                self.contents = etree.tostring(dom, encoding='unicode')
+                self.contents = etree.tostring(dom, encoding='unicode').replace(
+                    "<html>", "").replace("</html>", "").replace("<body>", "").replace("</body>", "")

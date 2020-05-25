@@ -17,8 +17,8 @@ class EvilmilkHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://www.evilmilk.com/rss.xml"
 
-    def get_feed(self, parameters: dict) -> str:
-        feed = requests.get(url=self.get_rss_url(), headers={}).text
+    def get_feed(self, parameters: dict, session: requests.Session) -> str:
+        feed = session.get(url=self.get_rss_url(), headers={}).text
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         feed = feed.replace('<guid isPermaLink="true">', '<link>')
         feed = feed.replace('</guid>', '</link>')
@@ -26,8 +26,8 @@ class EvilmilkHandler(PyRSSWRequestHandler):
 
         return self._replace_urls(feed)
 
-    def get_content(self, url: str, parameters: dict) -> str:
-        page = requests.get(url=url, headers={})
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+        page = session.get(url=url, headers={})
         dom = etree.HTML(page.text)
 
         utils.dom_utils.delete_nodes(
@@ -52,7 +52,7 @@ class EvilmilkHandler(PyRSSWRequestHandler):
                 etree.tostring(dom, encoding='unicode'))
         content = self._clean_content(content)
 
-        content = content.replace("<video ", "<video controls ")
+        content = content.replace("<video ", "<video width=\"100%\" controls ")
         content = content.replace('autoplay=""', '')
         content = content.replace('playsinline=""', '')
         content = re.sub(r'poster=(["\'])/',

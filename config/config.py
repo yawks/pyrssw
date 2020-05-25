@@ -8,6 +8,9 @@ from utils.singleton import Singleton
 
 DEFAULT_HOST_NAME = socket.gethostbyaddr(socket.gethostname())[0]
 DEFAULT_PORT_NUMBER = 8001
+DEFAULT_MONGODB_URL = "mongodb://localhost:27017/"
+DEFAULT_STORAGE_READARTICLES_AGE = 30  # days
+DEFAULT_STORAGE_SESSIONS_DURATION = 30  # minutes
 
 SERVER_LISTENING_HOSTNAME_KEY = "server.listening_hostname"
 SERVER_LISTENING_PORT_KEY = "server.listening_port"
@@ -17,9 +20,13 @@ SERVER_BASICAUTH_LOGIN_KEY = "server.basicauth.login"
 SERVER_BASICAUTH_PASSWORD_KEY = "server.basicauth.password"
 SERVER_SERVING_HOSTNAME_KEY = "server.serving_hostname"
 SERVER_CRYPTO_KEY = "server.crypto_key"
+MONGODB_URL_KEY = "storage.mongodb.url"
+STORAGE_READARTICLES_AGE = "storage.readarticles.age"
+STORAGE_SESSIONS_DURATION = "storage.sessions.duration"
 
 
 DEFAULT_CONFIG_FILE = "resources/config.ini"
+
 
 @Singleton
 class Config:
@@ -27,45 +34,47 @@ class Config:
 
     configuration: Optional[Dict[str, str]] = None
     config_file: str = ""
-    
+
     def load_config_file(self, config_file: str):
         if os.path.isfile(config_file):
             logging.getLogger().info("Config file '%s' loaded." % config_file)
             self.config_file = config_file
             self.load_properties()
         else:
-            logging.getLogger().warning("Config file '%s' not found, default configuration will be used" % config_file)
+            logging.getLogger().warning(
+                "Config file '%s' not found, default configuration will be used" % config_file)
 
     def _get_configuration(self):
         if self.configuration is None:
             self.load_config_file(DEFAULT_CONFIG_FILE)
-        
+
         return self.configuration
 
-    def load_properties(self, sep: str = '=', comment_char: str = '#', section_char: str = '['):
+    def load_properties(self, sep: str = '=', comment_char: str = '#'):
         # credits: https://stackoverflow.com/questions/3595363/properties-file-in-python-similar-to-java-properties
         self.configuration = {}
         with open(self.config_file, "rt") as f:
             for line in f:
                 l = line.strip()
-                if l and not l.startswith(comment_char) and not l.startswith(section_char):
+                if l and not l.startswith(comment_char):
                     key_value = l.split(sep)
                     key = key_value[0].strip()
                     value = sep.join(key_value[1:]).strip().strip('"')
                     self.configuration[key] = value
-        
 
     def get_server_listening_hostname(self) -> str:
         server_host_name = DEFAULT_HOST_NAME
         if SERVER_LISTENING_HOSTNAME_KEY in self._get_configuration() and self._get_configuration()[SERVER_LISTENING_HOSTNAME_KEY] != '':
-            server_host_name = self._get_configuration()[SERVER_LISTENING_HOSTNAME_KEY]
+            server_host_name = self._get_configuration()[
+                SERVER_LISTENING_HOSTNAME_KEY]
 
         return server_host_name
 
     def get_server_listening_port(self) -> int:
         server_port = DEFAULT_PORT_NUMBER
         if SERVER_LISTENING_PORT_KEY in self._get_configuration() and (self._get_configuration()[SERVER_LISTENING_PORT_KEY]).isdigit():
-            server_port = int(self._get_configuration()[SERVER_LISTENING_PORT_KEY])
+            server_port = int(self._get_configuration()[
+                              SERVER_LISTENING_PORT_KEY])
 
         return server_port
 
@@ -86,7 +95,8 @@ class Config:
     def get_server_serving_hostname(self) -> str:
         server_hostname = self.get_server_listening_hostname()
         if SERVER_SERVING_HOSTNAME_KEY in self._get_configuration() and self._get_configuration()[SERVER_SERVING_HOSTNAME_KEY] != '':
-            server_hostname = self._get_configuration()[SERVER_SERVING_HOSTNAME_KEY]
+            server_hostname = self._get_configuration()[
+                SERVER_SERVING_HOSTNAME_KEY]
 
         return server_hostname
 
@@ -105,9 +115,36 @@ class Config:
             logging.getLogger().info("No %s defined, creating one and add it to the %s file" %
                                      (SERVER_CRYPTO_KEY, self.config_file))
             crypto_key = Fernet.generate_key()
-            f = open(self.config_file, "a")
-            f.write("\n%s=%s" % (SERVER_CRYPTO_KEY, crypto_key.decode('ascii')))
+            open(self.config_file, "a").write("\n\n%s=%s" %
+                                              (SERVER_CRYPTO_KEY, crypto_key.decode('ascii')))
         else:
-            crypto_key = self._get_configuration()[SERVER_CRYPTO_KEY].encode('ascii')
+            crypto_key = self._get_configuration(
+            )[SERVER_CRYPTO_KEY].encode('ascii')
 
         return crypto_key
+
+    def get_mongodb_url(self) -> str:
+        mongodb_url: str = DEFAULT_MONGODB_URL
+
+        if MONGODB_URL_KEY in self._get_configuration() and not self._get_configuration()[MONGODB_URL_KEY] is None:
+            mongodb_url = self._get_configuration()[MONGODB_URL_KEY]
+
+        return mongodb_url
+
+    def get_storage_articlesread_age(self) -> int:
+        storage_readarticles_age: int = DEFAULT_STORAGE_READARTICLES_AGE
+
+        if STORAGE_READARTICLES_AGE in self._get_configuration() and not self._get_configuration()[STORAGE_READARTICLES_AGE] is None and self._get_configuration()[STORAGE_READARTICLES_AGE].isdigit():
+            storage_readarticles_age = int(self._get_configuration()[
+                                           STORAGE_READARTICLES_AGE])
+
+        return storage_readarticles_age
+
+    def get_storage_sessions_duration(self) -> int:
+        storage_session_duration: int = DEFAULT_STORAGE_SESSIONS_DURATION
+
+        if STORAGE_SESSIONS_DURATION in self._get_configuration() and not self._get_configuration()[STORAGE_SESSIONS_DURATION] is None and self._get_configuration()[STORAGE_SESSIONS_DURATION].isdigit():
+            storage_session_duration = int(self._get_configuration()[
+                                           STORAGE_SESSIONS_DURATION])
+
+        return storage_session_duration
