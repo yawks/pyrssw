@@ -18,5 +18,6 @@ def test_handlers():
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
         dom = etree.fromstring(feed)
         links = dom.xpath("//link")
-        assert len(links) > 0
+        if len(links) <= 0:
+            raise AssertionError
         py_rssw_request_handler.get_content(links[len(links)-1].text.replace("?url=", ""), {}) # test with last link of the feed
