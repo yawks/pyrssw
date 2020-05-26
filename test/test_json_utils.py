@@ -33,9 +33,15 @@ def test_get_nodes_by_name():
 
     nodes = get_nodes_by_name(_json, "article")
 
-    assert len(nodes) == 3
-    assert nodes[0] == "this is my 1st article"
-    assert nodes[2] == "another article"
-    assert isinstance(nodes[1], dict)
-    assert "title" in nodes[1]
-    assert nodes[1]["title"] == "this is my 2nd article"
+    if len(nodes) != 3:
+        raise AssertionError
+    if nodes[0] != "this is my 1st article":
+        raise AssertionError
+    if nodes[2] != "another article":
+        raise AssertionError
+    if not isinstance(nodes[1], dict):
+        raise AssertionError
+    if "title" not in nodes[1]:
+        raise AssertionError
+    if nodes[1]["title"] != "this is my 2nd article":
+        raise AssertionError
