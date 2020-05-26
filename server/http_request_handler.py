@@ -44,12 +44,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def _process_request(self):
         server: AbstractPyRSSWHTTPServer = cast(
             AbstractPyRSSWHTTPServer, self.server)
-        if self.check_auth(self.headers, server.get_auth_key()):
+        if self.check_auth(server.get_auth_key()):
 
             launcher: WSGILauncherHandler = WSGILauncherHandler(
                 self.path, server.get_serving_url_prefix())
 
-            self.respond({'handler': launcher.get_handler(SimpleCookie(self.headers.get("Cookie")))})
+            self.respond({'handler': launcher.get_handler(
+                SimpleCookie(self.headers.get("Cookie")))})
 
         else:  # basic auth required
             logging.getLogger().error("Invalid credentials")
@@ -59,7 +60,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "application/json")
             self.end_headers()
 
-    def check_auth(self, headers, auth_key):
+    def check_auth(self, auth_key):
         """ Process basic auth authentication check """
         auth_ok = False
         if auth_key is None:
@@ -91,7 +92,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                                      ENCRYPTED_PREFIX, "XXXX", arg))
             else:
                 params.append(arg)
-        logging.getLogger().info(format % tuple(params))
+        logging.getLogger().info(format, tuple(params))
 
     def handle_http(self, handler: RequestHandler) -> bytes:
         content = None
@@ -106,7 +107,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 cookie = SimpleCookie()
                 cookie["sessionId"] = handler.session_id
                 cookie["sessionId"]['expires'] = SESSION_DURATION
-                self.send_header("Set-Cookie", cookie["sessionId"].OutputString())
+                self.send_header(
+                    "Set-Cookie", cookie["sessionId"].OutputString())
             elif handler.get_contents() != "":
                 content = handler.get_contents()
             else:
@@ -114,11 +116,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
         self.end_headers()
 
-        if not content is None:
-            if isinstance(content, bytes):
-                return content  # type: ignore
-            else:
-                return bytes(content, 'UTF-8')
+        if content is not None:
+            if not isinstance(content, bytes):
+                content = bytes(content, 'UTF-8')
+            
+            return content  # type: ignore
         else:
             return bytes("error no content", 'UTF-8')
 

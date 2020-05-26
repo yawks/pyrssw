@@ -1,9 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional
 
-from typing_extensions import Type
-
-from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 
 class AbstractPyRSSWHTTPServer(ABC):
     

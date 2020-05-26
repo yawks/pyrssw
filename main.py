@@ -13,17 +13,16 @@ def main(argv):
     Config.instance().load_config_file(parse_command_line(argv))
     httpd = PyRSSWHTTPServer()
 
-    logging.getLogger().info('Server Starts - %s serving %s urls' % (
-        httpd.get_listening_url_prefix(),
-        httpd.get_serving_url_prefix()))
+    logging.getLogger().info("Server Starts - %s serving %s urls",
+                             httpd.get_listening_url_prefix(),
+                             httpd.get_serving_url_prefix())
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
     httpd.server_close()
-    logging.getLogger().info('Server Stops')
+    logging.getLogger().info("Server Stops")
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(sys.argv)

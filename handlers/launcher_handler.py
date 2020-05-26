@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, quote_plus, unquote_plus
 
 import requests
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from lxml import etree
 from typing_extensions import Type
 
@@ -45,7 +45,7 @@ class LauncherHandler(RequestHandler):
                 self.handler = h(self.fernet, self.handler_url_prefix)
                 break
 
-        if not self.handler is None:
+        if self.handler is not None:
             self.process()
         else:
             raise Exception("No handler found for name '%s'" % module_name)
@@ -128,7 +128,7 @@ class LauncherHandler(RequestHandler):
 
                 self.contents = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
                     etree.tostring(dom, encoding='unicode')
-            except Exception as e:
+            except etree.XMLSyntaxError as e:
                 self._log(
                     "Unable to parse rss feed, let's proceed anyway: %s" % str(e))
 
@@ -256,12 +256,12 @@ class LauncherHandler(RequestHandler):
             str -- value url decoded and decrypted (if needed)
         """
         value = unquote_plus(v)
-        if not self.fernet is None and value.find(ENCRYPTED_PREFIX) > -1:
+        if self.fernet is not None and value.find(ENCRYPTED_PREFIX) > -1:
             try:
                 crypted_value = value[len(ENCRYPTED_PREFIX):]
                 value = self.fernet.decrypt(
                     crypted_value.encode("ascii")).decode("ascii")
-            except Exception as e:
+            except InvalidToken as e:
                 self._log("Error decrypting : %s" % str(e))
 
         return value
@@ -328,7 +328,7 @@ class LauncherHandler(RequestHandler):
 
         if self.handler.get_original_website() != '':
             dom = etree.HTML(self.contents)
-            if not dom is None:
+            if dom is not None:
                 _replace_urls_process_links(dom, "href")
                 _replace_urls_process_links(dom, "src")
                 self.contents = etree.tostring(dom, encoding='unicode').replace(

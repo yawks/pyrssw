@@ -1,4 +1,4 @@
-from typing import  List
+from typing import List
 
 
 def get_nodes_by_name(json, node_name: str) -> List[dict]:
@@ -12,24 +12,22 @@ def get_nodes_by_name(json, node_name: str) -> List[dict]:
         List[dict] -- The values of nodes matching node_name
     """
     nodes: List[dict] = []
-    try:
-        if not json is None:
-            for node in json:
-                if node == node_name:
-                    nodes.append(json[node])
-                elif isinstance(node, list) or isinstance(node, dict):
-                    nodes.extend(get_nodes_by_name(node, node_name))
-                elif isinstance(json, dict) and (isinstance(json[node], dict) or isinstance(json[node], list)):
-                        nodes.extend(get_nodes_by_name(json[node], node_name))
-    except Exception as e:
-        pass
+    if json is not None:
+        for node in json:
+            if node == node_name:
+                nodes.append(json[node])
+            elif isinstance(node, (list, dict)):
+                nodes.extend(get_nodes_by_name(node, node_name))
+            elif isinstance(json, dict) and isinstance(json[node], (dict, list):
+                nodes.extend(get_nodes_by_name(json[node], node_name))
 
     return nodes
 
 
-def get_node_value_if_exists(node, key):
+def get_node_value_if_exists(node, key) -> str:
     value: str = ""
     if key in node and not node[key] is None:
         value = node[key]
-    
+
     return value
+    

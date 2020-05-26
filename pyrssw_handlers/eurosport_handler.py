@@ -169,7 +169,7 @@ class ArticleBuilder():
                         content += self._build_video(entry["content"])
                     else:
                         logging.getLogger().debug(
-                            "Tag '%s' not handled" % entry["node"])
+                            "Tag '%s' not handled", entry["node"])
 
         return content
 

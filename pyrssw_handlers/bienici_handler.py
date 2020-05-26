@@ -1,12 +1,10 @@
-from typing import List, Optional
+from typing import List
 from urllib.parse import unquote_plus
 
 import requests
-from lxml import etree
 import json
 
 from utils.json_utils import get_node_value_if_exists
-from handlers.launcher_handler import USER_AGENT
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 

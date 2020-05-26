@@ -37,12 +37,12 @@ class Config:
 
     def load_config_file(self, config_file: str):
         if os.path.isfile(config_file):
-            logging.getLogger().info("Config file '%s' loaded." % config_file)
+            logging.getLogger().info("Config file '%s' loaded.", config_file)
             self.config_file = config_file
             self.load_properties()
         else:
             logging.getLogger().warning(
-                "Config file '%s' not found, default configuration will be used" % config_file)
+                "Config file '%s' not found, default configuration will be used", config_file)
 
     def _get_configuration(self):
         if self.configuration is None:
@@ -55,9 +55,9 @@ class Config:
         self.configuration = {}
         with open(self.config_file, "rt") as f:
             for line in f:
-                l = line.strip()
-                if l and not l.startswith(comment_char):
-                    key_value = l.split(sep)
+                line_striped = line.strip()
+                if line_striped and not line_striped.startswith(comment_char):
+                    key_value = line_striped.split(sep)
                     key = key_value[0].strip()
                     value = sep.join(key_value[1:]).strip().strip('"')
                     self.configuration[key] = value
@@ -110,13 +110,13 @@ class Config:
         return login, password
 
     def get_crypto_key(self) -> bytes:
-        if not SERVER_CRYPTO_KEY in self._get_configuration() or self._get_configuration()[SERVER_CRYPTO_KEY] == '':
+        if SERVER_CRYPTO_KEY not in self._get_configuration() or self._get_configuration()[SERVER_CRYPTO_KEY] == '':
             # automatically writes a crypto key
-            logging.getLogger().info("No %s defined, creating one and add it to the %s file" %
+            logging.getLogger().info("No %s defined, creating one and add it to the %s file",
                                      (SERVER_CRYPTO_KEY, self.config_file))
             crypto_key = Fernet.generate_key()
-            open(self.config_file, "a").write("\n\n%s=%s" %
-                                              (SERVER_CRYPTO_KEY, crypto_key.decode('ascii')))
+            with open(self.config_file, "a") as f:
+                f.write("\n\n%s=%s" % (SERVER_CRYPTO_KEY, crypto_key.decode('ascii')))
         else:
             crypto_key = self._get_configuration(
             )[SERVER_CRYPTO_KEY].encode('ascii')
@@ -126,7 +126,7 @@ class Config:
     def get_mongodb_url(self) -> str:
         mongodb_url: str = DEFAULT_MONGODB_URL
 
-        if MONGODB_URL_KEY in self._get_configuration() and not self._get_configuration()[MONGODB_URL_KEY] is None:
+        if MONGODB_URL_KEY in self._get_configuration() and self._get_configuration()[MONGODB_URL_KEY] is not None:
             mongodb_url = self._get_configuration()[MONGODB_URL_KEY]
 
         return mongodb_url
@@ -134,7 +134,7 @@ class Config:
     def get_storage_articlesread_age(self) -> int:
         storage_readarticles_age: int = DEFAULT_STORAGE_READARTICLES_AGE
 
-        if STORAGE_READARTICLES_AGE in self._get_configuration() and not self._get_configuration()[STORAGE_READARTICLES_AGE] is None and self._get_configuration()[STORAGE_READARTICLES_AGE].isdigit():
+        if STORAGE_READARTICLES_AGE in self._get_configuration() and self._get_configuration()[STORAGE_READARTICLES_AGE] is not None and self._get_configuration()[STORAGE_READARTICLES_AGE].isdigit():
             storage_readarticles_age = int(self._get_configuration()[
                                            STORAGE_READARTICLES_AGE])
 
@@ -143,7 +143,7 @@ class Config:
     def get_storage_sessions_duration(self) -> int:
         storage_session_duration: int = DEFAULT_STORAGE_SESSIONS_DURATION
 
-        if STORAGE_SESSIONS_DURATION in self._get_configuration() and not self._get_configuration()[STORAGE_SESSIONS_DURATION] is None and self._get_configuration()[STORAGE_SESSIONS_DURATION].isdigit():
+        if STORAGE_SESSIONS_DURATION in self._get_configuration() and self._get_configuration()[STORAGE_SESSIONS_DURATION] is not None and self._get_configuration()[STORAGE_SESSIONS_DURATION].isdigit():
             storage_session_duration = int(self._get_configuration()[
                                            STORAGE_SESSIONS_DURATION])
 

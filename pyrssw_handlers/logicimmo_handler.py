@@ -4,7 +4,6 @@ import requests
 from lxml import etree
 
 import utils.dom_utils
-from handlers.launcher_handler import USER_AGENT
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 

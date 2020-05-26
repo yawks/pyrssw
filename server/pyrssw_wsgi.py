@@ -67,6 +67,7 @@ class WSGILauncherHandler:
             elif module_name == "thumbnails":
                 handler = ThumbnailHandler(suffix_url)
             else:  # use a custom handler via LauncherHandler
+                #TODO handle favicon
                 handler = LauncherHandler(module_name, HandlersManager.instance().get_handlers(),
                                           self.serving_url_prefix, suffix_url,
                                           Config.instance().get_crypto_key(),
