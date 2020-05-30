@@ -35,12 +35,17 @@ def application(environ, start_response):
 
     launcher: WSGILauncherHandler = WSGILauncherHandler(
         environ["REQUEST_URI"], url_prefix)
-    handler: RequestHandler = launcher.get_handler(
-        SimpleCookie(environ["HTTP_COOKIE"]))
+
+    cookie: SimpleCookie = SimpleCookie()
+    if "HTTP_COOKIE" in environ:
+        cookie = SimpleCookie(environ["HTTP_COOKIE"])
+    handler: RequestHandler = launcher.get_handler(cookie)
 
     cookie = SimpleCookie()
     cookie["sessionId"] = handler.session_id
-    cookie["sessionId"]['expires'] = SESSION_DURATION
+    cookie["sessionId"]["expires"] = SESSION_DURATION
+    if len(suffix.split("/")) > 0:
+        cookie["sessionId"]["Path"] = suffix.split("/")[0]
     headers = [("Content-type", handler.get_content_type()),
                ("Set-Cookie", cookie["sessionId"].OutputString())]
 

@@ -271,7 +271,6 @@ class LauncherHandler(RequestHandler):
         style: str = """
                 #pyrssw_wrapper {
                     max-width:800px;
-                    text-align:justify;
                     margin:auto;
                     line-height:1.6em;
                 }

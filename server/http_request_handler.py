@@ -92,7 +92,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                                      ENCRYPTED_PREFIX, "XXXX", arg))
             else:
                 params.append(arg)
-        logging.getLogger().info(format, tuple(params))
+        logging.getLogger().info(format % tuple(params))
 
     def handle_http(self, handler: RequestHandler) -> bytes:
         content = None
@@ -106,7 +106,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-type", handler.get_content_type())
                 cookie = SimpleCookie()
                 cookie["sessionId"] = handler.session_id
-                cookie["sessionId"]['expires'] = SESSION_DURATION
+                cookie["sessionId"]["expires"] = SESSION_DURATION
                 self.send_header(
                     "Set-Cookie", cookie["sessionId"].OutputString())
             elif handler.get_contents() != "":
@@ -119,7 +119,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if content is not None:
             if not isinstance(content, bytes):
                 content = bytes(content, 'UTF-8')
-            
+
             return content  # type: ignore
         else:
             return bytes("error no content", 'UTF-8')

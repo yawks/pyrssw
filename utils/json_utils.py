@@ -18,7 +18,7 @@ def get_nodes_by_name(json, node_name: str) -> List[dict]:
                 nodes.append(json[node])
             elif isinstance(node, (list, dict)):
                 nodes.extend(get_nodes_by_name(node, node_name))
-            elif isinstance(json, dict) and isinstance(json[node], (dict, list):
+            elif isinstance(json, dict) and isinstance(json[node], (dict, list)):
                 nodes.extend(get_nodes_by_name(json[node], node_name))
 
     return nodes
