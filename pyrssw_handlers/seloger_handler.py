@@ -81,12 +81,11 @@ class SeLogerHandler(PyRSSWRequestHandler):
             <link>
                 %s
             </link>
-        </item>""" % (location, price, small_description,
-                            img_url, location, price, small_description,
+        </item>""" % (location, price, small_description.replace("&", "&amp;"),  # NOSONAR
+                            img_url, location.replace(
+                                "&", "&amp;"), price, small_description.replace("&", "&amp;"),
                             other_imgs,
                             self._get_url_prefix(self.get_handler_url_with_parameters({"url": url_detail})))
-                with open("tmpfile", "wb") as f:
-                    pickle.dump(session, f)
 
         return """<rss version="2.0">
     <channel>
@@ -131,6 +130,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
             "visitId": "%d-%d" % (random.randrange(100000000000, 999999999999), random.randrange(1000000000, 9999999999))
         }
     """
+
     def _process_images(self, card: dict) -> Tuple[str, str]:
         img_url: str = ""
         other_imgs: str = ""
@@ -168,7 +168,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
                 json_string = content[start_idx:start_idx+end_idx].strip()
                 json_string = re.sub(r'"\);$', r"", json_string, flags=re.S)
                 json_obj = json.loads(json_string.encode(
-                    "utf-8").decode("utf-8").replace("\\u0022", "\""))
+                    "utf-8").decode('unicode-escape'))
 
         return json_obj
 
