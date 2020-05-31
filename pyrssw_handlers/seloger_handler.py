@@ -1,5 +1,4 @@
 import json
-import pickle
 import re
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
@@ -52,7 +51,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
             ).text
 
             json_obj: Optional[dict] = self._load_json(content)
-            if not json_obj is None and "cards" in json_obj and "list" in json_obj["cards"]:
+            if json_obj is not None and "cards" in json_obj and "list" in json_obj["cards"]:
                 for card in json_obj["cards"]["list"]:
 
                     location: str = get_node_value_if_exists(card, "cityLabel")

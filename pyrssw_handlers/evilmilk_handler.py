@@ -6,7 +6,7 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 
 
 class EvilmilkHandler(PyRSSWRequestHandler):
-    
+
     @staticmethod
     def get_handler_name() -> str:
         return "evilmilk"

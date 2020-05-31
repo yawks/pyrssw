@@ -17,7 +17,6 @@ from storage.session_store import SessionStore
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
@@ -168,8 +167,7 @@ class LauncherHandler(RequestHandler):
             img = etree.Element("img")
             img.set("src", img_url)
             descriptions[0].append(img)
-
-        descriptions[0].append(self._get_source(item))
+            descriptions[0].append(self._get_source(item))
 
     def _arrange_feed_link(self, item: etree._Element, parameters: Dict[str, str]):
         """arrange feed link, by adding dark and userid parameters if required

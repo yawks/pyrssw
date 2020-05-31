@@ -1,9 +1,10 @@
 import base64
 import re
+
 import requests
 
-from handlers.launcher_handler import USER_AGENT
 from handlers.request_handler import RequestHandler
+from storage.session_store import USER_AGENT
 
 
 class ThumbnailHandler(RequestHandler):

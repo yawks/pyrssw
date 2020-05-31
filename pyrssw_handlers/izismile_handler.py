@@ -4,7 +4,6 @@ import time
 import requests
 from lxml import etree
 
-from handlers.launcher_handler import USER_AGENT
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
@@ -38,7 +37,8 @@ class IzismileHandler(PyRSSWRequestHandler):
 
         if url_next_page != "":
             # add a page 2 (only page 2 which covers most of cases)
-            next_content, url_next_page = self._get_content(url_next_page, session)
+            next_content, url_next_page = self._get_content(
+                url_next_page, session)
             content += next_content
 
         return content
@@ -91,11 +91,11 @@ class IzismileHandler(PyRSSWRequestHandler):
         return content, url_next_page
 
     def _get_page_from_url(self, url, session: requests.Session):
-        page = session.get(url=url, headers={"User-Agent": USER_AGENT})
+        page = session.get(url=url)
         if page.text.find("You do not have access to the site.") > -1:
             time.sleep(0.1)
             page = session.get(url=url, headers={
-                                'User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0'})
+                'User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0'})
         return page
 
     def _clean_content(self, c):

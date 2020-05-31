@@ -7,7 +7,6 @@ from lxml import etree
 
 import utils.dom_utils
 import utils.json_utils
-from handlers.launcher_handler import USER_AGENT
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
@@ -89,7 +88,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         return content
 
     def _get_content(self, url: str, session: requests.Session) -> str:
-        content = session.get(url, headers={"User-Agent": USER_AGENT}).text
+        content = session.get(url).text
         content = content.replace(">", ">\n")
         # in the majority of eurosport pages a json object contains all the content in tag with id __NEXT_DATA__
         idx = content.find("__NEXT_DATA__")
@@ -111,7 +110,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         vid = url[url.find("_vid")+len("_vid"):]
         vid = vid[:vid.find('/')]
         page = session.get(
-            url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid, headers={"User-Agent": USER_AGENT})
+            url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid)
         j = json.loads(page.text)
 
         return """
@@ -184,7 +183,7 @@ class ArticleBuilder():
             if "title" in content_dict:
                 title = content_dict["title"]
             page = requests.get(
-                url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % content_dict["databaseId"], headers={"User-Agent": USER_AGENT})
+                url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % content_dict["databaseId"])
             j = json.loads(page.text)
             content = """<video width="100%%" controls="" preload="auto" poster="%s">
                                 <source src="%s" />

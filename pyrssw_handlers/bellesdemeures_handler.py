@@ -5,7 +5,6 @@ import requests
 from lxml import etree
 
 import utils.dom_utils
-from handlers.launcher_handler import USER_AGENT
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
@@ -40,13 +39,10 @@ class BellesDemeuresHandler(PyRSSWRequestHandler):
         if "criteria" in parameters:
             url = "%s%s" % (
                 self.get_original_website(), unquote_plus(parameters["criteria"]))
-            page = session.get(
-                url,
-                headers={"User-Agent": USER_AGENT}
-            )
+            page = session.get(url)
 
             dom = etree.HTML(page.text)
-            if not dom is None:
+            if dom is not None:
                 for card in dom.xpath("//*[contains(@class,\"annonceGold\")]"):
 
                     location: str = self._get_location(card)
@@ -94,7 +90,7 @@ class BellesDemeuresHandler(PyRSSWRequestHandler):
         small_description: str = ""
         descr_node: Optional[etree._Element] = utils.dom_utils.get_first_node(
             card, [".//div[contains(@class, \"more\")]"])
-        if not descr_node is None:
+        if descr_node is not None:
             small_description = " ".join(
                 "".join(descr_node.itertext()).strip().replace("\r\n", " - ").split())
 
@@ -144,13 +140,10 @@ class BellesDemeuresHandler(PyRSSWRequestHandler):
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
         content: str = ""
 
-        content = session.get(
-            url=url,
-            headers={"User-Agent": USER_AGENT} #seems to work better without user agent...
-        ).text
+        content = session.get(url=url).text
 
         dom = etree.HTML(content)
-        if not dom is None:
+        if dom is not None:
 
             descriptions = dom.xpath(
                 "//*[contains(@class, \"detailDescSummary\")]")

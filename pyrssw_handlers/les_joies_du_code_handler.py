@@ -14,7 +14,7 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
 
     RSS parameters: None
     """
-    
+
     @staticmethod
     def get_handler_name() -> str:
         return "lesjoiesducode"
@@ -27,14 +27,16 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         r = session.get(url=self.get_rss_url(), headers={})
-        r.encoding = 'utf-8' #force encoding
+
+        # force encoding
+        r.encoding = "utf-8"
         feed = r.text.replace("<link>", "<link>%s?url=" % self.url_prefix)
         feed = re.sub(
             r'<guid isPermaLink="false">https://lesjoiesducode.fr/\?p=[^<]*</guid>', r"", feed)
-        
+
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        
+
         dom = etree.fromstring(feed)
         for item in dom.xpath('//item'):
             for child in item.getchildren():  # did not find how to xpath content:encoded tag
@@ -52,7 +54,7 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
 
     def _clean_content(self, c):
         content = ""
-        if not c is None:
+        if c is not None:
             dom = etree.HTML(c)
             utils.dom_utils.delete_xpaths(dom, [
                 '//*[@class="permalink-pagination"]',
@@ -77,6 +79,7 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
             content = content.replace('<div class="blog-post-content">', '')
             content = content.replace('</div>', '')
             content = re.sub(r'src="data:image[^"]*', '', content)
-            content = content.replace("data-src", "style='height:100%;width:100%' src")
+            content = content.replace(
+                "data-src", "style='height:100%;width:100%' src")
             content = re.sub(r'<!--(.*)-->', r"", content, flags=re.S)
         return content

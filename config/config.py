@@ -103,7 +103,8 @@ class Config:
     def get_basic_auth_credentials(self) -> Tuple[Optional[str], Optional[str]]:
         login = None
         password = None
-        if SERVER_BASICAUTH_LOGIN_KEY in self._get_configuration() and SERVER_BASICAUTH_PASSWORD_KEY and self._get_configuration()[SERVER_BASICAUTH_LOGIN_KEY] != '' and self._get_configuration()[SERVER_BASICAUTH_PASSWORD_KEY] != '':
+        if SERVER_BASICAUTH_LOGIN_KEY in self._get_configuration() and SERVER_BASICAUTH_PASSWORD_KEY and self._get_configuration()[SERVER_BASICAUTH_LOGIN_KEY] != '' \
+                and self._get_configuration()[SERVER_BASICAUTH_PASSWORD_KEY] != '':
             login = self._get_configuration()[SERVER_BASICAUTH_LOGIN_KEY]
             password = self._get_configuration()[SERVER_BASICAUTH_PASSWORD_KEY]
 
@@ -116,7 +117,8 @@ class Config:
                                      (SERVER_CRYPTO_KEY, self.config_file))
             crypto_key = Fernet.generate_key()
             with open(self.config_file, "a") as f:
-                f.write("\n\n%s=%s" % (SERVER_CRYPTO_KEY, crypto_key.decode('ascii')))
+                f.write("\n\n%s=%s" %
+                        (SERVER_CRYPTO_KEY, crypto_key.decode('ascii')))
         else:
             crypto_key = self._get_configuration(
             )[SERVER_CRYPTO_KEY].encode('ascii')

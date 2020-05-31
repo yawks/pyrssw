@@ -38,10 +38,7 @@ class LogicImmoHandler(PyRSSWRequestHandler):
         if "criteria" in parameters:
             url = "%s%s" % (
                 self.get_original_website(), unquote_plus(parameters["criteria"]))
-            page = session.get(
-                url  # ,
-                # headers={"User-Agent" : USER_AGENT} #seems to work better without user agent...
-            )
+            page = session.get(url)
 
             dom = etree.HTML(page.text)
             for card in dom.xpath("//div[contains(@class,\"offer-list-item\")]"):
@@ -123,13 +120,10 @@ class LogicImmoHandler(PyRSSWRequestHandler):
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
         content: str = ""
 
-        page = session.get(
-            url=url  # ,
-            # headers={"User-Agent": USER_AGENT} #seems to work better without user agent...
-        )
+        page = session.get(url=url)
 
         dom = etree.HTML(page.text)
-        if not dom is None:
+        if dom is not None:
 
             descriptions = dom.xpath(
                 "//div[@class=\"offer-description-text\"]")

@@ -5,7 +5,6 @@ import requests
 from lxml import etree
 
 import utils.dom_utils
-from handlers.launcher_handler import USER_AGENT
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
@@ -80,7 +79,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
         self._authent(parameters, session)
         try:
-            page = session.get(url=url, headers={"User-Agent": USER_AGENT})
+            page = session.get(url=url)
             content = page.text
 
             dom = etree.HTML(content)
@@ -112,8 +111,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
         return content
 
     def _authent(self, parameters: dict, session: requests.Session):
-        page = session.get(url=URL_CONNECTION, headers={
-                           "User-Agent": USER_AGENT})
+        page = session.get(url=URL_CONNECTION)
         if "login" in parameters and "password" in parameters:
             idx = page.text.find("connection[_token]")
             if idx > -1:
@@ -131,7 +129,6 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 session.post(
                     url=URL_CONNECTION, data=data, headers=self._get_headers(URL_CONNECTION))
 
-
     def _get_headers(self, referer):
         headers = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -142,7 +139,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
             "Origin": "https://secure.lemonde.fr/",
             "Host": "secure.lemonde.fr",
             "Upgrade-Insecure-Requests": "1",
-            "User-Agent": USER_AGENT,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
             "Connection": "keep-alive",
             "Pragma": "no-cache",
             "Referer": referer
@@ -151,4 +148,4 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
     def _unauthent(self, session: requests.Session):
         session.get(url=URL_DECONNECTION, headers=self._get_headers("/"))
-        #session.close()
+        # session.close()

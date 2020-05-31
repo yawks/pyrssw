@@ -1,12 +1,12 @@
 import datetime
 import pickle
-from typing import Optional
 
 import requests
 from dateutil.relativedelta import relativedelta
 
 from config.config import Config, Singleton
 from storage.pyrsswdb import PyRSSWDB
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
 
 
 @Singleton
@@ -39,9 +39,10 @@ class SessionStore:
         self._clean_old_entries()
         entry = PyRSSWDB.instance().get_db().sessions.find_one(
             {"sessionid": sessionid})
-        if not entry is None:
+        if entry is not None:
             session: requests.Session = pickle.loads(entry["session"])
         else:
             session: requests.Session = requests.Session()
+            session.headers.update({"User-Agent": USER_AGENT})
 
         return session

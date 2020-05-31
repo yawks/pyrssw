@@ -8,7 +8,7 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 
 
 class Sport24Handler(PyRSSWRequestHandler):
-    
+
     @staticmethod
     def get_handler_name() -> str:
         return "sport24"
@@ -19,12 +19,14 @@ class Sport24Handler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://sport24.lefigaro.fr/rssfeeds/sport24-%s.xml"
 
-    def get_feed(self, parameters: dict, session: requests.Session)  -> str:
+    def get_feed(self, parameters: dict, session: requests.Session) -> str:
         if "filter" in parameters and parameters["filter"] == ("tennis" or "football" or "rugby" or "cyclisme" or "golf"):
             # filter only on passed category, eg /sport24/rss/tennis
-            feed = session.get(url=self.get_rss_url() % parameters["filter"], headers={}).text
+            feed = session.get(url=self.get_rss_url() %
+                               parameters["filter"], headers={}).text
         else:
-            feed = session.get(url=self.get_rss_url() % "accueil", headers={}).text
+            feed = session.get(url=self.get_rss_url() %
+                               "accueil", headers={}).text
 
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
@@ -37,7 +39,8 @@ class Sport24Handler(PyRSSWRequestHandler):
         utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         for link in dom.xpath("//item/link"):
-            link.text = self.get_handler_url_with_parameters({"url": link.text.strip()})
+            link.text = self.get_handler_url_with_parameters(
+                {"url": link.text.strip()})
 
         feed = etree.tostring(dom, encoding='unicode')
 
@@ -60,8 +63,10 @@ class Sport24Handler(PyRSSWRequestHandler):
         if len(imgs) > 0:
             imgsrc = imgs[0].get("srcset")
 
-        utils.dom_utils.delete_nodes(dom.xpath('//*[@class="s24-art-cross-linking"]'))
-        utils.dom_utils.delete_nodes(dom.xpath('//*[@class="s24-art-pub-top"]'))
+        utils.dom_utils.delete_nodes(
+            dom.xpath('//*[@class="s24-art-cross-linking"]'))
+        utils.dom_utils.delete_nodes(
+            dom.xpath('//*[@class="s24-art-pub-top"]'))
 
         contents = dom.xpath('//*[@class="s24-art__content s24-art__resize"]')
         if len(contents) > 0:

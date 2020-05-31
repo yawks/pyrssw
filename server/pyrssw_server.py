@@ -28,7 +28,7 @@ class PyRSSWHTTPServer(HTTPServer, AbstractPyRSSWHTTPServer):
     def _load_auth_key(self):
         self.auth_key: Optional[str] = None
         login, password = Config.instance().get_basic_auth_credentials()
-        if not login is None and not password is None:
+        if login is not None and password is not None:
             self.auth_key = base64.b64encode(
                 bytes('%s:%s' % (login, password), 'utf-8')).decode('ascii')
         else:

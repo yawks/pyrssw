@@ -11,7 +11,7 @@ class RequestHandler():
 
     def __init__(self):
         self.logger = logging.getLogger()
-        self.status: int = 200 #by default
+        self.status: int = 200  # by default
 
     def _log(self, msg):
         self.logger.info(
@@ -28,4 +28,3 @@ class RequestHandler():
 
     def get_content_type(self) -> str:
         return self.content_type
-
