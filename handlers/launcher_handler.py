@@ -38,7 +38,7 @@ class LauncherHandler(RequestHandler):
             serving_url_prefix, module_name)
         self.url: str = url
         self.fernet: Fernet = Fernet(crypto_key)
-        self.session_id = session_id
+        self.session_id: str = session_id
         for h in handlers:  # find handler from module_name
             if h.get_handler_name() == module_name:
                 self.handler = h(self.fernet, self.handler_url_prefix)
@@ -75,7 +75,7 @@ class LauncherHandler(RequestHandler):
 
     def _process_content(self, url, parameters):
         self._log("content page requested: %s" % re.sub(
-            "%s[^\\s&]*" % ENCRYPTED_PREFIX, "XXXX", url))  # anonymize crypted params in logs
+            "%s[^\\s&]*" % ENCRYPTED_PREFIX, "XXXX", unquote_plus(url)))  # anonymize crypted params in logs
         requested_url = url
         self.content_type = HTML_CONTENT_TYPE
         session: requests.Session = SessionStore.instance().get_session(self.session_id)
@@ -120,7 +120,7 @@ class LauncherHandler(RequestHandler):
                 # copy picture url from enclosure to a img tag in description (or add a generated one)
                 for item in dom.xpath("//item"):
                     if self._arrange_feed_keep_item(item, parameters):
-                        self._arrange_item(item)
+                        self._arrange_item(item, parameters)
                         self._arrange_feed_link(item, parameters)
                     else:
                         item.getparent().remove(item)
@@ -152,22 +152,32 @@ class LauncherHandler(RequestHandler):
 
         return feed_keep_item
 
-    def _arrange_item(self, item: etree._Element):
+    def _arrange_item(self, item: etree._Element, parameters: dict):
         descriptions = item.xpath(".//description")
 
-        if len(descriptions) > 0 and not descriptions[0].text is None and len(descriptions[0].xpath('.//img')) == 0:
-            # if description does not have a picture, add one from enclosure or media:content tag if any
-            img_url: str = self._get_img_url(item)
+        if len(descriptions) > 0:
+            if descriptions[0].text is not None and len(descriptions[0].xpath('.//img')) == 0:
+                # if description does not have a picture, add one from enclosure or media:content tag if any
+                img_url: str = self._get_img_url(item)
 
-            if img_url == "":
-                # uses the ThumbnailHandler to fetch an image from google search images
-                img_url = "%s/thumbnails?request=%s" % (
-                    self.serving_url_prefix, quote_plus(etree.tostring(descriptions[0], encoding='unicode')))
+                if img_url == "":
+                    # uses the ThumbnailHandler to fetch an image from google search images
+                    img_url = "%s/thumbnails?request=%s" % (
+                        self.serving_url_prefix, quote_plus(etree.tostring(descriptions[0], encoding='unicode')))
 
-            img = etree.Element("img")
-            img.set("src", img_url)
-            descriptions[0].append(img)
-            descriptions[0].append(self._get_source(item))
+                img = etree.Element("img")
+                img.set("src", img_url)
+                descriptions[0].append(img)
+
+            n = self._get_source(item)
+            if n is not None:
+                descriptions[0].append(n)
+            if "debug" in parameters and parameters["debug"] == "true":
+                p = etree.Element("p")
+                i = etree.Element("i")
+                i.text = "Session id: %s" % self.session_id
+                p.append(i)
+                descriptions[0].append(p)
 
     def _arrange_feed_link(self, item: etree._Element, parameters: Dict[str, str]):
         """arrange feed link, by adding dark and userid parameters if required
@@ -177,10 +187,11 @@ class LauncherHandler(RequestHandler):
             parameters {Dict[str, str]} -- url parameters, one of them may be the dark boolean
         """
         suffix_url: str = ""
-        if "dark" in parameters and parameters["dark"] == "true":
-            suffix_url = "&dark=true"
-        if "userid" in parameters:
-            suffix_url += "&userid=%s" % parameters["userid"]
+        for parameter in parameters:
+            if parameter in ["dark", "debug", "userid"]:
+                if suffix_url != "":
+                    suffix_url += "&"
+                suffix_url += "%s=%s" % (parameter, parameters[parameter])
 
         if suffix_url != "":
             for link in item.xpath(".//link"):

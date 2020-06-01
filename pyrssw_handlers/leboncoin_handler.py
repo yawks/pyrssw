@@ -76,7 +76,7 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
 
         return """<rss version="2.0">
     <channel>
-        <title>Logic Immo</title>
+        <title>Le bon coin</title>
         <language>fr-FR</language>
         %s
     </channel>
