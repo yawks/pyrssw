@@ -16,20 +16,20 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
 
     def encrypt(self, value) -> str:
         return "%s%s" % (ENCRYPTED_PREFIX, self.fernet.encrypt(value.encode("ascii")).decode('ascii'))
-    
+
     def get_handler_url_with_parameters(self, parameters: Dict[str, str]) -> str:
         url_with_parameters: str = ""
-        if not self.url_prefix is None:
+        if self.url_prefix is not None:
             url_with_parameters = self.url_prefix
             for key in parameters:
                 if url_with_parameters == self.url_prefix:
                     url_with_parameters += "?"
                 else:
                     url_with_parameters += "&"
-                url_with_parameters += "%s=%s" % (key, quote_plus(parameters[key]))
+                url_with_parameters += "%s=%s" % (key,
+                                                  quote_plus(parameters[key]))
 
         return url_with_parameters
-
 
     @classmethod
     def __subclasshook__(cls, subclass):

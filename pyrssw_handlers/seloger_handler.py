@@ -1,4 +1,5 @@
 import json
+from random import random
 import re
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
@@ -85,6 +86,15 @@ class SeLogerHandler(PyRSSWRequestHandler):
                                 "&", "&amp;"), price, small_description.replace("&", "&amp;"),
                             other_imgs,
                             self._get_url_prefix(self.get_handler_url_with_parameters({"url": url_detail})))
+            else:
+                items = """<item>
+            <title>Unable to read json, blacklisted?</title>
+            <description>Unable to read json</description>
+            <link>
+                %s%s
+            </link>
+        </item>""" % (self.get_handler_url_with_parameters(
+                    {"dummy": random.randrange(100000000000, 999999999999)}))
 
         return """<rss version="2.0">
     <channel>
@@ -113,22 +123,6 @@ class SeLogerHandler(PyRSSWRequestHandler):
             "Upgrade-Insecure-Requests": "1",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0"
         }
-    """
-    de f _get_cookies(self):
-        return {
-            "AA_Test_House": "a",
-            "AA_Test_g": "h",
-            "ABtestCreditImmo": "ABtestCreditImmo_VersionB",
-            "bannerCookie": "1",
-            "beConnectedOrDie": "A",
-            "c_m": "undefinedTyped\\%2FBookmarkedTyped`\\%2FBookmarkedundefined",
-            "contactvendeur": "0",
-            "hideCoronaBanner": "true",
-            "s_cc": "true",
-            "uuid230": "1a2052a9-62e5-4bca-a104-b4edf5d7ebf1",
-            "visitId": "%d-%d" % (random.randrange(100000000000, 999999999999), random.randrange(1000000000, 9999999999))
-        }
-    """
 
     def _process_images(self, card: dict) -> Tuple[str, str]:
         img_url: str = ""
@@ -182,7 +176,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
             '//button',
             '//svg'
         ])
-        # move images to a readable node
+        # move images to a readable node (see readability)
         cpt = 1
         nodes = dom.xpath("//*[contains(@class,\"ShowMoreText\")]//p")
         if len(nodes) > 0:
@@ -203,5 +197,8 @@ class SeLogerHandler(PyRSSWRequestHandler):
 
         content += utils.dom_utils.get_content(
             dom, ['//*[@id="showcase-description"]'])
+
+        if content == "":
+            raise Exception("Unable to get content: blacklisted?")
 
         return content

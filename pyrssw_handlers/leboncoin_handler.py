@@ -46,10 +46,9 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
                 for card in json_obj["root"][5]["data"]["ads"]:
 
                     location: str = self._get_location(card)
-
-                    small_description: str = "%s<br/>%s" % (
-                        get_node_value_if_exists(card, "subject"),
-                        get_node_value_if_exists(card, "body"))
+                    small_description: str = get_node_value_if_exists(
+                        card, "subject")
+                    description: str = get_node_value_if_exists(card, "body")
                     url_detail: str = get_node_value_if_exists(
                         card, "url")
                     price: str = self._get_price(card)
@@ -70,7 +69,7 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
             </link>
         </item>""" % (location, price, small_description.replace("&", "&amp;"),  # NOSONAR
                             img_url, location.replace(
-                                "&", "&amp;"), price, small_description.replace("&", "&amp;"),
+                                "&", "&amp;"), price, description.replace("&", "&amp;"),
                             other_imgs,
                             self.get_handler_url_with_parameters({"url": url_detail}))
 
