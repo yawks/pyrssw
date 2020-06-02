@@ -189,9 +189,7 @@ class LauncherHandler(RequestHandler):
         suffix_url: str = ""
         for parameter in parameters:
             if parameter in ["dark", "debug", "userid"]:
-                if suffix_url != "":
-                    suffix_url += "&"
-                suffix_url += "%s=%s" % (parameter, parameters[parameter])
+                suffix_url += "&%s=%s" % (parameter, parameters[parameter])
 
         if suffix_url != "":
             for link in item.xpath(".//link"):

@@ -52,6 +52,8 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
                     url_detail: str = get_node_value_if_exists(
                         card, "url")
                     price: str = self._get_price(card)
+                    publication_date: str = get_node_value_if_exists(
+                        card, "first_publication_date")
 
                     img_url: str = ""
                     other_imgs: str = ""
@@ -67,11 +69,14 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
             <link>
                 %s
             </link>
+            <pubDate>%s</pubDate>
         </item>""" % (location, price, small_description.replace("&", "&amp;"),  # NOSONAR
                             img_url, location.replace(
                                 "&", "&amp;"), price, description.replace("&", "&amp;"),
                             other_imgs,
-                            self.get_handler_url_with_parameters({"url": url_detail}))
+                            self.get_handler_url_with_parameters(
+                                {"url": url_detail}),
+                            publication_date)
 
         return """<rss version="2.0">
     <channel>
@@ -96,7 +101,7 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
                 img_url = card["images"]["small_url"]
             if "urls" in card["images"]:
                 for photo_url in card["images"]["urls"]:
-                    other_imgs += "<img src=\"%s\" alt=\"Thumbnail\"/>" % photo_url
+                    other_imgs += "<img src=\"%s\" alt=\"Thumbnail\"/><br/><br/>" % photo_url
 
         return img_url, other_imgs
 
@@ -147,6 +152,18 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
             other_imgs: str = ""
             _, other_imgs = self._process_images(node)
             content += other_imgs
+
+            content += "<hr/>"
+            content += "<p>%s</p>" % get_node_value_if_exists(
+                node, "category_name")
+            content += "<hr/>"
+            if "attributes" in node:
+                for attribute in node["attributes"]:
+                    key_label: str = get_node_value_if_exists(
+                        attribute, "key_label")
+                    if key_label != "":
+                        content += "<p><strong>%s</strong>: %s</p>" % (key_label, get_node_value_if_exists(
+                            attribute, "value_label"))
 
         return """
     <div class=\"main-content\">
