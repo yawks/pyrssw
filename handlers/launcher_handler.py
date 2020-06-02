@@ -21,6 +21,8 @@ FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
 
+# TODO: code cleaning => create classes for feed and content handling
+
 
 class LauncherHandler(RequestHandler):
     """Handler which launches custom PyRSSWRequestHandler"""
@@ -74,16 +76,20 @@ class LauncherHandler(RequestHandler):
             self.set_status(500)
 
     def _process_content(self, url, parameters):
-        self._log("content page requested: %s" % re.sub(
-            "%s[^\\s&]*" % ENCRYPTED_PREFIX, "XXXX", unquote_plus(url)))  # anonymize crypted params in logs
+        self._log("content page requested: %s" % unquote_plus(url))
         requested_url = url
         self.content_type = HTML_CONTENT_TYPE
         session: requests.Session = SessionStore.instance().get_session(self.session_id)
+
         if "url" in parameters:
             requested_url = parameters["url"]
         if not requested_url.startswith("https://") and not requested_url.startswith("http://"):
-            self.contents = self.handler.get_content(
-                self.handler.get_original_website() + requested_url, parameters, session)
+            requested_url += self.handler.get_original_website()
+
+        if "plain" in parameters and parameters["plain"] == "true":
+            # return the requested page without any modification
+            session: requests.Session = SessionStore.instance().get_session(self.session_id)
+            self.contents = session.get(requested_url).text
         else:
             self.contents = self.handler.get_content(
                 requested_url, parameters, session)
@@ -188,7 +194,7 @@ class LauncherHandler(RequestHandler):
         """
         suffix_url: str = ""
         for parameter in parameters:
-            if parameter in ["dark", "debug", "userid"]:
+            if parameter in ["dark", "debug", "userid", "plain"]:
                 suffix_url += "&%s=%s" % (parameter, parameters[parameter])
 
         if suffix_url != "":

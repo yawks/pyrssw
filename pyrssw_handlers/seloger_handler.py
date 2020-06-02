@@ -1,5 +1,5 @@
 import json
-from random import random
+import random
 import re
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
@@ -94,7 +94,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
                 %s%s
             </link>
         </item>""" % (self.get_handler_url_with_parameters(
-                    {"dummy": random.randrange(100000000000, 999999999999)}))
+                    {"dummy": str(random.randrange(100000000000, 999999999999))}))
 
         return """<rss version="2.0">
     <channel>

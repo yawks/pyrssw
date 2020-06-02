@@ -167,3 +167,5 @@ class LogicImmoHandler(PyRSSWRequestHandler):
     def _remove_user_agent(self, session: requests.Session):
         if "User-Agent" in session.headers:
             session.headers.pop("User-Agent")
+        if "X-Forwarded-For" not in session.headers:  # little hack
+            session.headers.update({"X-Forwarded-For": "192.168.0.2"})

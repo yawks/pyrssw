@@ -1,6 +1,10 @@
 import datetime
 import logging
 
+from pyparsing import re
+
+from pyrssw_handlers.abstract_pyrssw_request_handler import ENCRYPTED_PREFIX
+
 
 class RequestHandler():
     """Main instance for every handler."""
@@ -15,7 +19,8 @@ class RequestHandler():
 
     def _log(self, msg):
         self.logger.info(
-            "[" + datetime.datetime.now().strftime("%Y-%m-%d - %H:%M") + "] - - " + msg)
+            "[" + datetime.datetime.now().strftime("%Y-%m-%d - %H:%M") + "] - - " + re.sub(
+                "%s[^\\s&]*" % ENCRYPTED_PREFIX, "XXXX", msg))  # anonymize crypted params in logs )
 
     def get_contents(self) -> str:
         return self.contents
