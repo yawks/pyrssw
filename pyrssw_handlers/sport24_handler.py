@@ -1,5 +1,5 @@
 import string
-
+import re
 import requests
 from lxml import etree
 
@@ -30,7 +30,9 @@ class Sport24Handler(PyRSSWRequestHandler):
 
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
-        dom = etree.fromstring(feed)
+        regex = re.compile(r"&(?!amp;|lt;|gt;)")
+        myxml = regex.sub("&amp;", feed)
+        dom = etree.fromstring(myxml)
 
         xpath_expression = "//item[not(enclosure)]"
         if "filter" in parameters and parameters["filter"] == "flash":

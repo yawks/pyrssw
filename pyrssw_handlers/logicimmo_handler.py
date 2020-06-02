@@ -120,7 +120,7 @@ class LogicImmoHandler(PyRSSWRequestHandler):
         content: str = ""
 
         # for some reasons logicimmo website does not work with sessions
-        page = session.get(url=url)
+        page = requests.get(url=url)
 
         dom = etree.HTML(page.text)
         if dom is not None:

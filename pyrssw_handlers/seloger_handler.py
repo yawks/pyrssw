@@ -131,7 +131,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
             for photo_url in card["photos"]:
                 if img_url == "":
                     img_url = photo_url
-                other_imgs += "<img src=\"%s\" alt=\"Thumbnail\"/>" % photo_url
+                other_imgs += "<img src=\"%s\" alt=\"Thumbnail\"/><br/><br/>" % photo_url
 
         return img_url, other_imgs
 
