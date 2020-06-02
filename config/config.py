@@ -114,14 +114,15 @@ class Config:
         if SERVER_CRYPTO_KEY not in self._get_configuration() or self._get_configuration()[SERVER_CRYPTO_KEY] == '':
             # automatically writes a crypto key
             logging.getLogger().info("No %s defined, creating one and add it to the %s file",
-                                     (SERVER_CRYPTO_KEY, self.config_file))
+                                     SERVER_CRYPTO_KEY, self.config_file)
             crypto_key = Fernet.generate_key()
+            self.configuration[SERVER_CRYPTO_KEY] = crypto_key.decode("ascii")
             with open(self.config_file, "a") as f:
                 f.write("\n\n%s=%s" %
-                        (SERVER_CRYPTO_KEY, crypto_key.decode('ascii')))
+                        (SERVER_CRYPTO_KEY, crypto_key.decode("ascii")))
         else:
             crypto_key = self._get_configuration(
-            )[SERVER_CRYPTO_KEY].encode('ascii')
+            )[SERVER_CRYPTO_KEY].encode("ascii")
 
         return crypto_key
 

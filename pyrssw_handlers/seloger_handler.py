@@ -88,10 +88,10 @@ class SeLogerHandler(PyRSSWRequestHandler):
                             self._get_url_prefix(self.get_handler_url_with_parameters({"url": url_detail})))
             else:
                 items = """<item>
-            <title>Unable to read json, blacklisted?</title>
-            <description>Unable to read json</description>
+            <title>Seloger</title>
+            <description>Unable to read json, blacklisted?</description>
             <link>
-                %s%s
+                %s
             </link>
         </item>""" % (self.get_handler_url_with_parameters(
                     {"dummy": str(random.randrange(100000000000, 999999999999))}))

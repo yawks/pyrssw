@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from pyparsing import re
+import re
 
 from pyrssw_handlers.abstract_pyrssw_request_handler import ENCRYPTED_PREFIX
 

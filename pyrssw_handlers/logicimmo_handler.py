@@ -36,12 +36,9 @@ class LogicImmoHandler(PyRSSWRequestHandler):
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         items: str = ""
         if "criteria" in parameters:
-            self._remove_user_agent(session)
             url = "%s%s" % (
                 self.get_original_website(), unquote_plus(parameters["criteria"]))
-            page = session.get(url=url, headers={
-                               "X-Forwarded-For": "192.168.0.2"})
-
+            page = requests.get(url=url) # for some reasons logicimmo website does not work with sessions
             dom = etree.HTML(page.text)
             for card in dom.xpath("//div[contains(@class,\"offer-list-item\")]"):
 
@@ -122,8 +119,8 @@ class LogicImmoHandler(PyRSSWRequestHandler):
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
         content: str = ""
 
-        self._remove_user_agent(session)
-        page = session.get(url=url, headers={"X-Forwarded-For": "192.168.0.2"})
+        # for some reasons logicimmo website does not work with sessions
+        page = session.get(url=url)
 
         dom = etree.HTML(page.text)
         if dom is not None:
@@ -163,9 +160,3 @@ class LogicImmoHandler(PyRSSWRequestHandler):
     <div class=\"main-content\">
         %s
     </div>""" % (content)
-
-    def _remove_user_agent(self, session: requests.Session):
-        if "User-Agent" in session.headers:
-            session.headers.pop("User-Agent")
-        if "X-Forwarded-For" not in session.headers:  # little hack
-            session.headers.update({"X-Forwarded-For": "192.168.0.2"})
