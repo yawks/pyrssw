@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apk add --no-cache \
 	uwsgi-python3 \
 	uwsgi-http \
-        python3 \
+	python3 \
 	gcc \
 	make \
 	libffi-dev \
@@ -22,7 +22,9 @@ RUN apk del gcc \
 	make
 
 CMD [ "uwsgi", \
-               "--ini", "uwsg.ini", \
-               "--plugin", "http, python3", \
-               "--http", ":3031", \
-               "--wsgi-file", "server/pyrssw_wsgi.py" ]
+	"--ini", "uwsg.ini", \
+	"--plugin", "http, python3", \
+	"--http", ":3031", \
+	"--uid", "www-data", \
+	"--gid", "www-data", \
+	"--wsgi-file", "server/pyrssw_wsgi.py" ]

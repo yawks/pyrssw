@@ -287,10 +287,15 @@ class LauncherHandler(RequestHandler):
                     margin:auto;
                     line-height:1.6em;
                 }
+                h1 {
+                    line-height:1em;
+                }
         """
         source: str = ""
+        domain: str = ""
         if "url" in parameters:
             source = "<em><a href='%s'>Source</em>" % parameters["url"]
+            domain = urlparse.urlparse(parameters["url"]).netloc
         if "dark" in parameters and parameters["dark"] == "true":
             style += """
                 body {
@@ -306,6 +311,7 @@ class LauncherHandler(RequestHandler):
                     <html>
                         <head>
                             <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+                            <link rel="icon" href="https://icons.duckduckgo.com/ip3/%s.ico"/>
                             <style>
                             %s
                             * {
@@ -322,7 +328,7 @@ class LauncherHandler(RequestHandler):
                                 %s
                             </div>
                         </body>
-                    </html>""" % (style, self.contents, source)
+                    </html>""" % (domain, style, self.contents, source)
 
     def _replace_prefix_urls(self):
         """Replace relative urls by absolute urls using handler prefix url"""

@@ -46,10 +46,8 @@ class SeLogerHandler(PyRSSWRequestHandler):
             url = "%slist.htm=?%s" % (
                 self.get_original_website(), unquote_plus(parameters["criteria"]))
 
-            content: str = session.get(
-                url,
-                headers=self._get_headers()
-            ).text
+            self._update_headers(session)
+            content: str = session.get(url).text
 
             json_obj: Optional[dict] = self._load_json(content)
             if json_obj is not None and "cards" in json_obj and "list" in json_obj["cards"]:
@@ -113,8 +111,8 @@ class SeLogerHandler(PyRSSWRequestHandler):
 
         return new_url
 
-    def _get_headers(self):
-        return {
+    def _update_headers(self, session: requests.Session):
+        """h eaders = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5",
             "Cache-Control": "max-age=0",
@@ -122,7 +120,22 @@ class SeLogerHandler(PyRSSWRequestHandler):
             "Referer": "https://www.seloger.com/",
             "Upgrade-Insecure-Requests": "1",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0"
+        }"""
+
+        headers = {
+            "authority": "www.seloger.com",
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36",
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+            "sec-fetch-site": "none",
+            "sec-fetch-mode": "navigate",
+            "sec-fetch-dest": "document",
+            "accept-language": "en-US,en;q=0.9,fr;q=0.8"
         }
+
+        for key in headers:
+            if key not in session.headers:
+                session.headers.update({key: headers[key]})
 
     def _process_images(self, card: dict) -> Tuple[str, str]:
         img_url: str = ""
@@ -166,8 +179,8 @@ class SeLogerHandler(PyRSSWRequestHandler):
         return json_obj
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
-        page = session.get(url=url,
-                           headers=self._get_headers())
+        self._update_headers(session)
+        page = session.get(url=url)
         dom = etree.HTML(page.text)
 
         utils.dom_utils.delete_xpaths(dom, [
