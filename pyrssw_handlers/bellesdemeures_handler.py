@@ -54,11 +54,13 @@ class BellesDemeuresHandler(PyRSSWRequestHandler):
 
                     if small_description != "" and price != "":
                         items += """<item>
-                <title>%s - %s - %s</title>
+                <title><![CDATA[%s - %s - %s]]></title>
                 <description>
-                    <img src="%s"/><p>%s - %s - %s</p>
-                    %s
-                    %s
+                    <![CDATA[
+                        <img src="%s"/><p>%s - %s - %s</p>
+                        %s
+                        %s
+                    ]]>
                 </description>
                 <link>
                     %s

@@ -61,18 +61,19 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
 
                     if price != "":
                         items += """<item>
-            <title>%s - %s - %s</title>
+            <title><![CDATA[%s - %s - %s]]></title>
             <description>
-                <img src="%s"/><p>%s - %s - %s</p>
-                %s
+                <![CDATA[
+                    <img src="%s"/><p>%s - %s - %s</p>
+                    %s
+                ]]>
             </description>
             <link>
                 %s
             </link>
             <pubDate>%s</pubDate>
-        </item>""" % (location, price, small_description.replace("&", "&amp;"),  # NOSONAR
-                            img_url, location.replace(
-                                "&", "&amp;"), price, description.replace("&", "&amp;"),
+        </item>""" % (location, price, small_description,
+                            img_url, location, price, description,
                             other_imgs,
                             self.get_handler_url_with_parameters(
                                 {"url": url_detail}),

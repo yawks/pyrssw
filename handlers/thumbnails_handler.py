@@ -1,5 +1,6 @@
 import base64
 import re
+from typing import Optional
 from urllib.parse import unquote_plus
 
 import requests
@@ -17,15 +18,15 @@ class ThumbnailHandler(RequestHandler):
         base64 encoded image
     """
 
-    def __init__(self, request: str):
-        super().__init__()
+    def __init__(self, request: str, source_ip: Optional[str]):
+        super().__init__(source_ip)
         original_website: str = "https://www.google.fr/search?source=lnms&tbm=isch&q="
 
         content = b""
 
         if request.find("?request=") > -1:
             r = unquote_plus(request[len("?request="):].replace('\t',
-                                                   '').replace('\n', '').strip())
+                                                                '').replace('\n', '').strip())
             response = requests.get(
                 original_website + r, headers={"User-Agent": USER_AGENT})
 

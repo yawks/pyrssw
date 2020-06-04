@@ -34,7 +34,7 @@ def application(environ, start_response):
                                      suffix)
 
     launcher: WSGILauncherHandler = WSGILauncherHandler(
-        environ["REQUEST_URI"], url_prefix)
+        environ["REQUEST_URI"], url_prefix, get_client_address(environ))
 
     cookie: SimpleCookie = SimpleCookie()
     if "HTTP_COOKIE" in environ:
@@ -56,10 +56,18 @@ def application(environ, start_response):
     return [contents]
 
 
+def get_client_address(environ) -> str:
+    try:
+        return environ['HTTP_X_FORWARDED_FOR'].split(',')[-1].strip()
+    except KeyError:
+        return environ['REMOTE_ADDR']
+
+
 class WSGILauncherHandler:
-    def __init__(self, path: str, serving_url_prefix: Optional[str]):
+    def __init__(self, path: str, serving_url_prefix: Optional[str], source_ip: Optional[str]):
         self.path: str = path
         self.serving_url_prefix: Optional[str] = serving_url_prefix
+        self.source_ip: Optional[str] = source_ip
 
     def get_handler(self, cookies: SimpleCookie) -> RequestHandler:
         try:
@@ -68,17 +76,17 @@ class WSGILauncherHandler:
             suffix_url: str = self.path[len(module_name)+1:]
             if module_name == "":  # root page
                 handler = HelpHandler(
-                    HandlersManager.instance().get_handlers(), self.serving_url_prefix)
+                    HandlersManager.instance().get_handlers(), self.serving_url_prefix, self.source_ip)
             elif module_name == "thumbnails":
-                handler = ThumbnailHandler(suffix_url)
+                handler = ThumbnailHandler(suffix_url, self.source_ip)
             else:  # use a custom handler via LauncherHandler
                 handler = LauncherHandler(module_name, HandlersManager.instance().get_handlers(),
                                           self.serving_url_prefix, suffix_url,
                                           Config.instance().get_crypto_key(),
-                                          self._get_sessionid(cookies))
+                                          self._get_sessionid(cookies), self.source_ip)
         except Exception as e:
             handler = BadRequestHandler(
-                "Error : %s\n%s" % (str(e), self.path))
+                "Error : %s\n%s" % (str(e), self.path), self.source_ip)
 
         return handler
 

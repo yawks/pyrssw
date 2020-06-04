@@ -21,6 +21,10 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 RUN apk del gcc \
 	make
 
+RUN set -x ; \
+	addgroup -g 82 -S www-data ; \
+	adduser -u 82 -D -S -G www-data www-data && exit 0 ; exit 1
+
 CMD [ "uwsgi", \
 	"--ini", "uwsg.ini", \
 	"--plugin", "http, python3", \

@@ -2,7 +2,7 @@ import logging
 import re
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler
-from typing import cast
+from typing import Optional, cast
 from urllib.parse import unquote_plus
 
 from cryptography.fernet import Fernet
@@ -45,9 +45,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         server: AbstractPyRSSWHTTPServer = cast(
             AbstractPyRSSWHTTPServer, self.server)
         if self.check_auth(server.get_auth_key()):
-
+            source_ip: Optional[str] = ""
+            if len(self.client_address) > 0:
+                source_ip = self.client_address[0]
             launcher: WSGILauncherHandler = WSGILauncherHandler(
-                self.path, server.get_serving_url_prefix())
+                self.path, server.get_serving_url_prefix(), source_ip)
 
             self.respond({'handler': launcher.get_handler(
                 SimpleCookie(self.headers.get("Cookie")))})

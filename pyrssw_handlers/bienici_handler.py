@@ -49,19 +49,21 @@ class BienIciHandler(PyRSSWRequestHandler):
                         entry, "city")
                     price: str = self._get_price(entry)
                     small_description: str = get_node_value_if_exists(
-                        entry, "title").replace("<br>", "<br/>").replace("&", "&amp;")
+                        entry, "title")
                     description: str = get_node_value_if_exists(
-                        entry, "description").replace("<br>", "<br/>").replace("&", "&amp;")
+                        entry, "description")
                     url_detail: str = "https://www.bienici.com/realEstateAd.json?id=%s" % get_node_value_if_exists(
                         entry, "id")
                     img_urls: List[str] = self._get_img_urls(entry)
 
                     items += """<item>
-                <title>%s - %s - %s</title>
+                <title><![CDATA[%s - %s - %s]]></title>
                 <description>
-                    <img src="%s"/><p>%s - %s - %s</p>
-                    %s
-                    %s
+                    <![CDATA[
+                        <img src="%s"/><p>%s - %s - %s</p>
+                        %s
+                        %s
+                    ]]>
                 </description>
                 <link>
                     %s

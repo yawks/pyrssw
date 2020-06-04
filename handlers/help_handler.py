@@ -10,8 +10,8 @@ class HelpHandler(RequestHandler):
     """Handles the root page to display the list of loaded handlers
        with their documentation (using docstring)"""
 
-    def __init__(self, handler_types: List[Type[PyRSSWRequestHandler]], url_prefix: Optional[str]):
-        super().__init__()
+    def __init__(self, handler_types: List[Type[PyRSSWRequestHandler]], url_prefix: Optional[str], source_ip: Optional[str]):
+        super().__init__(source_ip)
         self.handler_types: List[Type[PyRSSWRequestHandler]] = handler_types
         self.url_prefix = url_prefix
 

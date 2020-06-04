@@ -32,13 +32,14 @@ class LauncherHandler(RequestHandler):
                  serving_url_prefix: Optional[str],
                  url: str,
                  crypto_key: bytes,
-                 session_id: str):
-        super().__init__()
+                 session_id: str, source_ip: Optional[str]):
+        super().__init__(source_ip)
         self.handler: Optional[PyRSSWRequestHandler] = None
         self.serving_url_prefix: Optional[str] = serving_url_prefix
         self.handler_url_prefix: str = "%s/%s" % (
             serving_url_prefix, module_name)
         self.url: str = url
+        self.module_name: str = module_name
         self.fernet: Fernet = Fernet(crypto_key)
         self.session_id: str = session_id
         for h in handlers:  # find handler from module_name
@@ -104,7 +105,8 @@ class LauncherHandler(RequestHandler):
         self._wrapped_html_content(parameters)
 
     def _process_rss(self, parameters: Dict[str, str]):
-        self._log("/rss requested (%s)" % self.url)
+        self._log("/rss requested for module '%s' (%s)" %
+                  (self.module_name, self.url))
         session: requests.Session = SessionStore.instance().get_session(self.session_id)
         self.content_type = FEED_XML_CONTENT_TYPE
         self.contents = self.handler.get_feed(parameters, session)
@@ -135,7 +137,7 @@ class LauncherHandler(RequestHandler):
                     etree.tostring(dom, encoding='unicode')
             except etree.XMLSyntaxError as e:
                 self._log(
-                    "Unable to parse rss feed (%s), let's proceed anyway: %s" % (self.url, str(e)))
+                    "Unable to parse rss feed for module '%s' (%s), let's proceed anyway: %s" % (self.module_name, self.url, str(e)))
 
     def _arrange_feed_keep_item(self, item: etree._Element, parameters: Dict[str, str]) -> bool:
         """return true if the item must not be deleted.

@@ -71,20 +71,22 @@ class SeLogerHandler(PyRSSWRequestHandler):
 
                     if price != "":
                         items += """<item>
-            <title>%s - %s - %s</title>
+            <title><![CDATA[%s - %s - %s]]></title>
             <description>
-                <img src="%s"/><p>%s - %s - %s</p>
-                %s
+                <![CDATA[
+                    <img src="%s"/><p>%s - %s - %s</p>
+                    %s
+                ]]>
             </description>
             <link>
                 %s
             </link>
-        </item>""" % (location, price, small_description.replace("&", "&amp;"),  # NOSONAR
-                            img_url, location.replace(
-                                "&", "&amp;"), price, small_description.replace("&", "&amp;"),
+        </item>""" % (location, price, small_description,  # NOSONAR
+                            img_url, location, price, small_description,
                             other_imgs,
                             self._get_url_prefix(self.get_handler_url_with_parameters({"url": url_detail})))
             else:
+                self.log_error("Unable to read json, blacklisted? (criteria=%s)" % parameters["criteria"])
                 items = """<item>
             <title>Seloger</title>
             <description>Unable to read json, blacklisted?</description>

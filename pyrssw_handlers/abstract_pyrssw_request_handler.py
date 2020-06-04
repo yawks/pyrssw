@@ -1,6 +1,10 @@
+import datetime
+import logging
+import re
 from abc import ABCMeta, abstractmethod
 from typing import Dict, Optional
 from urllib.parse import quote_plus
+
 import requests
 from cryptography.fernet import Fernet
 
@@ -10,12 +14,27 @@ ENCRYPTED_PREFIX = "!e:"
 
 class PyRSSWRequestHandler(metaclass=ABCMeta):
 
-    def __init__(self, fernet: Optional[Fernet] = None, url_prefix: Optional[str] = ""):
+    def __init__(self, fernet: Optional[Fernet] = None, url_prefix: Optional[str] = "", source_ip: Optional[str] = ""):
         self.url_prefix: Optional[str] = url_prefix
         self.fernet = fernet
+        self.logger = logging.getLogger()
+        self.source_ip: Optional[str] = source_ip
 
     def encrypt(self, value) -> str:
         return "%s%s" % (ENCRYPTED_PREFIX, self.fernet.encrypt(value.encode("ascii")).decode('ascii'))
+
+    def log_info(self, msg):
+        self.logger.info(self._get_formatted_msg(msg))
+
+    def log_error(self, msg):
+        self.logger.error(self._get_formatted_msg(msg))
+
+    def _get_formatted_msg(self, msg):
+        return "[" + datetime.datetime.now().strftime("%Y-%m-%d - %H:%M") + "] [%s] - %s - %s" % (
+            self.get_handler_name(),
+            self.source_ip,
+            re.sub("%s[^\\s&]*" % ENCRYPTED_PREFIX, "XXXX", msg)
+        )  # anonymize crypted params in logs
 
     def get_handler_url_with_parameters(self, parameters: Dict[str, str]) -> str:
         url_with_parameters: str = ""
@@ -31,7 +50,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
 
         return url_with_parameters
 
-    @classmethod
+    @ classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, "get_original_website") and
                 callable(subclass.get_original_website) and

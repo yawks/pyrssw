@@ -38,7 +38,8 @@ class LogicImmoHandler(PyRSSWRequestHandler):
         if "criteria" in parameters:
             url = "%s%s" % (
                 self.get_original_website(), unquote_plus(parameters["criteria"]))
-            page = requests.get(url=url) # for some reasons logicimmo website does not work with sessions
+            # for some reasons logicimmo website does not work with sessions
+            page = requests.get(url=url)
             dom = etree.HTML(page.text)
             for card in dom.xpath("//div[contains(@class,\"offer-list-item\")]"):
 
@@ -59,9 +60,11 @@ class LogicImmoHandler(PyRSSWRequestHandler):
 
                 if small_description != "" and price != "":
                     items += """<item>
-            <title>%s - %s - %s</title>
+            <title><![CDATA[%s - %s - %s]]></title>
             <description>
-                <img src="%s"/><p>%s - %s - %s</p>
+                <![CDATA[
+                    <img src="%s"/><p>%s - %s - %s</p>
+                ]]>
             </description>
             <link>
                 %s
