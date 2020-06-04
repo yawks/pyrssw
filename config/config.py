@@ -37,7 +37,7 @@ class Config:
 
     def load_config_file(self, config_file: str):
         if os.path.isfile(config_file):
-            logging.getLogger().info("Config file '%s' loaded.", config_file)
+            logging.getLogger().debug("Config file '%s' loaded.", config_file)
             self.config_file = config_file
             self.load_properties()
         else:

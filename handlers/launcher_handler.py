@@ -104,7 +104,7 @@ class LauncherHandler(RequestHandler):
         self._wrapped_html_content(parameters)
 
     def _process_rss(self, parameters: Dict[str, str]):
-        self._log("/rss requested")
+        self._log("/rss requested (%s)" % self.url)
         session: requests.Session = SessionStore.instance().get_session(self.session_id)
         self.content_type = FEED_XML_CONTENT_TYPE
         self.contents = self.handler.get_feed(parameters, session)
@@ -135,7 +135,7 @@ class LauncherHandler(RequestHandler):
                     etree.tostring(dom, encoding='unicode')
             except etree.XMLSyntaxError as e:
                 self._log(
-                    "Unable to parse rss feed, let's proceed anyway: %s" % str(e))
+                    "Unable to parse rss feed (%s), let's proceed anyway: %s" % (self.url, str(e)))
 
     def _arrange_feed_keep_item(self, item: etree._Element, parameters: Dict[str, str]) -> bool:
         """return true if the item must not be deleted.
@@ -169,7 +169,7 @@ class LauncherHandler(RequestHandler):
                 if img_url == "":
                     # uses the ThumbnailHandler to fetch an image from google search images
                     img_url = "%s/thumbnails?request=%s" % (
-                        self.serving_url_prefix, quote_plus(etree.tostring(descriptions[0], encoding='unicode')))
+                        self.serving_url_prefix, quote_plus(re.sub(r"</?description>", "", etree.tostring(descriptions[0], encoding='unicode')).strip()))
 
                 img = etree.Element("img")
                 img.set("src", img_url)

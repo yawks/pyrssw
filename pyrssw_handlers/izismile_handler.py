@@ -1,5 +1,7 @@
 import re
 import time
+import urllib.parse as urlparse
+from urllib.parse import parse_qs
 
 import requests
 from lxml import etree
@@ -36,10 +38,16 @@ class IzismileHandler(PyRSSWRequestHandler):
         content, url_next_page = self._get_content(url, session)
 
         if url_next_page != "":
-            # add a page 2 (only page 2 which covers most of cases)
+            # add a page 2
             next_content, url_next_page = self._get_content(
                 url_next_page, session)
             content += next_content
+
+            if url_next_page != "":
+                # add a page 3 (sometimes there is a redirection with an ongoing page)
+                next_content, url_next_page = self._get_content(
+                    url_next_page, session)
+                content += next_content
 
         return content
 
@@ -48,8 +56,12 @@ class IzismileHandler(PyRSSWRequestHandler):
         page = self._get_page_from_url(url, session)
         dom = etree.HTML(page.text)
 
-        scripts = dom.xpath('//script')
-        for script in scripts:
+        for a in dom.xpath("//a[contains(@href, \"https://izismile.com/outgoing.php\")]"):
+            parsed = urlparse.urlparse(a.attrib["href"])
+            if "url" in parse_qs(parsed.query):
+                return "", parse_qs(parsed.query)["url"][0]
+
+        for script in dom.xpath('//script'):
             script.getparent().remove(script)
 
         izi_videos = dom.xpath('//*[@class="s-spr icon icon-mp4"]')

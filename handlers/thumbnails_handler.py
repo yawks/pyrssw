@@ -1,5 +1,6 @@
 import base64
 import re
+from urllib.parse import unquote_plus
 
 import requests
 
@@ -22,8 +23,9 @@ class ThumbnailHandler(RequestHandler):
 
         content = b""
 
-        if len(request) > 1:
-            r = request[1:].replace('\t', '').replace('\n', '').strip()
+        if request.find("?request=") > -1:
+            r = unquote_plus(request[len("?request="):].replace('\t',
+                                                   '').replace('\n', '').strip())
             response = requests.get(
                 original_website + r, headers={"User-Agent": USER_AGENT})
 
