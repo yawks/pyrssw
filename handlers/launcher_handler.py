@@ -164,7 +164,7 @@ class LauncherHandler(RequestHandler):
         descriptions = item.xpath(".//description")
 
         if len(descriptions) > 0:
-            if descriptions[0].text is not None and len(descriptions[0].xpath('.//img')) == 0:
+            if descriptions[0].text is not None and len(descriptions[0].xpath('.//img')) == 0 and etree.tostring(descriptions[0], encoding='unicode').find("&lt;img ") == -1:
                 # if description does not have a picture, add one from enclosure or media:content tag if any
                 img_url: str = self._get_img_url(item)
 
