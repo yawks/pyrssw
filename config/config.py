@@ -8,7 +8,7 @@ from utils.singleton import Singleton
 
 DEFAULT_HOST_NAME = socket.gethostbyaddr(socket.gethostname())[0]
 DEFAULT_PORT_NUMBER = 8001
-DEFAULT_MONGODB_URL = "mongodb://localhost:27017/"
+DEFAULT_MONGODB_URL = ""  # "mongodb://localhost:27017/"
 DEFAULT_STORAGE_READARTICLES_AGE = 30  # days
 DEFAULT_STORAGE_SESSIONS_DURATION = 30  # minutes
 

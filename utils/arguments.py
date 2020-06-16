@@ -2,12 +2,13 @@ import getopt
 import ntpath
 import sys
 
+
 def parse_command_line(argv: list) -> str:
     config_file = ""
 
     try:
         opts, _ = getopt.getopt(argv[1:], "hc:", ["config="])
-    
+
         for opt, arg in opts:
             if opt == '-h':
                 print_help(argv[0], 0)
@@ -18,6 +19,7 @@ def parse_command_line(argv: list) -> str:
         print_help(argv[0], 2)
 
     return config_file
+
 
 def print_help(script_name, exit_code):
     print(ntpath.basename(script_name) + ' -c <optional config file>')

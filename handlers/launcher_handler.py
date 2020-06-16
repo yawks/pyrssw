@@ -89,7 +89,6 @@ class LauncherHandler(RequestHandler):
 
         if "plain" in parameters and parameters["plain"] == "true":
             # return the requested page without any modification
-            session: requests.Session = SessionStore.instance().get_session(self.session_id)
             self.contents = session.get(requested_url).text
         else:
             self.contents = self.handler.get_content(

@@ -1,26 +1,52 @@
-# pyrssw
+# PyRSSW
 
 PyRSSW stands for Python RSS Wrapper. This is a RSS aggregator reworking existing RSS feeds to provide:
 
 - new features to existing RSS feeds (filtering, dark mode, ...)
-- the feeds' content, and only the [readable](https://github.com/mozilla/readability) part of it, even if a login/password is required
+- the feeds content, and only the [readable](https://github.com/mozilla/readability) part of it, even if a login/password is required
 
-The main objective is to provide clean content to RSS clients like [Flym](https://github.com/FredJul/Flym) or [FeedBro](https://nodetics.com/feedbro/) which can display feeds' content inline.
+The main objective is to provide clean content to RSS clients like [Flym](https://github.com/FredJul/Flym) or [FeedBro](https://nodetics.com/feedbro/) which can display feeds content inline.
 
 It can also be used to transform anything into RSS feeds (like [RSSHub](https://github.com/DIYgod/RSSHub)).
 
 ## Getting started
 
-PyRSSW can run standalone using HTTPServer.
-Just launch main.py without any parameter, a HTTP server will start listening on 8001.
-The root page will list all available handlers.
+### Standalone
 
-For security purposes PyRSSW should be used through WSGI, here is a nginx.conf configuration sample:
-
+```shell
+$ pip install -r requirements.txt #first time only
+$ python main.py
 ```
 
+HTTP server will start listening on 8001 port.
+The root page will list all available handlers.
+
+To use the [configuration](#configuration-file) file:
+
+```shell
+$ pip install -r requirements.txt #first time only
+$ python main.py -c resources/config.ini
+```
+
+*Optional:*
+To use all features of PyRSSW you need to setup up a mongo db, named *pyrssw*, see *storage.mongodb.url* in the [configuration file](#configuration-file).
+
+### WSGI
+
+For security purposes PyRSSW should be used through WSGI:
+
+```shell
+$ pip install -r requirements.txt #first time only
+$ uwsgi --ini uwsg.ini --plugin http, python3 --http :8001 --uid www-data --gid www-data --wsgi-file server/pyrssw_wsgi.py
+```
+
+#### Behind nginx
+
+here is a configuration sample to make it work behind nginx:
+
+```
 upstream uwsgicluster {
-    server pyrssw:3031;
+    server pyrssw:8001;
 }
 
 ...
@@ -44,6 +70,70 @@ location ~ /pyrssw/(?<ndpath>.*) {
 
 }
 ```
+
+## Configuration file
+
+The configuration file should be self explanatory enough.
+
+```ini
+#when using python httpserver
+
+#if nothing is defined, the default hostname is used
+server.listening_hostname=127.0.0.1
+
+server.listening_port=8001
+
+#by default serving_host=listening_host, but the serving host can be different (case of docker)
+#server.serving_hostname=
+
+#HTTPS if both of them are valid
+server.certfile=resources/localhost.crt
+server.keyfile=resources/localhost.key
+
+#server.basicauth.login=
+#server.basicauth.password=
+
+#to store http sessions between many calls of get_feed or get_content and to store read articles, a mongo database must be set up
+#this is optional, if no mongodb is available, pyrssw will work without these 2 features.
+#storage.mongodb.url=mongodb://localhost:27017/
+
+#when using userid parameter in feed urls keep trace of read articles in days, older will be deleted
+storage.readarticles.age=30
+
+#keep sessions in cache durig x minutes, older will be deleted
+storage.sessions.duration=30
+
+#server.crypto_key=
+
+```
+
+At the first start, a random crypto_key is generated.
+To get the crypted value of any content, use the field at the top of the root page (not working in the wsgi version so far)
+
+## RSS Feed wrapping
+
+PyRSSW add to rss feeds some facilities.
+
+### Feeds enhancements
+
+Any RSS feed provided by get_feed methods will be reworked:
+
+- if no picture is present on the description, the picture provided in _media:content_ or in _enclosure_ tags will be added. If no media:content or enclosure tag exists, a picture found in google images will be proposed by querying it with the _title_ tag
+- a "source" link will be added in the end of every feed item provided pointing to the original website.
+
+### Generic parameters
+
+Each handle can define its own parameters, but PyRSSW also provides a bunch of generic parameters for every handlers:
+
+- `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
+  ie: `/dummy/rss?dark=true`
+- `userid` (string): if defined every feed content URL requested for the given userid will be stored in a database in order to not be presented in the next RSS get_feed calls (is a simple way to propose only new feeds between 2 different tools) This is very simple and not securized enough.
+  A mongodb database must be up and running. See the _storage.mongodb.url_ and _storage.readarticles.age_ parameters in the [configuration file](#configuration-file).
+  ie: `/dummy/rss?userid=mat`
+- `debug` (boolean): if set to true, will display the session id at the end of the RSS feed.
+  ie: `/dummy/rss?debug=true`
+- the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto*key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by *!e:\_
+  ie: `/dummy/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==`
 
 ## Adding new handlers
 
@@ -91,6 +181,7 @@ class DummyHandler(PyRSSWRequestHandler):
 
         # You can use the given session to make http queries
         # This session is created first time the http client is requesting this handler by using a generated session id cookie
+        # This session is stored in a mongo database to be reused between 2 get_feed calls (or get_content). The session will be deleted after "storage.sessions.duration" minutes (see the configuration file).
         content: str = session.get(url).text
         filters: str = ""
         if "filter" in parameters:
@@ -115,68 +206,15 @@ class DummyHandler(PyRSSWRequestHandler):
         content: str = session.get(url).text
 
         #make any change on the content
-        #to test your content with mozilla readibility, you can use the "reader view" feature of Firefox or install the chrome version (https://chrome.google.com/webstore/detail/reader-view/ecabifbgmdmgdllomnfinbmaellmclnh)
+        #to test your content with mozilla readability, you can use the "reader view" feature of Firefox or install the chrome version (https://chrome.google.com/webstore/detail/reader-view/ecabifbgmdmgdllomnfinbmaellmclnh)
 
         return content
 
 ```
 
-The class description is used by the server to generated the root page content using *docstring*.
+The class description is used by the server to generate the root page content using _docstring_.
 
-## Generic parameters
-
-Each handle can define its own parameters, but PyRSSW also provides a bunch of generic parameters for every handlers:
- - dark (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
-   ie: ```/dummy/rss?dark=true```
- - userid (string): if defined every feed content URL requested for the given userid will be stored in a database in order to not be presented in the next RSS get_feed calls (is a simple way to propose only new feeds between 2 different tools) This is very simple and not securized enough.
-   ie: ```/dummy/rss?userid=mat```
- - debug (boolean): if set to true, will display the session id at the end of the RSS feed.
-   ie: ```/dummy/rss?debug=true```
- - the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto_key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by *!e:*
-   ie: ```/dummy/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==```
-
-
-## RSS Feed wrapping
-
-Any RSS feed provided by get_feed methods will be reworked:
- - if no picture is present on the description, the picture provided in media:content or in enclosure tag will be added. If no media:content or enclosure tag exists, a picture found in google images will be proposed by querying it with the title tag
- - a "source" link will be added in the end of every feed item provided pointing to the original website.
- 
-## Configuration file
-
-The configuration file should be self explanatory.
-```ini
-#when using python httpserver
-
-#if nothing is defined, the default hostname is used
-server.listening_hostname=192.168.1.102
-
-server.listening_port=8001
-
-#by default serving_host=listening_host, but the serving host can be different (case of docker)
-#server.serving_hostname=
-
-#HTTPS if both of them are valid
-server.certfile=resources/localhost.crt
-server.keyfile=resources/localhost.key
-
-#server.basicauth.login=
-#server.basicauth.password=
-
-storage.mongodb.url=mongodb://localhost:27017/
-
-#when using userid parameter in feed urls keep trace of read articles in days, older will be deleted
-storage.readarticles.age=30
-
-#keep sessions in cache durig x minutes, older will be deleted
-storage.sessions.duration=30
-
-#server.crypto_key=
-
-```
-
-At the first start, a random crypto_key is generated.
-To get the crypted value of any content, use the field at the top of the root page (not working in the wsgi version so far)
+See [existing handlers](./pyrssw_handlers) to see what's possible with PyRSSW.
 
 ## Docker
 
