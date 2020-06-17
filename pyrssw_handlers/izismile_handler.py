@@ -35,18 +35,18 @@ class IzismileHandler(PyRSSWRequestHandler):
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
-        content, url_next_page = self._get_content(url, session)
+        content, url_next_page_2 = self._get_content(url, session)
 
-        if url_next_page != "":
+        if url_next_page_2 != "":
             # add a page 2
-            next_content, url_next_page = self._get_content(
-                url_next_page, session)
+            next_content, url_next_page_3 = self._get_content(
+                url_next_page_2, session)
             content += next_content
 
-            if url_next_page != "":
+            if url_next_page_3 != "" and url_next_page_2 != url_next_page_3 and url_next_page_3.find("page,1,") == -1:
                 # add a page 3 (sometimes there is a redirection with an ongoing page)
-                next_content, url_next_page = self._get_content(
-                    url_next_page, session)
+                next_content, url_next_page_3 = self._get_content(
+                    url_next_page_3, session)
                 content += next_content
 
         return content
