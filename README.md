@@ -1,11 +1,20 @@
 # PyRSSW
 
-PyRSSW stands for Python RSS Wrapper. This is a RSS aggregator reworking existing RSS feeds to provide:
+PyRSSW stands for Python RSS Wrapper. This is a RSS proxy reworking existing RSS feeds to provide:
 
 - new features to existing RSS feeds (filtering, dark mode, ...)
 - the feeds content, and only the [readable](https://github.com/mozilla/readability) part of it, even if a login/password is required
 
 The main objective is to provide clean content to RSS clients like [Flym](https://github.com/FredJul/Flym) or [FeedBro](https://nodetics.com/feedbro/) which can display feeds content inline.
+
+Get feed
+```mermaid
+flowchart LR
+    RSS_Client["RSS Client"] -- Feed 1 --> PyRSSW <-- Feed 1 --> RSS_Feed_1["RSS Feed 1"];
+    PyRSSW -- Clean feed 1 --> RSS_Client["RSS Client"];
+    RSS_Client["RSS Client"] -- Feed 2 --> PyRSSW <-- Feed 2 --> RSS_Feed_2["RSS Feed 2"];
+    PyRSSW -- Clean feed 2 --> RSS_Client["RSS Client"];
+```
 
 It can also be used to transform anything into RSS feeds (like [RSSHub](https://github.com/DIYgod/RSSHub)).
 
