@@ -59,7 +59,7 @@ class EurosportHandler(PyRSSWRequestHandler):
             link.text = "%s" % self.get_handler_url_with_parameters(
                 {"url": link.text})
 
-        feed = etree.tostring(dom, encoding='unicode')
+        feed = etree.tostring(dom, encoding='unicode').replace("\\u0027","'").replace("\\u0022","'")
 
         return feed
 

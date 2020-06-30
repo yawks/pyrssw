@@ -3,7 +3,7 @@ import traceback
 import urllib.parse as urlparse
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, quote_plus, unquote_plus
-
+import html
 import requests
 from cryptography.fernet import Fernet, InvalidToken
 from lxml import etree
@@ -179,6 +179,19 @@ class LauncherHandler(RequestHandler):
             n = self._get_source(item)
             if n is not None:
                 descriptions[0].append(n)
+
+            description_xml = etree.tostring(
+                descriptions[0], encoding='unicode')
+            description_xml = re.sub(
+                r'<description[^>]*>', "", description_xml)
+            description_xml = description_xml.replace("</description>", "")
+            parent_obj = descriptions[0].getparent()
+            parent_obj.remove(descriptions[0])
+
+            description = etree.Element("description")
+            description.text = html.unescape(description_xml.strip()).replace("&nbsp;", " ")
+            parent_obj.append(description)
+
             if "debug" in parameters and parameters["debug"] == "true":
                 p = etree.Element("p")
                 i = etree.Element("i")

@@ -11,16 +11,16 @@ def parse_command_line(argv: list) -> str:
 
         for opt, arg in opts:
             if opt == '-h':
-                print_help(argv[0], 0)
+                print_help_and_exit(argv[0], 0)
             elif opt in ("-c", "--config"):
                 config_file = arg
 
     except getopt.GetoptError:
-        print_help(argv[0], 2)
+        print_help_and_exit(argv[0], 2)
 
     return config_file
 
 
-def print_help(script_name, exit_code):
-    print(ntpath.basename(script_name) + ' -c <optional config file>')
+def print_help_and_exit(script_name, exit_code):
+    print(ntpath.basename(script_name) + " -c <optional config file>")
     sys.exit(exit_code)
