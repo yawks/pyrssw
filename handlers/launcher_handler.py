@@ -304,6 +304,10 @@ class LauncherHandler(RequestHandler):
                 h1 {
                     line-height:1em;
                 }
+
+                img {
+                    max-width:800px;
+                }
         """
         source: str = ""
         domain: str = ""

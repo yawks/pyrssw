@@ -89,6 +89,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             dom, ['//div[contains(@class,"article-detail-block")]',
                   '//article[contains(@id,"node")]',  # france3 regions
                   '//article[contains(@class,"content-live")]',  # live
-                  '//div[contains(@class, "content")]'])
+                  '//div[contains(@class, "content")]',
+                  # sport.francetvinfo.fr
+                  '//*[contains(@class,"article-detail-block")]'])
 
         return content
