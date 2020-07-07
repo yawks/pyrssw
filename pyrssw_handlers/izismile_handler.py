@@ -1,7 +1,7 @@
 import re
-import time
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
+import utils.dom_utils
 
 import requests
 from lxml import etree
@@ -61,6 +61,10 @@ class IzismileHandler(PyRSSWRequestHandler):
             if "url" in parse_qs(parsed.query):
                 return "", parse_qs(parsed.query)["url"][0]
 
+        utils.dom_utils.delete_xpaths(dom, [
+            '//*[contains(@class, "banners_btw_pics")]',
+            '//*[contains(@class, "sordering")]'])
+
         for script in dom.xpath('//script'):
             script.getparent().remove(script)
 
@@ -92,6 +96,7 @@ class IzismileHandler(PyRSSWRequestHandler):
             pager.getparent().remove(pager)
 
         post_lists = dom.xpath('//*[@id="post-list"]')
+
         if len(post_lists) > 0:
             content = etree.tostring(
                 dom.xpath('//*[@id="post-list"]')[0], encoding='unicode')
