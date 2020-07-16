@@ -305,8 +305,12 @@ class LauncherHandler(RequestHandler):
                     line-height:1em;
                 }
 
+                video {
+                    max-width:500px!important;
+                }
+
                 img {
-                    max-width:800px;
+                    max-width:500px!important;
                 }
         """
         source: str = ""

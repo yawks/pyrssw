@@ -33,10 +33,12 @@ class Sport24Handler(PyRSSWRequestHandler):
         regex = re.compile(r"&(?!amp;|lt;|gt;)")
         myxml = regex.sub("&amp;", feed)
         dom = etree.fromstring(myxml)
+        description_img: str = ""
 
         xpath_expression = "//item[not(enclosure)]"
         if "filter" in parameters and parameters["filter"] == "flash":
             xpath_expression = "//item[enclosure]"
+            description_img = "<img src=\"https://pbs.twimg.com/profile_images/932616523285516294/sqt32oQY.jpg\"/>"
 
         utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
@@ -52,6 +54,10 @@ class Sport24Handler(PyRSSWRequestHandler):
 
         feed = feed.replace("<title>Sport24 - Toute l'actualite</title>",
                             "<title>Sport24%s</title>" % string.capwords(title))
+
+        if description_img != "":
+            feed = feed.replace(
+                "<description>", "<description>" + description_img)
 
         return feed
 
