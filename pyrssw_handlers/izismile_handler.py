@@ -68,21 +68,20 @@ class IzismileHandler(PyRSSWRequestHandler):
         for script in dom.xpath('//script'):
             script.getparent().remove(script)
 
-        izi_videos = dom.xpath('//*[@class="s-spr icon icon-mp4"]')
+        izi_videos = dom.xpath('//*[@class="daily_a" and text()=".mp4"]')
         for izi_video in izi_videos:
             parent = izi_video.getparent()
-            if "href" in parent.attrib:
 
-                video = etree.Element("video")
-                video.set("controls", "")
-                video.set("preload", "auto")
-                video.set("poster", "")
-                video.set("width", "100%")
+            video = etree.Element("video")
+            video.set("controls", "")
+            video.set("preload", "auto")
+            video.set("poster", "")
+            video.set("width", "100%")
 
-                source = etree.Element("source")
-                source.set("src", parent.attrib["href"])
-                video.append(source)
-                parent.getparent().append(video)
+            source = etree.Element("source")
+            source.set("src", izi_video.attrib["href"])
+            video.append(source)
+            parent.getparent().append(video)
 
         pagers = dom.xpath('//*[@class="postpages"]')
         if len(pagers) > 2:
