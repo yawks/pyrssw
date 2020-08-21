@@ -220,11 +220,15 @@ class ArticleBuilder():
                         content += self._build_entry_content(tag, c)
                 else:
                     content += style % entry["content"]
-            elif (entry["type"] == "hyperlink" or entry["type"] == "story") and "url" in entry and "label" in entry:
+            elif (entry["type"] == "hyperlink" or entry["type"] == "story" or entry["type"] == "external") and "url" in entry and "label" in entry:
                 content += style % "<a href=\"%s\">%s</a>" % (
                     entry["url"], entry["label"])
+            elif entry["type"] == "hyperlink" and "content" in entry:
+                content += self._build_entry_content(tag, entry["content"])
             elif entry["type"] == "internal" and "url" in entry:
                 content += style % self._build_img(entry)
+            else:
+                logging.getLogger().debug("Entry type '%s' not (fully) handled", entry["type"])
 
         return content
 
