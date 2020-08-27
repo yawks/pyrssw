@@ -2,10 +2,11 @@ import re
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 import utils.dom_utils
-
+from typing import List
 import requests
 from lxml import etree
-
+import datetime
+import time
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
@@ -24,12 +25,38 @@ class IzismileHandler(PyRSSWRequestHandler):
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text
+
         # avoid php errors at the beginning when any
         feed = feed[feed.find("<"):]
         feed = re.sub(r'<link>[^<]*</link>', '', feed)
         feed = feed.replace('<guid isPermaLink="false">', '<link>')  # NOSONAR
         feed = feed.replace('<guid isPermaLink="true">', '<link>')
         feed = feed.replace('</guid>', '</link>')
+
+        feed = feed.replace("<title>Izismile.com</title>",
+                            "<title>Izismile.com local</title>")
+
+        # spicy highlight links are index pages, we parse them and add new entries in the feed
+        spicy_feeds: str = ""
+        spicy_links: List[str] = re.findall(
+            "<link>([^<]*izispicy[^<]*highlights[^<]*)</link>", str(feed))
+        for spicy_link in spicy_links:
+            page = session.get(url=spicy_link, headers={}).text
+            dom = etree.HTML(page)
+            for link in dom.xpath("//p/a[contains(@href, 'https://izispicy.com')]"):
+                spans = link.xpath(".//span")
+                title: str = "Izispicy"
+                if len(spans) > 0:
+                    title = spans[0].text
+                spicy_feeds += """<item>
+                        <title>%s</title>
+                        <link>%s</link>
+                        <description><![CDATA[%s]]></description>
+                        <category>Izispicy</category>
+                        <pubdate>%s</pubdate>
+                    </item>""" % (title, link.attrib["href"], etree.tostring(link.getparent().getnext(), encoding='unicode'), datetime.datetime.now().strftime("%c"))
+        feed = feed.replace("</channel>", spicy_feeds + "</channel>")
+
         feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
 
         return feed
