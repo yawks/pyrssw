@@ -59,7 +59,8 @@ class EurosportHandler(PyRSSWRequestHandler):
             link.text = "%s" % self.get_handler_url_with_parameters(
                 {"url": link.text})
 
-        feed = etree.tostring(dom, encoding='unicode').replace("\\u0027","'").replace("\\u0022","'")
+        feed = etree.tostring(dom, encoding='unicode').replace(
+            "\\u0027", "'").replace("\\u0022", "'")
 
         return feed
 
@@ -227,8 +228,12 @@ class ArticleBuilder():
                 content += self._build_entry_content(tag, entry["content"])
             elif entry["type"] == "internal" and "url" in entry:
                 content += style % self._build_img(entry)
+            elif entry["type"] == "YouTube" and "url" in entry and "label" in entry:
+                content += "<iframe class=\"pyrssw_youtube\" src=\"%s\">%s</iframe><p class=\"pyrssw_centered\"><i>%s</i></p>" % (
+                    entry["url"], entry["label"], entry["label"])
             else:
-                logging.getLogger().debug("Entry type '%s' not (fully) handled", entry["type"])
+                logging.getLogger().debug(
+                    "Entry type '%s' not (fully) handled", entry["type"])
 
         return content
 

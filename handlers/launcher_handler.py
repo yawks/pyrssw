@@ -189,7 +189,8 @@ class LauncherHandler(RequestHandler):
             parent_obj.remove(descriptions[0])
 
             description = etree.Element("description")
-            description.text = html.unescape(description_xml.strip()).replace("&nbsp;", " ")
+            description.text = html.unescape(
+                description_xml.strip()).replace("&nbsp;", " ")
             parent_obj.append(description)
 
             if "debug" in parameters and parameters["debug"] == "true":
@@ -305,18 +306,25 @@ class LauncherHandler(RequestHandler):
                     line-height:1em;
                 }
 
-                video {
+                .pyrssw_youtube, video {
                     max-width:500px!important;
+                    margin: 0 auto;
+                    display:block;
+                }
+
+                .pyrssw_centered {
+                    text-align:center;
                 }
 
                 img {
                     max-width:500px!important;
                 }
+                
         """
         source: str = ""
         domain: str = ""
         if "url" in parameters:
-            source = "<em><a href='%s'>Source</em>" % parameters["url"]
+            source = "<em><a href='%s'>Source</a></em>" % parameters["url"]
             domain = urlparse.urlparse(parameters["url"]).netloc
         if "dark" in parameters and parameters["dark"] == "true":
             style += """
@@ -334,6 +342,7 @@ class LauncherHandler(RequestHandler):
                         <head>
                             <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
                             <link rel="icon" href="https://icons.duckduckgo.com/ip3/%s.ico"/>
+                            <title>%s</title>
                             <style>
                             %s
                             * {
@@ -350,7 +359,7 @@ class LauncherHandler(RequestHandler):
                                 %s
                             </div>
                         </body>
-                    </html>""" % (domain, style, self.contents, source)
+                    </html>""" % (domain, "PyRssw feed content", style, self.contents, source)  # TODO : get a title from handlers
 
     def _replace_prefix_urls(self):
         """Replace relative urls by absolute urls using handler prefix url"""

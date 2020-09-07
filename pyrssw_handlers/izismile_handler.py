@@ -35,7 +35,7 @@ class IzismileHandler(PyRSSWRequestHandler):
 
         feed = feed.replace("<title>Izismile.com</title>",
                             "<title>Izismile.com local</title>")
-
+        
         # spicy highlight links are index pages, we parse them and add new entries in the feed
         spicy_feeds: str = ""
         spicy_links: List[str] = re.findall(
@@ -45,7 +45,7 @@ class IzismileHandler(PyRSSWRequestHandler):
             dom = etree.HTML(page)
             for link in dom.xpath("//p/a[contains(@href, 'https://izispicy.com')]"):
                 spans = link.xpath(".//span")
-                title: str = "Izispicy"
+                title = "Izispicy"
                 if len(spans) > 0:
                     title = spans[0].text
                 spicy_feeds += """<item>
@@ -56,7 +56,7 @@ class IzismileHandler(PyRSSWRequestHandler):
                         <pubdate>%s</pubdate>
                     </item>""" % (title, link.attrib["href"], etree.tostring(link.getparent().getnext(), encoding='unicode'), datetime.datetime.now().strftime("%c"))
         feed = feed.replace("</channel>", spicy_feeds + "</channel>")
-
+        
         feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
 
         return feed
