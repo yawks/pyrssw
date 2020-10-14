@@ -43,9 +43,23 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         # I probably do not use etree as I should
         dom = etree.fromstring(feed)
 
-        for link in dom.xpath("//atom:entry/atom:link", namespaces=namespaces):
-            link.attrib["href"] = self.get_handler_url_with_parameters(
-                {"url": link.attrib["href"].strip()})
+        for entry in dom.xpath("//atom:entry", namespaces=namespaces):
+            content = entry.xpath("./atom:content", namespaces=namespaces)[0].text
+
+            #try to replace thumbnail with real picture
+            imgs = re.findall(r'"http[^"]*jpg"', content)
+            thumb:str = ""
+            other:str= ""
+            for img in imgs:
+                if "thumbs.redditmedia" in img:
+                    thumb = img
+                else:
+                    other = img
+            entry.xpath("./atom:content", namespaces=namespaces)[0].text = content.replace(thumb, other)
+            
+            for link in entry.xpath("./atom:link", namespaces=namespaces):
+                link.attrib["href"] = self.get_handler_url_with_parameters(
+                    {"url": link.attrib["href"].strip()})
 
         feed = etree.tostring(dom, encoding='unicode')
 
@@ -58,17 +72,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
         page = session.get(url=url)
         dom = etree.HTML(page.text)
-        """
-        utils.dom_utils.delete_xpaths(dom, [
-            '//*[@data-click-id="comments"]/..',
-            '//*[contains(@class, "icon-upvote")]/../..',
-            '//*[contains(@class, "icon-downvote")]/../..',
-            '//div/div/a[@data-click-id="timestamp"]',
-            '//*[contains(@class,"icon-outboundLink")]/..'
-            '//span[text()="Posted by"]',
-            '//style'
-        ])"""
-
+        
         content = utils.dom_utils.get_all_contents(dom,
                                               ['//*[@data-test-id="post-content"]//h1',
                                                '//*[contains(@class,"media-element")]',
