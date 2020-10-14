@@ -342,7 +342,6 @@ class LauncherHandler(RequestHandler):
                         <head>
                             <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
                             <link rel="icon" href="https://icons.duckduckgo.com/ip3/%s.ico"/>
-                            <title>%s</title>
                             <style>
                             %s
                             * {
@@ -359,7 +358,7 @@ class LauncherHandler(RequestHandler):
                                 %s
                             </div>
                         </body>
-                    </html>""" % (domain, "PyRssw feed content", style, self.contents, source)  # TODO : get a title from handlers
+                    </html>""" % (domain, style, self.contents, source)
 
     def _replace_prefix_urls(self):
         """Replace relative urls by absolute urls using handler prefix url"""
