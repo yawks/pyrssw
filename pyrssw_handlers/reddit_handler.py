@@ -55,20 +55,24 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         cookie_obj = requests.cookies.create_cookie(
             domain="reddit.com", name="over18", value="1")
         session.cookies.set_cookie(cookie_obj)
-        
+
         page = session.get(url=url)
         dom = etree.HTML(page.text)
-
+        """
         utils.dom_utils.delete_xpaths(dom, [
             '//*[@data-click-id="comments"]/..',
             '//*[contains(@class, "icon-upvote")]/../..',
             '//*[contains(@class, "icon-downvote")]/../..',
             '//div/div/a[@data-click-id="timestamp"]',
             '//*[contains(@class,"icon-outboundLink")]/..'
-            '//span[text()="Posted by"]'
-        ])
+            '//span[text()="Posted by"]',
+            '//style'
+        ])"""
 
-        content = utils.dom_utils.get_content(
-            dom, ['//div[contains(@data-test-id,"post-content")]'])
+        content = utils.dom_utils.get_all_contents(dom,
+                                              ['//*[@data-test-id="post-content"]//h1',
+                                               '//*[contains(@class,"media-element")]',
+                                               '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]',
+                                               '//*[@data-test-id="post-content"]//video'])
 
-        return content
+        return "<article>%s</article>" % content.replace("><", ">\n<")

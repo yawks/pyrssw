@@ -13,6 +13,17 @@ def get_content(dom: etree, xpaths: list) -> str:
 
     return content
 
+def get_all_contents(dom: etree, xpaths: list) -> str:
+    """get content of all xpaths in the list of xpath expressions"""
+    content: str = ""
+    for xpath in xpaths:
+        results = dom.xpath(xpath)
+        if len(results) > 0:
+            for result in results:
+                content += etree.tostring(result, encoding='unicode')
+
+    return content
+
 
 def get_text(dom: etree, xpaths: list) -> str:
     """get text of first node found in first matching xpath in the list
