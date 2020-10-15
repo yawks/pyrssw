@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import logging
+from storage.article_store import ArticleStore
 from typing import Dict, List, Optional
 import datetime
 import re
