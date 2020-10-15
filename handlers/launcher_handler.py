@@ -1,9 +1,9 @@
-import re
+from handlers.feed_type.atom_arranger import AtomArranger
+from handlers.feed_type.rss2_arranger import RSS2Arranger
 import traceback
 import urllib.parse as urlparse
 from typing import Dict, List, Optional, Tuple
-from urllib.parse import parse_qs, quote_plus, unquote_plus
-import html
+from urllib.parse import parse_qs, unquote_plus
 import requests
 from cryptography.fernet import Fernet, InvalidToken
 from lxml import etree
@@ -20,8 +20,6 @@ FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
-
-# TODO: code cleaning => create classes for feed and content handling
 
 
 class LauncherHandler(RequestHandler):
@@ -109,152 +107,14 @@ class LauncherHandler(RequestHandler):
         session: requests.Session = SessionStore.instance().get_session(self.session_id)
         self.content_type = FEED_XML_CONTENT_TYPE
         self.contents = self.handler.get_feed(parameters, session)
-        self._arrange_feed(parameters)
+        if self.contents.find("<rss ") > -1:
+            self.contents = RSS2Arranger(
+                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents)
+        elif self.contents.find("<feed ") > -1:
+            self.contents = AtomArranger(
+                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents)
+
         SessionStore.instance().upsert_session(self.session_id, session)
-
-    def _arrange_feed(self, parameters: Dict[str, str]):
-        """arrange feed by adding some pictures in description, ..."""
-
-        if len(self.contents.strip()) > 0:
-            # I probably do not use etree as I should
-            self.contents = re.sub(
-                r'<\?xml [^>]*?>', '', self.contents).strip()
-            self.contents = re.sub(
-                r'<\?xml-stylesheet [^>]*?>', '', self.contents).strip()
-            try:
-                dom = etree.fromstring(self.contents)
-
-                # copy picture url from enclosure to a img tag in description (or add a generated one)
-                for item in dom.xpath("//item"):
-                    if self._arrange_feed_keep_item(item, parameters):
-                        self._arrange_item(item, parameters)
-                        self._arrange_feed_link(item, parameters)
-                    else:
-                        item.getparent().remove(item)
-
-                self.contents = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
-                    etree.tostring(dom, encoding='unicode')
-            except etree.XMLSyntaxError as e:
-                self._log(
-                    "Unable to parse rss feed for module '%s' (%s), let's proceed anyway: %s" % (self.module_name, self.url, str(e)))
-
-    def _arrange_feed_keep_item(self, item: etree._Element, parameters: Dict[str, str]) -> bool:
-        """return true if the item must not be deleted.
-        The item must be deleted if the article has already been read.
-
-        Arguments:
-            item {etree._Element} -- rss feed item
-            parameters {Dict[str, str]} -- url paramters which may contain the userid which is associated to read articles
-
-        Returns:
-            bool -- true if the item must not be deleted
-        """
-        feed_keep_item: bool = True
-        if "userid" in parameters:
-            for link in item.xpath(".//link"):  # NOSONAR
-                parsed = urlparse.urlparse(link.text.strip())
-                if "url" in parse_qs(parsed.query):
-                    feed_keep_item = not ArticleStore.instance().has_article_been_read(
-                        parameters["userid"], parse_qs(parsed.query)["url"][0])
-
-        return feed_keep_item
-
-    def _arrange_item(self, item: etree._Element, parameters: dict):
-        descriptions = item.xpath(".//description")
-
-        if len(descriptions) > 0:
-            if descriptions[0].text is not None and len(descriptions[0].xpath('.//img')) == 0 and etree.tostring(descriptions[0], encoding='unicode').find("&lt;img ") == -1:
-                # if description does not have a picture, add one from enclosure or media:content tag if any
-                img_url: str = self._get_img_url(item)
-
-                if img_url == "":
-                    # uses the ThumbnailHandler to fetch an image from google search images
-                    img_url = "%s/thumbnails?request=%s" % (
-                        self.serving_url_prefix, quote_plus(re.sub(r"</?description>", "", etree.tostring(descriptions[0], encoding='unicode')).strip()))
-
-                img = etree.Element("img")
-                img.set("src", img_url)
-                descriptions[0].append(img)
-
-            n = self._get_source(item)
-            if n is not None:
-                descriptions[0].append(n)
-
-            description_xml = etree.tostring(
-                descriptions[0], encoding='unicode')
-            description_xml = re.sub(
-                r'<description[^>]*>', "", description_xml)
-            description_xml = description_xml.replace("</description>", "")
-            parent_obj = descriptions[0].getparent()
-            parent_obj.remove(descriptions[0])
-
-            description = etree.Element("description")
-            description.text = html.unescape(
-                description_xml.strip()).replace("&nbsp;", " ")
-            parent_obj.append(description)
-
-            if "debug" in parameters and parameters["debug"] == "true":
-                p = etree.Element("p")
-                i = etree.Element("i")
-                i.text = "Session id: %s" % self.session_id
-                p.append(i)
-                descriptions[0].append(p)
-
-    def _arrange_feed_link(self, item: etree._Element, parameters: Dict[str, str]):
-        """arrange feed link, by adding dark and userid parameters if required
-
-        Arguments:
-            item {etree._Element} -- rss item
-            parameters {Dict[str, str]} -- url parameters, one of them may be the dark boolean
-        """
-        suffix_url: str = ""
-        for parameter in parameters:
-            if parameter in ["dark", "debug", "userid", "plain"]:
-                suffix_url += "&%s=%s" % (parameter, parameters[parameter])
-
-        if suffix_url != "":
-            for link in item.xpath(".//link"):
-                link.text = "%s%s" % (link.text.strip(), suffix_url)
-
-    def _get_source(self, node: etree) -> Optional[etree._Element]:
-        """get source url from link in 'url' parameter
-
-        Arguments:
-            node {etree} -- rss item node
-
-        Returns:
-            etree -- a node having the source url
-        """
-        n: etree = None
-        links = node.xpath(".//link")
-        if len(links) > 0:
-            parsed = urlparse.urlparse(links[0].text.strip())
-            if "url" in parse_qs(parsed.query):
-                a = etree.Element("a")
-                a.set("href", parse_qs(parsed.query)["url"][0])
-                a.text = "Source"
-                n = etree.Element("p")
-                n.append(a)
-        return n
-
-    def _get_img_url(self, node: etree) -> str:
-        """get img url from enclosure or media:content tag if any
-
-        Arguments:
-            node {etree} -- item node of rss feed
-
-        Returns:
-            str -- the url of the image found in enclosure or media:content tag
-        """
-        img_url = ""
-        enclosures = node.xpath(".//enclosure")
-        # media:content tag
-        medias = node.xpath(".//*[local-name()='content'][@url]")
-        if len(enclosures) > 0:
-            img_url = enclosures[0].get('url')
-        elif len(medias) > 0:
-            img_url = medias[0].get('url')
-        return img_url
 
     def _extract_path_and_parameters(self, url: str) -> Tuple[str, dict]:
         """Extract url path and parameters (and decrypt them if they were crypted)

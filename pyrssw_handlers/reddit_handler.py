@@ -2,11 +2,18 @@ import re
 
 import requests
 from lxml import etree
-
+from readability import Document
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
+URL_REGEX = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 class RedditInfoHandler(PyRSSWRequestHandler):
     """Handler for sub reddits.
@@ -74,11 +81,29 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         page = session.get(url=url)
         dom = etree.HTML(page.text)
         
-        content = utils.dom_utils.get_all_contents(dom,
+        content: str = utils.dom_utils.get_all_contents(dom,
                                               ['//*[@data-test-id="post-content"]//h1',
                                                '//*[contains(@class,"media-element")]',
-                                               '//a[contains(@class,"styled-outbound-link")]',
                                                '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]',
                                                '//*[@data-test-id="post-content"]//video'])
+        
+        #case of posts with link(s) to external source(s) : we load the external content(s)
+        external_link: str = utils.dom_utils.get_content(dom, ['//a[contains(@class,"styled-outbound-link")]'])
+        if external_link != "":
+            external_href = re.findall(r'href="([^"]*)"', external_link)
+            for href in external_href:
+                if re.match(URL_REGEX, href):
+                    doc = Document(requests.get(href).text)
+                    url_prefix = href[:len("https://")+len(href[len("https://"):].split("/")[0])+1]
+
+                    content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (href, url_prefix)
+                    
+                    content += doc.summary().replace("<html>","").replace("</html>","").replace("<body>","").replace("</body>","")
+                    #replace relative links
+                    content = content.replace('href="/', 'href="' + url_prefix)
+                    content = content.replace('src="/', 'src="' + url_prefix)
+                    content = content.replace('href=\'/', 'href=\'' + url_prefix)
+                    content = content.replace('src=\'/', 'src=\'' + url_prefix)
+                    break
 
         return "<article>%s</article>" % content.replace("><", ">\n<")
