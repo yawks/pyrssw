@@ -157,13 +157,9 @@ class FeedArranger(metaclass=ABCMeta):
             if n is not None:
                 descriptions[0].append(n)
 
-            """d escription_xml = etree.tostring(
-                f, encoding='unicode')
-            description_xml = re.sub(
-                r'<description[^>]*>', "", description_xml)
-            description_xml = description_xml.replace("</description>", "")
-            """
-            description_xml: str = descriptions[0].text
+            description_xml: str = ""
+            if descriptions[0].text is not None:
+                description_xml = descriptions[0].text
             for child in descriptions[0].getchildren():
                 description_xml += etree.tostring(child, encoding='unicode')
             
