@@ -55,7 +55,8 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                     thumb = img
                 else:
                     other = img
-            entry.xpath("./atom:content", namespaces=namespaces)[0].text = content.replace(thumb, other).replace("<td> &#32;","</tr><tr><td> &#32;")
+            if other != "":
+                entry.xpath("./atom:content", namespaces=namespaces)[0].text = content.replace(thumb, other).replace("<td> &#32;","</tr><tr><td> &#32;")
             
             for link in entry.xpath("./atom:link", namespaces=namespaces):
                 link.attrib["href"] = self.get_handler_url_with_parameters(
@@ -76,6 +77,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         content = utils.dom_utils.get_all_contents(dom,
                                               ['//*[@data-test-id="post-content"]//h1',
                                                '//*[contains(@class,"media-element")]',
+                                               '//a[contains(@class,"styled-outbound-link")]',
                                                '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]',
                                                '//*[@data-test-id="post-content"]//video'])
 
