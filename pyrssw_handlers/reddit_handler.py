@@ -92,12 +92,12 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         if external_link != "":
             external_href = re.findall(r'href="([^"]*)"', external_link)
             for href in external_href:
-                if re.match(URL_REGEX, href):
+                if self._is_external_content_url(href):
                     doc = Document(requests.get(href).text)
                     url_prefix = href[:len("https://")+len(href[len("https://"):].split("/")[0])+1]
 
                     content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (href, url_prefix)
-                    
+
                     content += doc.summary().replace("<html>","").replace("</html>","").replace("<body>","").replace("</body>","")
                     #replace relative links
                     content = content.replace('href="/', 'href="' + url_prefix)
@@ -107,3 +107,18 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                     break
 
         return "<article>%s</article>" % content.replace("><", ">\n<")
+
+    def _is_external_content_url(self, href: str) -> bool:
+        """Returns True if the href is a link to a website having content (not only a picture for example)
+
+        Args:
+            href (str): url
+
+        Returns:
+            bool: True if the href leads to real content
+        """
+        is_external_content_url: bool = False
+        if re.match(URL_REGEX, href) and not (href.lower().endswith(".jpg") or href.lower().endswith(".png")):
+            is_external_content_url = True
+        
+        return is_external_content_url

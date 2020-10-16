@@ -142,8 +142,10 @@ class IzismileHandler(PyRSSWRequestHandler):
         return page
 
     def _clean_content(self, c):
-        content = c.replace('<div class="break"/>', '')
-        content = content.replace('<div class="tools"/>', '')
+        content = c.replace("<div class=\"break\"/>", "")
+        content = content.replace("<div class=\"tools\"/>", "")
+        content = content.replace("<div class=\"clear\"/>", "")
+        content = content.replace(" class=\"owl-carousel\"", "")
         content = re.sub(
             r'<span class="sordering"><a class="back" href="#[^"]*"/><a name="[^"]*">[^<]*</a><a class="next" href="#[^"]*"/></span>', '', content)
         content = re.sub(r'<div class="imgbox">(.*)</div>',
@@ -153,4 +155,4 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace("<img", "<br/><br/><img")
         content = content.replace('<div class="tools" style="display: none;"/>',
                                   '<div class="tools" style="display: block;"/>')
-        return content
+        return "<article>%s</article>" % content

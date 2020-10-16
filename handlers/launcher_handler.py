@@ -8,7 +8,7 @@ import requests
 from cryptography.fernet import Fernet, InvalidToken
 from lxml import etree
 from typing_extensions import Type
-
+from readability import Document
 from handlers.request_handler import RequestHandler
 from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)
@@ -91,6 +91,14 @@ class LauncherHandler(RequestHandler):
         else:
             self.contents = self.handler.get_content(
                 requested_url, parameters, session)
+            
+            doc = Document(self.contents) #get a "readable" content
+            readable_content: str = doc.summary()
+            
+            if readable_content != "<html><body/></html>":
+                self.contents = readable_content
+            else:
+                self._log("The '%s' handler did not produce readable content for url '%s', let it potentially 'not readable'" % (self.handler.get_handler_name(), url))
 
         SessionStore.instance().upsert_session(self.session_id, session)
 
