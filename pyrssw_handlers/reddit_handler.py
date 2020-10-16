@@ -112,8 +112,12 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         content: str = doc.summary()
         content = content.replace("<html>","").replace("</html>","").replace("<body>","").replace("</body>","")
 
-        if content.find("\x92"): #fix enconding stuffs
-            content = content.encode("latin1").decode("cp1252")
+        if content.find("\x92") > -1 or content.find("\x96") > -1 or content.find("\xa0") > -1:
+            #fix enconding stuffs
+            try:
+                content = content.encode("latin1").decode("cp1252")
+            except UnicodeEncodeError:
+                pass
 
         return content
 
