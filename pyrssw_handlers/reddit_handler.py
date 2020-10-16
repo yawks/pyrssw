@@ -1,5 +1,5 @@
 import re
-
+import unicodedata
 import requests
 from lxml import etree
 from readability import Document
@@ -84,8 +84,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         content: str = utils.dom_utils.get_all_contents(dom,
                                               ['//*[@data-test-id="post-content"]//h1',
                                                '//*[contains(@class,"media-element")]',
-                                               '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]',
-                                               '//*[@data-test-id="post-content"]//video'])
+                                               '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]'])
         
         #case of posts with link(s) to external source(s) : we load the external content(s)
         external_link: str = utils.dom_utils.get_content(dom, ['//a[contains(@class,"styled-outbound-link")]'])
@@ -98,7 +97,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
                     content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (href, url_prefix)
 
-                    content += doc.summary().replace("<html>","").replace("</html>","").replace("<body>","").replace("</body>","")
+                    content += self._get_content(doc)
                     #replace relative links
                     content = content.replace('href="/', 'href="' + url_prefix)
                     content = content.replace('src="/', 'src="' + url_prefix)
@@ -106,7 +105,17 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                     content = content.replace('src=\'/', 'src=\'' + url_prefix)
                     break
 
+        content = content.replace("<video ", "<video controls ")
         return "<article>%s</article>" % content.replace("><", ">\n<")
+
+    def _get_content(self, doc: Document) -> str:
+        content: str = doc.summary()
+        content = content.replace("<html>","").replace("</html>","").replace("<body>","").replace("</body>","")
+
+        if content.find("\x92"): #fix enconding stuffs
+            content = content.encode("latin1").decode("cp1252")
+
+        return content
 
     def _is_external_content_url(self, href: str) -> bool:
         """Returns True if the href is a link to a website having content (not only a picture for example)
@@ -118,7 +127,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
             bool: True if the href leads to real content
         """
         is_external_content_url: bool = False
-        if re.match(URL_REGEX, href) and not (href.lower().endswith(".jpg") or href.lower().endswith(".png")):
+        if re.match(URL_REGEX, href) and not (href.lower().endswith(".jpg") or href.lower().endswith(".png") or href.lower().endswith(".gif") or href.lower().endswith(".gifv")):
             is_external_content_url = True
         
         return is_external_content_url
