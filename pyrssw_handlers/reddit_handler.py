@@ -101,7 +101,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                 if re.match(URL_REGEX, href):  # only valid urls
                     c: Optional[str] = self._manage_external_content(href)
                     if c is not None:
-                        content += c
+                        content = c
                         break
 
         content = self._manage_reddit_preview_images(content)

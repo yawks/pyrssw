@@ -124,18 +124,13 @@ class IzismileHandler(PyRSSWRequestHandler):
         imgboxs = dom.xpath('//div[@class="imgbox"]')
         #replace <div class="imgbox"> by <p> tags
         for imgbox in imgboxs:
-            p = etree.Element("p")
-            for child in imgbox.getchildren():
-                p.append(child)
-                
-            if imgbox.getparent() is not None:
-                imgbox.getparent().append(p)
-                imgbox.getparent().remove(imgbox)
+            imgbox.tag = "p"
+            del imgbox.attrib["class"]
 
         post_lists = dom.xpath('//*[@id="post-list"]')
         if len(post_lists) > 0:
             content = etree.tostring(
-                dom.xpath('//*[@id="post-list"]')[0], encoding='unicode')
+                post_lists[0], encoding='unicode')
         else:
             content = etree.tostring(dom, encoding='unicode')
 
@@ -163,4 +158,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace("<img", "<br/><br/><img")
         content = content.replace('<div class="tools" style="display: none;"/>',
                                   '<div class="tools" style="display: block;"/>')
+        content = re.sub(r'src="data:image/[^"]*"', '', content)
+        content = content.replace("data-src=", "src=")
+        content = content.replace("class=\"lazyload\"", "")
         return "<article>%s</article>" % content.replace("><",">\n<")
