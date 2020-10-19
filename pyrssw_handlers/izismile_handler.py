@@ -120,9 +120,19 @@ class IzismileHandler(PyRSSWRequestHandler):
         pagers = dom.xpath('//*[@id="pagination-nums"]')
         for pager in pagers:
             pager.getparent().remove(pager)
+        
+        imgboxs = dom.xpath('//div[@class="imgbox"]')
+        #replace <div class="imgbox"> by <p> tags
+        for imgbox in imgboxs:
+            p = etree.Element("p")
+            for child in imgbox.getchildren():
+                p.append(child)
+                
+            if imgbox.getparent() is not None:
+                imgbox.getparent().append(p)
+                imgbox.getparent().remove(imgbox)
 
         post_lists = dom.xpath('//*[@id="post-list"]')
-
         if len(post_lists) > 0:
             content = etree.tostring(
                 dom.xpath('//*[@id="post-list"]')[0], encoding='unicode')
@@ -148,11 +158,9 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace(" class=\"owl-carousel\"", "")
         content = re.sub(
             r'<span class="sordering"><a class="back" href="#[^"]*"/><a name="[^"]*">[^<]*</a><a class="next" href="#[^"]*"/></span>', '', content)
-        content = re.sub(r'<div class="imgbox">(.*)</div>',
-                         r"\1", content, flags=re.S)
         content = content.replace('id="post-list"', 'id="mainbody"')
 
         content = content.replace("<img", "<br/><br/><img")
         content = content.replace('<div class="tools" style="display: none;"/>',
                                   '<div class="tools" style="display: block;"/>')
-        return "<article>%s</article>" % content
+        return "<article>%s</article>" % content.replace("><",">\n<")

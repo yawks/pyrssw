@@ -1,4 +1,4 @@
-FROM alpine:3.7
+FROM alpine:3.12.0
 EXPOSE 3031
 COPY . /app
 WORKDIR /app
@@ -13,7 +13,8 @@ RUN apk add --no-cache \
 	musl-dev \
 	libxml2-dev \
 	libxslt-dev \
-	openssl-dev
+	openssl-dev \
+	py-pip
 
 RUN pip3 install --upgrade pip
 RUN pip3 install --no-cache-dir -r requirements.txt

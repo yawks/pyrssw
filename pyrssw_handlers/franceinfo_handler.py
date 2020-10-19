@@ -92,5 +92,9 @@ class FranceInfoHandler(PyRSSWRequestHandler):
                   '//div[contains(@class, "content")]',
                   # sport.francetvinfo.fr
                   '//*[contains(@class,"article-detail-block")]'])
+                
+        if len(content.replace("\n","").strip()) < 150:
+            #less than 150 chars, we did not manage to get the content, use readability facility
+            content = super().get_readable_content(url)
 
         return content
