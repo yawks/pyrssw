@@ -1,5 +1,6 @@
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
+from urllib.parse import quote_plus
 
 
 NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
@@ -12,10 +13,10 @@ class AtomArranger(FeedArranger):
 
     def get_links(self, item) -> list:
         return item.xpath(".//atom:link", namespaces=NAMESPACES)
-    
-    def get_url_from_link(self, link:etree) -> str:
+
+    def get_url_from_link(self, link: etree) -> str:
         return link.attrib["href"]
-    
+
     def set_url_from_link(self, link: etree, url: str):
         link.attrib["href"] = url
         link.text = url
@@ -39,3 +40,9 @@ class AtomArranger(FeedArranger):
         if len(medias) > 0:
             img_url = medias[0].get('url')
         return img_url
+
+    def replace_img_links(self, item: etree._Element, replace_with: str):
+        for media in item.xpath(".//*[local-name()='thumbnail']"):
+            # media:thumbnail tag
+            media.attrib["url"] = replace_with % quote_plus(
+                media.attrib["url"])

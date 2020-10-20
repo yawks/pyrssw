@@ -1,3 +1,4 @@
+from handlers.feed_type.atom_arranger import NAMESPACES
 import re
 from typing import Optional
 import requests
@@ -5,6 +6,8 @@ from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
+
+NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
 
 URL_REGEX = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
@@ -17,6 +20,7 @@ URL_REGEX = re.compile(
 
 IMGUR_GIFV = re.compile(r'(?:https?://.*imgur.com)(?:.*)/([^/]*).gifv')
 PREVIEW_REDDIT = 'src="(https?://preview.redd.it/([^\?]*)[^"]*)"'
+
 
 class RedditInfoHandler(PyRSSWRequestHandler):
     """Handler for sub reddits.
@@ -42,7 +46,6 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         rss_url: str = self.get_rss_url()
-        namespaces = {'atom': 'http://www.w3.org/2005/Atom'}
 
         if "subreddit" in parameters:
             rss_url = "https://www.reddit.com/r/%s/.rss" % parameters["subreddit"]
@@ -53,9 +56,9 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         # I probably do not use etree as I should
         dom = etree.fromstring(feed)
 
-        for entry in dom.xpath("//atom:entry", namespaces=namespaces):
+        for entry in dom.xpath("//atom:entry", namespaces=NAMESPACES):
             content = entry.xpath(
-                "./atom:content", namespaces=namespaces)[0].text
+                "./atom:content", namespaces=NAMESPACES)[0].text
 
             # try to replace thumbnail with real picture
             imgs = re.findall(r'"http[^"]*jpg"', content)
@@ -67,10 +70,10 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                 else:
                     other = img
             if other != "":
-                entry.xpath("./atom:content", namespaces=namespaces)[0].text = content.replace(
+                entry.xpath("./atom:content", namespaces=NAMESPACES)[0].text = content.replace(
                     thumb, other).replace("<td> &#32;", "</tr><tr><td> &#32;")
 
-            for link in entry.xpath("./atom:link", namespaces=namespaces):
+            for link in entry.xpath("./atom:link", namespaces=NAMESPACES):
                 link.attrib["href"] = self.get_handler_url_with_parameters(
                     {"url": link.attrib["href"].strip()})
 
@@ -106,7 +109,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
         content = self._manage_reddit_preview_images(content)
         content = content.replace("<video ", "<video controls ")
-        return "<article>%s%s</article>" % (title, content.replace("><", ">\n<"))
+        return "<article>%s%s<br/>%s</article>" % (title, content.replace("><", ">\n<"), self.get_comments(dom))
 
     def _manage_external_content(self, href: str) -> Optional[str]:
         external_content: Optional[str] = None
@@ -124,7 +127,6 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
         return external_content
 
-
     def _manage_reddit_preview_images(self, content) -> str:
         """Use directly the image instead of the preview
 
@@ -137,8 +139,9 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         content_without_preview: str = content
         previews = re.findall(PREVIEW_REDDIT, content)
         for preview in previews:
-            content_without_preview = content.replace(preview[0], "https://i.redd.it/%s" % preview[1])
-        
+            content_without_preview = content.replace(
+                preview[0], "https://i.redd.it/%s" % preview[1])
+
         return content_without_preview
 
     def _is_a_picture_link(self, href: str) -> bool:
@@ -155,3 +158,17 @@ class RedditInfoHandler(PyRSSWRequestHandler):
             _is_a_picture_link = True
 
         return _is_a_picture_link
+
+    def get_comments(self, dom: etree) -> str:
+        intro: str = "<hr/><h3><u>Comments</u></h3>"
+        comments: str = intro
+        for entry in dom.xpath("//*[@data-test-id=\"comment\"]", namespaces=NAMESPACES):
+            ps = entry.xpath(".//p")
+            if comments != intro:
+                comments += "<hr/>"
+            for p in ps:
+                del p.attrib["class"]
+                p.text = "> " + p.text
+                comments += etree.tostring(p, encoding='unicode')
+
+        return comments

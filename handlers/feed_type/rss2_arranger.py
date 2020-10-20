@@ -1,5 +1,6 @@
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
+from urllib.parse import quote_plus
 
 
 class RSS2Arranger(FeedArranger):
@@ -10,11 +11,11 @@ class RSS2Arranger(FeedArranger):
 
     def get_links(self, item: etree) -> list:
         return item.xpath(".//link")
-    
-    def get_url_from_link(self, link:etree) -> str:
+
+    def get_url_from_link(self, link: etree) -> str:
         return link.text.strip()
-    
-    def set_url_from_link(self, link: etree, url: str):
+
+    def set_url_from_link(self, link: etree._Element, url: str):
         link.text = url
 
     def get_descriptions(self, item: etree) -> list:
@@ -38,3 +39,12 @@ class RSS2Arranger(FeedArranger):
         elif len(medias) > 0:
             img_url = medias[0].get('url')
         return img_url
+
+    def replace_img_links(self, item: etree._Element, replace_with: str):
+        for enclosure in item.xpath(".//enclosure"):
+            # media:content tag
+            enclosure.attrib["url"] = replace_with % enclosure.attrib["url"]
+
+        for media in item.xpath(".//*[local-name()='content'][@url]"):
+            media.attrib["url"] = replace_with % quote_plus(
+                media.attrib["url"])

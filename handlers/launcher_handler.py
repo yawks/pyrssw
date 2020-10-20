@@ -8,7 +8,6 @@ import requests
 from cryptography.fernet import Fernet, InvalidToken
 from lxml import etree
 from typing_extensions import Type
-#from readability import Document
 from handlers.request_handler import RequestHandler
 from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)

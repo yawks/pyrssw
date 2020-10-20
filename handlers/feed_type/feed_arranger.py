@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import logging
 from storage.article_store import ArticleStore
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 import datetime
 import re
 import html
@@ -16,9 +16,8 @@ class FeedArranger(metaclass=ABCMeta):
         self.serving_url_prefix: Optional[str] = serving_url_prefix
         self.session_id: str = session_id
 
-
     @abstractmethod
-    def get_items(self, dom: etree) -> list:
+    def get_items(self, dom: etree._Element) -> list:
         """Get items of the feed document (item or entry)
 
         Args:
@@ -29,7 +28,7 @@ class FeedArranger(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_links(self, item: etree) -> list:
+    def get_links(self, item: etree._Element) -> list:
         """Get links from item depending on feed type (rss2, atom)
 
         Args:
@@ -40,7 +39,7 @@ class FeedArranger(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_descriptions(self, item: etree) -> list:
+    def get_descriptions(self, item: etree._Element) -> list:
         """Get description items from item depending on feed type (rss2, atom)
 
         Args:
@@ -51,7 +50,7 @@ class FeedArranger(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_img_url(self, node: etree) -> str:
+    def get_img_url(self, node: etree._Element) -> str:
         """Get image url depending on feed items which may contain some picture url
 
         Args:
@@ -60,9 +59,9 @@ class FeedArranger(metaclass=ABCMeta):
         Returns:
             str: img url
         """
-    
+
     @abstractmethod
-    def get_url_from_link(self, link:etree) -> str:
+    def get_url_from_link(self, link: etree._Element) -> str:
         """Get url from etree link node
 
         Args:
@@ -71,14 +70,23 @@ class FeedArranger(metaclass=ABCMeta):
         Returns:
             str: the url
         """
-    
+
     @abstractmethod
-    def set_url_from_link(self, link:etree, url: str):
+    def set_url_from_link(self, link: etree._Element, url: str):
         """Set the url for the etree link
 
         Args:
             link (etree): etree feed link item
             url (str): the url to set
+        """
+
+    @abstractmethod
+    def replace_img_links(self, item: etree._Element, replace_with: str):
+        """Replace img links with given string mask
+
+        Args:
+            item (etree._Element): etree Element
+            replace_with (str): string to use to replace the img links: if this string contains "%s" it will be used to set the original img link: ie "/thumbnail?url=%s"
         """
 
     def arrange(self, parameters: Dict[str, str], contents: str) -> str:
@@ -95,7 +103,6 @@ class FeedArranger(metaclass=ABCMeta):
 
                 dom = etree.fromstring(result)
 
-                # copy picture url from enclosure/thumbnail to a img tag in description (or add a generated one)
                 for item in self.get_items(dom):
                     if self._arrange_feed_keep_item(item, parameters):
                         self._arrange_item(item, parameters)
@@ -140,37 +147,26 @@ class FeedArranger(metaclass=ABCMeta):
         descriptions = self.get_descriptions(item)
 
         if len(descriptions) > 0:
-            if descriptions[0].text is not None and len(descriptions[0].xpath('.//img')) == 0 and etree.tostring(descriptions[0], encoding='unicode').find("&lt;img ") == -1:
-                # if description does not have a picture, add one from enclosure or media:content tag if any
-                img_url: str = self.get_img_url(item)
-
-                if img_url == "":
-                    # uses the ThumbnailHandler to fetch an image from google search images
-                    img_url = "%s/thumbnails?request=%s" % (
-                        self.serving_url_prefix, quote_plus(re.sub(r"</?description>", "", etree.tostring(descriptions[0], encoding='unicode')).strip()))
-
-                img = etree.Element("img")
-                img.set("src", img_url)
-                descriptions[0].append(img)
+            description: etree._Element = descriptions[0]
+            self._arrange_description_image(item, description, parameters)
 
             n = self._get_source(item)
             if n is not None:
-                descriptions[0].append(n)
+                description.append(n)
 
             description_xml: str = ""
             if descriptions[0].text is not None:
                 description_xml = descriptions[0].text
             for child in descriptions[0].getchildren():
                 description_xml += etree.tostring(child, encoding='unicode')
-            
+
             parent_obj = descriptions[0].getparent()
             parent_obj.remove(descriptions[0])
 
-            description = etree.Element(descriptions[0].tag) #"description")
+            description = etree.Element(descriptions[0].tag)  # "description")
             description.text = html.unescape(
                 description_xml.strip()).replace("&nbsp;", " ")
             parent_obj.append(description)
-            
 
             if "debug" in parameters and parameters["debug"] == "true":
                 p = etree.Element("p")
@@ -178,6 +174,39 @@ class FeedArranger(metaclass=ABCMeta):
                 i.text = "Session id: %s" % self.session_id
                 p.append(i)
                 descriptions[0].append(p)
+
+    def _arrange_description_image(self, item: etree._Element, description: etree._Element, parameters: Dict[str, str]):
+        nsfw: str = "false"  # safe for work by default
+        if "nsfw" in parameters:
+            nsfw = parameters["nsfw"]
+
+        if description.text is not None and len(description.xpath('.//img')) == 0 and etree.tostring(description, encoding='unicode').find("&lt;img ") == -1:
+            # if description does not have a picture, add one from enclosure or media:content tag if any
+            img_url: str = self.get_img_url(item)
+
+            if img_url == "":
+                # uses the ThumbnailHandler to fetch an image from google search images
+                img_url = "%s/thumbnails?request=%s&blur=%s" % (
+                    self.serving_url_prefix, quote_plus(re.sub(r"</?description>", "", etree.tostring(description, encoding='unicode')).strip()), nsfw)
+
+            img = etree.Element("img")
+            img.set("src", img_url)
+            description.append(img)
+
+        # blur description images
+        if nsfw == "true":
+            imgs: list = description.xpath('.//img')
+            if len(imgs) > 0:
+                for img in imgs:
+                    img.attrib["src"] = "%s/thumbnails?url=%s&blur=true" % (
+                        self.serving_url_prefix, quote_plus(img.attrib["src"]))
+            else:
+                srcs = re.findall('src="([^"]*)"', description.text)
+                for src in srcs:
+                    description.text = description.text.replace(src, "%s/thumbnails?url=%s&blur=true" % (
+                        self.serving_url_prefix, quote_plus(src)))
+            self.replace_img_links(
+                item, self.serving_url_prefix + "/thumbnails?url=%s&blur=true")
 
     def _arrange_feed_link(self, item: etree._Element, parameters: Dict[str, str]):
         """arrange feed link, by adding dark and userid parameters if required
@@ -193,9 +222,10 @@ class FeedArranger(metaclass=ABCMeta):
 
         if suffix_url != "":
             for link in self.get_links(item):
-                self.set_url_from_link(link, "%s%s" % (self.get_url_from_link(link).strip(), suffix_url))
+                self.set_url_from_link(link, "%s%s" % (
+                    self.get_url_from_link(link).strip(), suffix_url))
 
-    def _get_source(self, node: etree) -> Optional[etree._Element]:
+    def _get_source(self, node: etree._Element) -> Optional[etree._Element]:
         """get source url from link in 'url' parameter
 
         Arguments:
@@ -204,7 +234,7 @@ class FeedArranger(metaclass=ABCMeta):
         Returns:
             etree -- a node having the source url
         """
-        n: etree = None
+        n: Optional[etree._Element] = None
         links = self.get_links(node)
         if len(links) > 0:
             parsed = urlparse(self.get_url_from_link(links[0]))
