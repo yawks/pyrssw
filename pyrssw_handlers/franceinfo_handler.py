@@ -82,12 +82,16 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[contains(@class, "aside-img__content")]',  # france3 regions
             # france3 regions
             '//*[contains(@class, "social-button-content")]',
-            '//*[contains(@class, "tags-button-content")]'  # france3 regions
+            '//*[contains(@class, "tags-button-content")]',  # france3 regions
+            '//*[contains(@class, "article-share")]',# france3 regions
+            '//*[contains(@class, "article-share-fallback")]',# france3 regions
+            '//*[contains(@class, "article-share-fallback")]'# france3 regions
         ])
 
         content = utils.dom_utils.get_content(
             dom, ['//div[contains(@class,"article-detail-block")]',
                   '//article[contains(@id,"node")]',  # france3 regions
+                  '//main[contains(@class,"article")]',  # france3 regions
                   '//article[contains(@class,"content-live")]',  # live
                   '//div[contains(@class, "content")]',
                   # sport.francetvinfo.fr

@@ -35,7 +35,7 @@ class IzismileHandler(PyRSSWRequestHandler):
 
         feed = feed.replace("<title>Izismile.com</title>",
                             "<title>Izismile.com local</title>")
-        
+
         # spicy highlight links are index pages, we parse them and add new entries in the feed
         spicy_feeds: str = ""
         spicy_links: List[str] = re.findall(
@@ -56,7 +56,7 @@ class IzismileHandler(PyRSSWRequestHandler):
                         <pubdate>%s</pubdate>
                     </item>""" % (title, link.attrib["href"], etree.tostring(link.getparent().getnext(), encoding='unicode'), datetime.datetime.now().strftime("%c"))
         feed = feed.replace("</channel>", spicy_feeds + "</channel>")
-        
+
         feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
 
         return feed
@@ -120,9 +120,9 @@ class IzismileHandler(PyRSSWRequestHandler):
         pagers = dom.xpath('//*[@id="pagination-nums"]')
         for pager in pagers:
             pager.getparent().remove(pager)
-        
+
         imgboxs = dom.xpath('//div[@class="imgbox"]')
-        #replace <div class="imgbox"> by <p> tags
+        # replace <div class="imgbox"> by <p> tags
         for imgbox in imgboxs:
             imgbox.tag = "p"
             del imgbox.attrib["class"]
@@ -161,4 +161,5 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = re.sub(r'src="data:image/[^"]*"', '', content)
         content = content.replace("data-src=", "src=")
         content = content.replace("class=\"lazyload\"", "")
-        return "<article>%s</article>" % content.replace("><",">\n<")
+        content = content.replace("Advertisement", "")
+        return "<article>%s</article>" % content.replace("><", ">\n<")
