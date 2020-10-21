@@ -160,15 +160,35 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         return _is_a_picture_link
 
     def get_comments(self, dom: etree) -> str:
-        intro: str = "<hr/><h3><u>Comments</u></h3>"
+        """Append comments to the content. The webscrapped version contains only 2 levels in threads.
+        The comments are displayed in a <ul> list. Only the comment, no nickname, no points, no date.
+
+        Args:
+            dom (etree): sub reddit content parsed
+
+        Returns:
+            str: html content for comments
+        """
+        intro: str = "<hr/><h3><u>Comments</u></h3><ul>"
+        last_level: str = "level 1"
         comments: str = intro
         for entry in dom.xpath("//*[@data-test-id=\"comment\"]", namespaces=NAMESPACES):
+            spans = entry.getparent().xpath(".//span[contains(./text(),'level ')]")
+            for span in spans:
+                if span.text != last_level:
+                    last_level = span.text
+                    if span.text == "level 2":
+                        comments += "<ul>"
+                    else:
+                        comments += "</ul>"
+                
+            comments += "<li>"
             ps = entry.xpath(".//p")
-            if comments != intro:
-                comments += "<hr/>"
             for p in ps:
-                del p.attrib["class"]
-                p.text = "> " + p.text
+                if "class" in p.attrib:
+                    del p.attrib["class"]
                 comments += etree.tostring(p, encoding='unicode')
+            
+            comments += "</li>"
 
-        return comments
+        return "%s</ul>" % comments
