@@ -50,6 +50,17 @@ class FeedArranger(metaclass=ABCMeta):
         """
 
     @abstractmethod
+    def get_title(self, item: etree._Element) -> Optional[etree._Element]:
+        """Get title of the item feed entry
+
+        Args:
+            item ([type]): item etree Element
+
+        Returns:
+            Optional[etree._Elements]: title etree Element
+        """
+
+    @abstractmethod
     def get_img_url(self, node: etree._Element) -> str:
         """Get image url depending on feed items which may contain some picture url
 
@@ -187,7 +198,7 @@ class FeedArranger(metaclass=ABCMeta):
             if img_url == "":
                 # uses the ThumbnailHandler to fetch an image from google search images
                 img_url = "%s/thumbnails?request=%s&blur=%s" % (
-                    self.serving_url_prefix, quote_plus(re.sub(r"</?description>", "", etree.tostring(description, encoding='unicode')).strip()), nsfw)
+                    self.serving_url_prefix, quote_plus(re.sub(r"</?title[^>]*>", "", etree.tostring(self.get_title(item), encoding='unicode')).strip()), nsfw)
 
             img = etree.Element("img")
             img.set("src", img_url)

@@ -1,3 +1,4 @@
+from typing import Optional
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
 from urllib.parse import quote_plus
@@ -23,6 +24,14 @@ class AtomArranger(FeedArranger):
 
     def get_descriptions(self, item) -> list:
         return item.xpath(".//atom:content", namespaces=NAMESPACES)
+
+    def get_title(self, item: etree._Element) -> Optional[etree._Element]:
+        title: Optional[etree._Elements] = None
+        for t in item.xpath(".//atom:title", namespaces=NAMESPACES):
+            title = t
+            break
+
+        return title
 
     def get_img_url(self, node: etree) -> str:
         """get img url from enclosure or media:thumbnail tag if any

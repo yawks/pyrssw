@@ -93,7 +93,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
             dom, ['//*[@data-test-id="post-content"]//h1'])
         content: str = utils.dom_utils.get_all_contents(dom,
                                                         ['//*[contains(@class,"media-element")]',
-                                                         '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]'])
+                                                         '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]'], alt_to_p=True)
 
         # case of posts with link(s) to external source(s) : we load the external content(s)
         external_link: str = utils.dom_utils.get_content(
@@ -109,7 +109,10 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
         content = self._manage_reddit_preview_images(content)
         content = content.replace("<video ", "<video controls ")
-        return "<article>%s%s<br/>%s</article>" % (title, content.replace("><", ">\n<"), self.get_comments(dom))
+        content = "<article>%s%s%s</article>" % (
+            title, content, self.get_comments(dom))
+
+        return content
 
     def _manage_external_content(self, href: str) -> Optional[str]:
         external_content: Optional[str] = None
@@ -119,11 +122,11 @@ class RedditInfoHandler(PyRSSWRequestHandler):
             m = re.match(IMGUR_GIFV, href)
             if m is not None:
                 imgur_id: str = m.group(1)
-                external_content = """<video poster="//i.imgur.com/%s.jpg" preload="auto" autoplay="autoplay" muted="muted" loop="loop" webkit-playsinline="" style="width: 480px; height: 854px;">
+                external_content = """<p><video poster="//i.imgur.com/%s.jpg" preload="auto" autoplay="autoplay" muted="muted" loop="loop" webkit-playsinline="" style="width: 480px; height: 854px;">
                         <source src="//i.imgur.com/%s.mp4" type="video/mp4">
-                    </video>""" % (imgur_id, imgur_id)
+                    </video></p>""" % (imgur_id, imgur_id)
             else:
-                external_content = "<img src=\"%s\"/>" % href
+                external_content = "<p><img src=\"%s\"/></p>" % href
 
         return external_content
 
@@ -169,11 +172,12 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         Returns:
             str: html content for comments
         """
-        intro: str = "<hr/><h3><u>Comments</u></h3><ul>"
+        intro: str = "<hr/><h2>Comments</h2><ul>"
         last_level: str = "level 1"
         comments: str = intro
         for entry in dom.xpath("//*[@data-test-id=\"comment\"]", namespaces=NAMESPACES):
-            spans = entry.getparent().xpath(".//span[contains(./text(),'level ')]")
+            spans = entry.getparent().xpath(
+                ".//span[contains(./text(),'level ')]")
             for span in spans:
                 if span.text != last_level:
                     last_level = span.text
@@ -181,14 +185,14 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                         comments += "<ul>"
                     else:
                         comments += "</ul>"
-                
+
             comments += "<li>"
             ps = entry.xpath(".//p")
             for p in ps:
                 if "class" in p.attrib:
                     del p.attrib["class"]
                 comments += etree.tostring(p, encoding='unicode')
-            
+
             comments += "</li>"
 
         return "%s</ul>" % comments

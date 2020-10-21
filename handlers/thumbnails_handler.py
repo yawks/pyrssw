@@ -31,7 +31,7 @@ class ThumbnailHandler(RequestHandler):
         if "request" in parse_qs(parsed.query):
             content = self._process_request(
                 parse_qs(parsed.query)["request"][0], original_website)
-        if "url" in parse_qs(parsed.query):
+        elif "url" in parse_qs(parsed.query):
             content = requests.get(unquote_plus(
                 parse_qs(parsed.query)["url"][0])).content
         else:
@@ -50,10 +50,10 @@ class ThumbnailHandler(RequestHandler):
         # TODO : improve this, and avoid type ignore
         self.contents = content  # type: ignore
 
-    def _process_request(self, request, original_website) -> bytes:
+    def _process_request(self, request: str, original_website: str) -> bytes:
         content = b""
-        r = unquote_plus(request[len("?request="):].replace('\t',
-                                                            '').replace('\n', '').strip())
+        r = unquote_plus(request.replace('\t',
+                                         '').replace('\n', '').strip())
         response = requests.get(
             original_website + r, headers={"User-Agent": USER_AGENT})
 

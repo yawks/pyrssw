@@ -13,14 +13,34 @@ def get_content(dom: etree, xpaths: list) -> str:
 
     return content
 
-def get_all_contents(dom: etree, xpaths: list) -> str:
-    """get content of all xpaths in the list of xpath expressions"""
+
+def get_all_contents(dom: etree, xpaths: list, alt_to_p: bool = False) -> str:
+    """Get content of all xpaths provided.
+
+    Args:
+        dom (etree): dom where to get the content
+        xpaths (list): list of xpath expression used to extract content in dom object
+        alt_to_p (bool, optional): If true, when an alt is found, a new element <p> is added with alt content (useful for readability). Defaults to False.
+
+    Returns:
+        str: [description]
+    """
     content: str = ""
     for xpath in xpaths:
         results = dom.xpath(xpath)
         if len(results) > 0:
             for result in results:
-                content += etree.tostring(result, encoding='unicode')
+                enclosing: str = "%s%s"
+                if result.tag != "p":
+                    enclosing = "<p>%s%s</p>"
+
+                alts: str = ""
+                if alt_to_p:
+                    for element_with_alt in result.xpath(".//*[@alt] | @alt/.."):
+                        alts += "<br/>%s" % element_with_alt.attrib["alt"]
+
+                content += enclosing % (etree.tostring(result,
+                                                       encoding='unicode'), alts)
 
     return content
 
