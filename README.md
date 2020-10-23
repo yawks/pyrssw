@@ -140,6 +140,7 @@ Each handle can define its own parameters, but PyRSSW also provides a bunch of g
   A mongodb database must be up and running. See the _storage.mongodb.url_ and _storage.readarticles.age_ parameters in the [configuration file](#configuration-file).
   ie: `/dummy/rss?userid=mat`
 - `debug` (boolean): if set to true, will display the session id at the end of the RSS feed.
+- `nsfw` (boolean): if set to true, the feed thumbnail is blurred
   ie: `/dummy/rss?debug=true`
 - the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto*key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by *!e:\_
   ie: `/dummy/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==`

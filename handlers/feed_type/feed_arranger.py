@@ -146,8 +146,15 @@ class FeedArranger(metaclass=ABCMeta):
         """
         feed_keep_item: bool = True
         if "userid" in parameters:
-            for link in self.get_links(item):  # NOSONAR
-                parsed = urlparse(link.text.strip())
+            for link in self.get_links(item):
+                if link.text is not None:
+                    parsed = urlparse(link.text.strip())
+                elif "href" in link.attrib:
+                    parsed = urlparse(link.attrib["href"].strip())
+                else:
+                    logging.getLogger().info("Unable to find URL in item : (%s)" %
+                                             etree.tostring(item, encoding='unicode'))
+                    continue
                 if "url" in parse_qs(parsed.query):
                     feed_keep_item = not ArticleStore.instance().has_article_been_read(
                         parameters["userid"], parse_qs(parsed.query)["url"][0])

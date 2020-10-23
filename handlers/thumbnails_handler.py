@@ -13,9 +13,15 @@ import io
 
 
 class ThumbnailHandler(RequestHandler):
-    """Handler which get the first thumbnail of Google Images for any query.
-
+    """Thumbnail generator.
+    
     Handler name: thumbnails
+    Parameters:
+     - request: get the first thumbnail of Google Images of the request keywords.
+     - url: make a thumbnail of the given url
+     - blur: blur the thumbnail
+
+     "request" and "url" parameters are exclusive, but can both be used with blur
 
     Content:
         base64 encoded image
