@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from lxml import etree
 #from defusedxml import ElementTree
@@ -14,7 +14,7 @@ def get_content(dom: etree, xpaths: list) -> str:
     return content
 
 
-def get_all_contents(dom: etree, xpaths: list, alt_to_p: bool = False) -> str:
+def get_all_contents(dom: etree, xpaths: list, alt_to_p: bool = False) -> Tuple[str, str]:
     """Get content of all xpaths provided.
 
     Args:
@@ -26,23 +26,28 @@ def get_all_contents(dom: etree, xpaths: list, alt_to_p: bool = False) -> str:
         str: [description]
     """
     content: str = ""
+    alts: str = ""
     for xpath in xpaths:
         results = dom.xpath(xpath)
         if len(results) > 0:
             for result in results:
                 enclosing: str = "%s%s"
                 if result.tag != "p":
-                    enclosing = "<p>%s%s</p>"
+                    enclosing = "<p>%s</p>"
 
-                alts: str = ""
-                if alt_to_p:
-                    for element_with_alt in result.xpath(".//*[@alt] | @alt/.."):
-                        alts += "<br/>%s" % element_with_alt.attrib["alt"]
+                alts = _get_alts(alt_to_p, result)
 
-                content += enclosing % (etree.tostring(result,
-                                                       encoding='unicode'), alts)
+                content += enclosing % etree.tostring(result,
+                                                      encoding='unicode')
 
-    return content
+    return content, alts
+
+def _get_alts(alt_to_p: bool, result: etree._Element) -> str:
+    alts : str = ""
+    if alt_to_p:
+        for element_with_alt in result.xpath(".//*[@alt] | @alt/.."):
+            alts += element_with_alt.attrib["alt"]
+    return alts
 
 
 def get_text(dom: etree, xpaths: list) -> str:

@@ -1,6 +1,6 @@
 from handlers.feed_type.atom_arranger import NAMESPACES
 import re
-from typing import Optional
+from typing import Optional, Tuple
 import requests
 from lxml import etree
 import utils.dom_utils
@@ -89,9 +89,12 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         page = session.get(url=url)
         dom = etree.HTML(page.text)
 
-        title: str = utils.dom_utils.get_all_contents(
+        alt: str = ""
+        title: str = ""
+
+        title, alt = utils.dom_utils.get_all_contents(
             dom, ['//*[@data-test-id="post-content"]//h1'])
-        content: str = utils.dom_utils.get_all_contents(dom,
+        content, alt = utils.dom_utils.get_all_contents(dom,
                                                         ['//*[contains(@class,"media-element")]',
                                                          '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]'], alt_to_p=True)
 
@@ -109,6 +112,8 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
         content = self._manage_reddit_preview_images(content)
         content = content.replace("<video ", "<video controls ")
+        if len(alt.strip()) > 0:
+            content += "<p>%s</p>" % alt
         content = "<article>%s%s%s</article>" % (
             title, content, self.get_comments(dom))
 
@@ -172,19 +177,12 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         Returns:
             str: html content for comments
         """
-        intro: str = "<hr/><h2>Comments</h2><ul>"
+        intro: str = "<hr/><h2>Comments</h2>"
         last_level: str = "level 1"
-        comments: str = intro
+        comments: str = "<ul>"
         for entry in dom.xpath("//*[@data-test-id=\"comment\"]", namespaces=NAMESPACES):
-            spans = entry.getparent().xpath(
-                ".//span[contains(./text(),'level ')]")
-            for span in spans:
-                if span.text != last_level:
-                    last_level = span.text
-                    if span.text == "level 2":
-                        comments += "<ul>"
-                    else:
-                        comments += "</ul>"
+            c, last_level = self._manage_comment_level(last_level, entry)
+            comments += c
 
             comments += "<li>"
             ps = entry.xpath(".//p")
@@ -195,4 +193,23 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
             comments += "</li>"
 
-        return "%s</ul>" % comments
+        comments += "</ul>"
+
+        if comments == "<ul></ul>":
+            comments = "<p>No comment so far!</p>"
+
+        return intro + comments
+
+    def _manage_comment_level(self, level: str, entry: etree._Element) -> Tuple[str, str]:
+        ul_tag: str = ""
+        last_level: str = level
+        spans = entry.getparent().xpath(
+            ".//span[contains(./text(),'level ')]")
+        for span in spans:
+            if span.text != level:
+                last_level = span.text
+                if span.text == "level 2":
+                    ul_tag = "<ul>"
+                else:
+                    ul_tag = "</ul>"
+        return ul_tag, last_level
