@@ -1,10 +1,14 @@
 import string
 import re
+from typing import NewType
 import requests
 from lxml import etree
-
+import json
+import base64
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
+
+DUGOUT_VIDEO = re.compile(r'(?:https?://embed.dugout.com/v2/\?p=)([^/]*)')
 
 
 class Sport24Handler(PyRSSWRequestHandler):
@@ -76,6 +80,8 @@ class Sport24Handler(PyRSSWRequestHandler):
         utils.dom_utils.delete_nodes(
             dom.xpath('//*[@class="s24-art-pub-top"]'))
 
+        self._process_dugout(session, dom)
+
         contents = dom.xpath('//*[@class="s24-art__content s24-art__resize"]')
         if len(contents) > 0:
             if imgsrc != "":
@@ -84,7 +90,45 @@ class Sport24Handler(PyRSSWRequestHandler):
                     img = etree.Element("img")
                     img.set("src", imgsrc)
                     bodies[0].append(img)
-
             content = etree.tostring(contents[0], encoding='unicode')
 
         return content
+
+    def _process_dugout(self, session: requests.Session, dom: etree._Element):
+        for iframe in dom.xpath("//iframe"):
+            if "src" in iframe.attrib:
+                dugout_ps = re.findall(DUGOUT_VIDEO, iframe.attrib["src"])
+                for dugout_p in dugout_ps:
+                    try:
+                        key = json.loads(base64.b64decode(dugout_p))["key"]
+                        dugout_metadata = json.loads(session.get(
+                            "https://cdn.jwplayer.com/v2/media/%s" % key).text)
+
+                        p1 = etree.Element("p")
+                        video = etree.Element("video")
+                        video.set("controls", "")
+                        video.set("preload", "auto")
+                        # best quality, last index
+                        video.set(
+                            "poster", dugout_metadata["playlist"][0]["images"][-1]["src"])
+                        video.set("width", "100%")
+
+                        source = etree.Element("source")
+                        source.set("src", dugout_metadata["playlist"][0]["sources"][-1]["file"])
+
+                        p1.append(video)
+
+                        p2 = etree.Element("p")
+                        p2.text = dugout_metadata["title"]
+
+                        p3 = etree.Element("p")
+                        p3.text = dugout_metadata["description"]
+                        
+                        iframe.getparent().getparent().append(p1)
+                        iframe.getparent().getparent().append(p2)
+                        iframe.getparent().getparent().append(p3)
+                        iframe.getparent().remove(iframe)
+                    except:
+                        self.log_info(
+                            "Unable to find dugout video, we ignore this exception and go on")
+                    break

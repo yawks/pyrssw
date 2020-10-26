@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 import requests
 from lxml import etree
 import utils.dom_utils
+from urllib.parse import urlparse, parse_qs
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
@@ -162,7 +163,9 @@ class RedditInfoHandler(PyRSSWRequestHandler):
             bool: True if the href leads to real content
         """
         _is_a_picture_link: bool = False
-        if href.lower().endswith(".jpg") or href.lower().endswith(".png") or href.lower().endswith(".gif") or href.lower().endswith(".gifv"):
+        parsed_url = urlparse(href)
+        
+        if parsed_url.path.lower().endswith(".jpg") or parsed_url.path.lower().endswith(".png") or parsed_url.path.lower().endswith(".gif") or parsed_url.path.lower().endswith(".gifv"):
             _is_a_picture_link = True
 
         return _is_a_picture_link

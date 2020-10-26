@@ -136,14 +136,16 @@ Each handle can define its own parameters, but PyRSSW also provides a bunch of g
 
 - `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
   ie: `/dummy/rss?dark=true`
-- `userid` (string): if defined every feed content URL requested for the given userid will be stored in a database in order to not be presented in the next RSS get_feed calls (is a simple way to propose only new feeds between 2 different tools) This is very simple and not securized enough.
+- `userid` (string): if defined every feed content URL requested for the given userid will be stored in a database in order to not be presented in the next RSS get_feed calls (is a simple way to propose only new feeds between 2 different RSS readers apps) This is very simple and not securized enough.
   A mongodb database must be up and running. See the _storage.mongodb.url_ and _storage.readarticles.age_ parameters in the [configuration file](#configuration-file).
   ie: `/dummy/rss?userid=mat`
 - `debug` (boolean): if set to true, will display the session id at the end of the RSS feed.
 - `nsfw` (boolean): if set to true, the feed thumbnail is blurred
   ie: `/dummy/rss?debug=true`
-- the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto*key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by *!e:\_
+- the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto*key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by **!e:**
   ie: `/dummy/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==`
+
+All the parameters can be combined, ie: `/dummy/rss?debug=true&dark=true&userid=mat`
 
 ## Adding new handlers
 
@@ -195,9 +197,9 @@ class DummyHandler(PyRSSWRequestHandler):
         content: str = session.get(url).text
         filters: str = ""
         if "filter" in parameters:
-            filters = parameters["filters"].split(",")
+            filters = parameters["filter"].split(",")
             #...
-            #make any change on the content
+            #make any change on the RSS feed
 
         return content
 
