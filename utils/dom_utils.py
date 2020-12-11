@@ -50,7 +50,7 @@ def xpath(dom: etree._Element, xpath_query: str, namespaces=None) -> List[etree.
     if namespaces is None:
         nodes = cast(List[etree._Element], dom.xpath(xpath_query))
     else:
-        nodes = cast(List[etree._Element], dom.xpath(xpath_query), namespaces=namespaces)
+        nodes = cast(List[etree._Element], dom.xpath(xpath_query, namespaces=namespaces))
 
     return nodes
 

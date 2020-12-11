@@ -59,7 +59,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         dom = etree.fromstring(feed)
 
         for entry in xpath(dom, "//atom:entry", namespaces=NAMESPACES):
-            content = cast(str, xpath(entry, "./atom:content")[0].text)
+            content = cast(str, xpath(entry, "./atom:content", namespaces=NAMESPACES)[0].text)
 
             # try to replace thumbnail with real picture
             imgs = re.findall(r'"http[^"]*jpg"', content)
