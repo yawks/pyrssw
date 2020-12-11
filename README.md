@@ -136,6 +136,7 @@ Each handle can define its own parameters, but PyRSSW also provides a bunch of g
 
 - `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
   ie: `/dummy/rss?dark=true`
+- `hidetitle` (boolean): if set to true, the first h1 of the article will be hidden 
 - `userid` (string): if defined every feed content URL requested for the given userid will be stored in a database in order to not be presented in the next RSS get_feed calls (is a simple way to propose only new feeds between 2 different RSS readers apps) This is very simple and not securized enough.
   A mongodb database must be up and running. See the _storage.mongodb.url_ and _storage.readarticles.age_ parameters in the [configuration file](#configuration-file).
   ie: `/dummy/rss?userid=mat`

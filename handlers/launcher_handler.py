@@ -13,6 +13,7 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)
 from storage.article_store import ArticleStore
 from storage.session_store import SessionStore
+from utils.dom_utils import to_string, xpath
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
@@ -90,7 +91,7 @@ class LauncherHandler(RequestHandler):
         else:
             self.contents = self.handler.get_content(
                 requested_url, parameters, session)
-            
+
             """doc = Document(self.contents) #get a "readable" content
             readable_content: str = doc.summary()
             
@@ -105,7 +106,7 @@ class LauncherHandler(RequestHandler):
             ArticleStore.instance().insert_article_as_read(
                 parameters["userid"], requested_url)
 
-        self._replace_prefix_urls()
+        self._replace_prefix_urls(parameters)
         self._wrapped_html_content(parameters)
 
     def _process_rss(self, parameters: Dict[str, str]):
@@ -227,7 +228,13 @@ class LauncherHandler(RequestHandler):
                         </body>
                     </html>""" % (domain, style, self.contents, source)
 
-    def _replace_prefix_urls(self):
+    def _manage_title(self, dom: etree._Element, parameters: dict):
+        if "hidetitle" in parameters and parameters["hidetitle"] == "true":
+            h1s = xpath(dom, "//h1")
+            if len(h1s) > 0:
+                h1s[0].getparent().remove(h1s[0])
+
+    def _replace_prefix_urls(self, parameters: dict):
         """Replace relative urls by absolute urls using handler prefix url"""
 
         def _replace_urls_process_links(dom: etree, attribute: str):
@@ -246,5 +253,6 @@ class LauncherHandler(RequestHandler):
             if dom is not None:
                 _replace_urls_process_links(dom, "href")
                 _replace_urls_process_links(dom, "src")
-                self.contents = etree.tostring(dom, encoding='unicode').replace(
+                self._manage_title(dom, parameters)
+                self.contents = to_string(dom).replace(
                     "<html>", "").replace("</html>", "").replace("<body>", "").replace("</body>", "")

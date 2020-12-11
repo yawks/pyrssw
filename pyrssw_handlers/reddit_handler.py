@@ -1,12 +1,13 @@
 from handlers.feed_type.atom_arranger import NAMESPACES
 import re
-from typing import Optional, Tuple
-import requests
+from typing import Optional, Tuple, cast
+from requests import cookies, Session
 from lxml import etree
 import utils.dom_utils
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
+from utils.dom_utils import to_string, xpath
 
 NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
 
@@ -45,7 +46,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://www.reddit.com/.rss"
 
-    def get_feed(self, parameters: dict, session: requests.Session) -> str:
+    def get_feed(self, parameters: dict, session: Session) -> str:
         rss_url: str = self.get_rss_url()
 
         if "subreddit" in parameters:
@@ -57,9 +58,8 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         # I probably do not use etree as I should
         dom = etree.fromstring(feed)
 
-        for entry in dom.xpath("//atom:entry", namespaces=NAMESPACES):
-            content = entry.xpath(
-                "./atom:content", namespaces=NAMESPACES)[0].text
+        for entry in xpath(dom, "//atom:entry", namespaces=NAMESPACES):
+            content = cast(str, xpath(entry, "./atom:content")[0].text)
 
             # try to replace thumbnail with real picture
             imgs = re.findall(r'"http[^"]*jpg"', content)
@@ -71,19 +71,19 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                 else:
                     other = img
             if other != "":
-                entry.xpath("./atom:content", namespaces=NAMESPACES)[0].text = content.replace(
+                xpath(entry, "./atom:content", namespaces=NAMESPACES)[0].text = content.replace(
                     thumb, other).replace("<td> &#32;", "</tr><tr><td> &#32;")
 
-            for link in entry.xpath("./atom:link", namespaces=NAMESPACES):
+            for link in xpath(entry, "./atom:link", namespaces=NAMESPACES):
                 link.attrib["href"] = self.get_handler_url_with_parameters(
-                    {"url": link.attrib["href"].strip()})
+                    {"url": cast(str, link.attrib["href"].strip())})
 
-        feed = etree.tostring(dom, encoding='unicode')
+        feed = to_string(dom)
 
         return feed
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
-        cookie_obj = requests.cookies.create_cookie(
+    def get_content(self, url: str, parameters: dict, session: Session) -> str:
+        cookie_obj = cookies.create_cookie(
             domain="reddit.com", name="over18", value="1")
         session.cookies.set_cookie(cookie_obj)
 
@@ -97,6 +97,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
             dom, ['//*[@data-test-id="post-content"]//h1'])
         content, alt = utils.dom_utils.get_all_contents(dom,
                                                         ['//*[contains(@class,"media-element")]',
+                                                         '//*[contains(@data-click-id,"media")]//video',
                                                          '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]'], alt_to_p=True)
 
         # case of posts with link(s) to external source(s) : we load the external content(s)
@@ -164,9 +165,10 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         """
         _is_a_picture_link: bool = False
         parsed_url = urlparse(href)
-        
-        if parsed_url.path.lower().endswith(".jpg") or parsed_url.path.lower().endswith(".png") or parsed_url.path.lower().endswith(".gif") or parsed_url.path.lower().endswith(".gifv"):
-            _is_a_picture_link = True
+        for extension in [".jpg", ".jpeg", ".png", ".gif", ".gifv"]:
+            if parsed_url.path.lower().endswith(extension):
+                _is_a_picture_link = True
+                break
 
         return _is_a_picture_link
 
@@ -192,7 +194,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
             for p in ps:
                 if "class" in p.attrib:
                     del p.attrib["class"]
-                comments += etree.tostring(p, encoding='unicode')
+                comments += to_string(p)
 
             comments += "</li>"
 
@@ -206,11 +208,11 @@ class RedditInfoHandler(PyRSSWRequestHandler):
     def _manage_comment_level(self, level: str, entry: etree._Element) -> Tuple[str, str]:
         ul_tag: str = ""
         last_level: str = level
-        spans = entry.getparent().xpath(
-            ".//span[contains(./text(),'level ')]")
+        spans = xpath(cast(etree._Element, entry.getparent()),
+                      ".//span[contains(./text(),'level ')]")
         for span in spans:
             if span.text != level:
-                last_level = span.text
+                last_level = cast(str, span.text)
                 if span.text == "level 2":
                     ul_tag = "<ul>"
                 else:

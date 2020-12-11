@@ -1,4 +1,5 @@
 import re
+from typing import cast
 import requests
 from lxml import etree
 import utils.dom_utils
@@ -71,7 +72,7 @@ class EvilmilkHandler(PyRSSWRequestHandler):
 
     def _replace_urls(self, c):
         content = re.sub(
-            r'href=(["\'])https://www.evilmilk.com/', r'href=\1' + self.url_prefix, c)
+            r'href=(["\'])https://www.evilmilk.com/', r'href=\1' + cast(str, self.url_prefix), c)
         content = re.sub(r'href=(["\'])/',
                          r'href=\1https://www.evilmilk.com/', content)
         content = re.sub(

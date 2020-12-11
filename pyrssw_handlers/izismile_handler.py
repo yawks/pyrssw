@@ -155,7 +155,6 @@ class IzismileHandler(PyRSSWRequestHandler):
             r'<span class="sordering"><a class="back" href="#[^"]*"/><a name="[^"]*">[^<]*</a><a class="next" href="#[^"]*"/></span>', '', content)
         content = content.replace('id="post-list"', 'id="mainbody"')
 
-        content = content.replace("<img", "<br/><br/><img")
         content = content.replace('<div class="tools" style="display: none;"/>',
                                   '<div class="tools" style="display: block;"/>')
         content = re.sub(r'src="data:image/[^"]*"', '', content)

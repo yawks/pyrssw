@@ -1,7 +1,10 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 
 from lxml import etree
-#from defusedxml import ElementTree
+
+
+def to_string(dom: etree._Element) -> str:
+    return cast(str, etree.tostring(dom, encoding="unicode"))
 
 
 def get_content(dom: etree, xpaths: list) -> str:
@@ -9,7 +12,7 @@ def get_content(dom: etree, xpaths: list) -> str:
     content: str = ""
     node: Optional[etree._Element] = get_first_node(dom, xpaths)
     if node is not None:
-        content = etree.tostring(node, encoding='unicode')
+        content = to_string(node)
 
     return content
 
@@ -37,16 +40,52 @@ def get_all_contents(dom: etree, xpaths: list, alt_to_p: bool = False) -> Tuple[
 
                 alts = _get_alts(alt_to_p, result)
 
-                content += enclosing % etree.tostring(result,
-                                                      encoding='unicode')
+                content += enclosing % to_string(result)
 
     return content, alts
 
+
+def xpath(dom: etree._Element, xpath_query: str, namespaces=None) -> List[etree._Element]:
+    nodes: List[etree._Element] = []
+    if namespaces is None:
+        nodes = cast(List[etree._Element], dom.xpath(xpath_query))
+    else:
+        nodes = cast(List[etree._Element], dom.xpath(xpath_query), namespaces=namespaces)
+
+    return nodes
+
+
+def get_attr_value(dom: etree._Element, attr_name: str) -> str:
+    """Get attribute value, empty string if the attribute name does not exist.
+
+    Args:
+        dom (etree._Element): dom element
+        attr_name (str): attribute name
+
+    Returns:
+        str: the attribute value if exists, "" otherwise
+    """
+    attr_value: str = ""
+
+    if attr_name in dom.attrib:
+        attr_value = cast(str, dom.attrib[attr_name])
+
+    return attr_value
+
+
+def text(dom: etree._Element) -> str:
+    return cast(str, dom.text)
+
+def getparent(dom: etree._Element) -> etree._Element:
+    return cast(etree._Element, dom.getparent())
+
 def _get_alts(alt_to_p: bool, result: etree._Element) -> str:
-    alts : str = ""
+    alts: str = ""
     if alt_to_p:
-        for element_with_alt in result.xpath(".//*[@alt] | @alt/.."):
-            alts += element_with_alt.attrib["alt"]
+        for element_with_alt in xpath(result, ".//*[@alt] | @alt/.."):
+            alt: Optional[str] = get_attr_value(element_with_alt, "alt")
+            if alt is not None:
+                alts += alt
     return alts
 
 
@@ -63,7 +102,7 @@ def get_text(dom: etree, xpaths: list) -> str:
     content: str = ""
     node: Optional[etree._Element] = get_first_node(dom, xpaths)
     if node is not None:
-        content = node.text.strip()
+        content = cast(str, node.text).strip()
 
     return content
 

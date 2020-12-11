@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional, cast
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
 from urllib.parse import quote_plus
@@ -24,7 +24,7 @@ class RSS2Arranger(FeedArranger):
 
     def get_title(self, item: etree._Element) -> Optional[etree._Element]:
         title: Optional[etree._Elements] = None
-        for t in item.xpath(".//title"):
+        for t in cast(List[etree._Element], item.xpath(".//title")):
             title = t
             break
 
@@ -50,10 +50,10 @@ class RSS2Arranger(FeedArranger):
         return img_url
 
     def replace_img_links(self, item: etree._Element, replace_with: str):
-        for enclosure in item.xpath(".//enclosure"):
+        for enclosure in cast(List[etree._Element], item.xpath(".//enclosure")):
             # media:content tag
             enclosure.attrib["url"] = replace_with % enclosure.attrib["url"]
 
-        for media in item.xpath(".//*[local-name()='content'][@url]"):
+        for media in cast(List[etree._Element], item.xpath(".//*[local-name()='content'][@url]")):
             media.attrib["url"] = replace_with % quote_plus(
-                media.attrib["url"])
+                cast(str, media.attrib["url"]))

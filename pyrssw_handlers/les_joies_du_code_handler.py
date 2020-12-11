@@ -5,6 +5,7 @@ from lxml import etree
 
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
+from utils.dom_utils import to_string, xpath
 
 
 class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
@@ -38,14 +39,14 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
 
         dom = etree.fromstring(feed)
-        for item in dom.xpath('//item'):
+        for item in xpath(dom, "//item"):
             for child in item.getchildren():  # did not find how to xpath content:encoded tag
                 if child.tag.endswith("encoded"):
                     c = self._clean_content(
                         '<div class="blog-post">' + child.text + '</div>')
                     child.text = c  # "<![CDATA[" + c + "]]>"
 
-        return etree.tostring(dom, encoding='unicode')
+        return to_string(dom)
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
         page = session.get(url=url, headers={})
@@ -70,16 +71,21 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
                     img.set("src", src)
                     obj.getparent().getparent().getparent().getparent().append(img)
 
-            utils.dom_utils.delete_nodes(dom.xpath('//video'))
+            video_content = utils.dom_utils.get_content(dom, ['//*[contains(@class,"blog-post-content")]//video'])
 
+            utils.dom_utils.delete_nodes(dom.xpath('//video'))
             content = utils.dom_utils.get_content(
                 dom, ['//div[contains(@class, "blog-post")]', '//div[contains(@class,"blog-post-content")]'])
-
-            content = content.replace('<div class="blog-post">', '')
-            content = content.replace('<div class="blog-post-content">', '')
-            content = content.replace('</div>', '')
-            content = re.sub(r'src="data:image[^"]*', '', content)
-            content = content.replace(
-                "data-src", "style='height:100%;width:100%' src")
-            content = re.sub(r'<!--(.*)-->', r"", content, flags=re.S)
+            
+            if len(content) < 50:
+                #means there is no gif
+                content = video_content
+            else:
+                content = content.replace('<div class="blog-post">', '')
+                content = content.replace('<div class="blog-post-content">', '')
+                content = content.replace('</div>', '')
+                content = re.sub(r'src="data:image[^"]*', '', content)
+                content = content.replace(
+                    "data-src", "style='height:100%;width:100%' src")
+                content = re.sub(r'<!--(.*)-->', r"", content, flags=re.S)
         return content

@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Optional, cast
+from utils.dom_utils import xpath
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
 from urllib.parse import quote_plus
@@ -18,7 +19,7 @@ class AtomArranger(FeedArranger):
     def get_url_from_link(self, link: etree) -> str:
         return link.attrib["href"]
 
-    def set_url_from_link(self, link: etree, url: str):
+    def set_url_from_link(self, link: etree._Element, url: str):
         link.attrib["href"] = url
         link.text = url
 
@@ -27,7 +28,7 @@ class AtomArranger(FeedArranger):
 
     def get_title(self, item: etree._Element) -> Optional[etree._Element]:
         title: Optional[etree._Elements] = None
-        for t in item.xpath(".//atom:title", namespaces=NAMESPACES):
+        for t in xpath(item, ".//atom:title", namespaces=NAMESPACES):
             title = t
             break
 
@@ -51,7 +52,7 @@ class AtomArranger(FeedArranger):
         return img_url
 
     def replace_img_links(self, item: etree._Element, replace_with: str):
-        for media in item.xpath(".//*[local-name()='thumbnail']"):
+        for media in xpath(item, ".//*[local-name()='thumbnail']"):
             # media:thumbnail tag
             media.attrib["url"] = replace_with % quote_plus(
-                media.attrib["url"])
+                cast(str, media.attrib["url"]))

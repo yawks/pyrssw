@@ -1,12 +1,13 @@
 import string
 import re
-from typing import NewType
+from typing import List, NewType, Optional
 import requests
 from lxml import etree
 import json
 import base64
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
+from utils.dom_utils import get_attr_value, getparent, text, to_string, xpath
 
 DUGOUT_VIDEO = re.compile(r'(?:https?://embed.dugout.com/v2/\?p=)([^/]*)')
 
@@ -46,11 +47,11 @@ class Sport24Handler(PyRSSWRequestHandler):
 
         utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
-        for link in dom.xpath("//item/link"):
+        for link in xpath(dom, "//item/link"):
             link.text = self.get_handler_url_with_parameters(
-                {"url": link.text.strip()})
+                {"url": text(link).strip()})
 
-        feed = etree.tostring(dom, encoding='unicode')
+        feed = to_string(dom)
 
         title = ""
         if "filter" in parameters:
@@ -90,14 +91,15 @@ class Sport24Handler(PyRSSWRequestHandler):
                     img = etree.Element("img")
                     img.set("src", imgsrc)
                     bodies[0].append(img)
-            content = etree.tostring(contents[0], encoding='unicode')
+            content = to_string(contents[0])
 
         return content
 
     def _process_dugout(self, session: requests.Session, dom: etree._Element):
-        for iframe in dom.xpath("//iframe"):
+        for iframe in xpath(dom, "//iframe"):
             if "src" in iframe.attrib:
-                dugout_ps = re.findall(DUGOUT_VIDEO, iframe.attrib["src"])
+                dugout_ps: List[str] = re.findall(
+                    DUGOUT_VIDEO, get_attr_value(iframe, "src"))
                 for dugout_p in dugout_ps:
                     try:
                         key = json.loads(base64.b64decode(dugout_p))["key"]
@@ -114,8 +116,10 @@ class Sport24Handler(PyRSSWRequestHandler):
                         video.set("width", "100%")
 
                         source = etree.Element("source")
-                        source.set("src", dugout_metadata["playlist"][0]["sources"][-1]["file"])
+                        source.set(
+                            "src", dugout_metadata["playlist"][0]["sources"][-1]["file"])
 
+                        video.append(source)
                         p1.append(video)
 
                         p2 = etree.Element("p")
@@ -123,12 +127,18 @@ class Sport24Handler(PyRSSWRequestHandler):
 
                         p3 = etree.Element("p")
                         p3.text = dugout_metadata["description"]
-                        
-                        iframe.getparent().getparent().append(p1)
-                        iframe.getparent().getparent().append(p2)
-                        iframe.getparent().getparent().append(p3)
+
+                        parents: List[etree._Element] = xpath(
+                            dom, '//*[@class="s24-art__content s24-art__resize"]')
+
+                        if len(parents) > 0:
+                            parents[0].append(p1)
+                            parents[0].append(p1)
+                            parents[0].append(p2)
+                            parents[0].append(p3)
+
                         iframe.getparent().remove(iframe)
-                    except:
+                    except Exception as err:
                         self.log_info(
-                            "Unable to find dugout video, we ignore this exception and go on")
+                            "Unable to find dugout video, we ignore this exception and go on (%s)" % repr(err))
                     break

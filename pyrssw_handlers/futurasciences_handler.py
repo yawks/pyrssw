@@ -6,6 +6,7 @@ from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
+from utils.dom_utils import to_string
 
 
 class FuturaSciencesHandler(PyRSSWRequestHandler):
@@ -53,7 +54,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
 
             utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
-        feed = etree.tostring(dom, encoding='unicode')
+        feed = to_string(dom)
 
         return feed
 

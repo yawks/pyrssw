@@ -1,4 +1,5 @@
 import re
+from typing import cast
 
 import requests
 from lxml import etree
@@ -6,6 +7,7 @@ from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
+from utils.dom_utils import to_string, xpath
 
 
 class FranceInfoHandler(PyRSSWRequestHandler):
@@ -52,11 +54,11 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
             utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
-        for link in dom.xpath("//item/link"):
+        for link in xpath(dom, "//item/link"):
             link.text = self.get_handler_url_with_parameters(
-                {"url": link.text.strip()})
+                {"url": cast(str, link.text).strip()})
 
-        feed = etree.tostring(dom, encoding='unicode')
+        feed = to_string(dom)
 
         return feed
 
@@ -83,9 +85,11 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             # france3 regions
             '//*[contains(@class, "social-button-content")]',
             '//*[contains(@class, "tags-button-content")]',  # france3 regions
-            '//*[contains(@class, "article-share")]',# france3 regions
-            '//*[contains(@class, "article-share-fallback")]',# france3 regions
-            '//*[contains(@class, "article-share-fallback")]'# france3 regions
+            '//*[contains(@class, "article-share")]',  # france3 regions
+            # france3 regions
+            '//*[contains(@class, "article-share-fallback")]',
+            # france3 regions
+            '//*[contains(@class, "article-share-fallback")]'
         ])
 
         content = utils.dom_utils.get_content(
@@ -96,9 +100,9 @@ class FranceInfoHandler(PyRSSWRequestHandler):
                   '//div[contains(@class, "content")]',
                   # sport.francetvinfo.fr
                   '//*[contains(@class,"article-detail-block")]'])
-                
-        if len(content.replace("\n","").strip()) < 150:
-            #less than 150 chars, we did not manage to get the content, use readability facility
+
+        if len(content.replace("\n", "").strip()) < 150:
+            # less than 150 chars, we did not manage to get the content, use readability facility
             content = super().get_readable_content(url)
 
         return content

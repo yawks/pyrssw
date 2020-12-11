@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
 import logging
+from utils.dom_utils import to_string, xpath
 from storage.article_store import ArticleStore
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 import datetime
 import re
 import html
@@ -122,7 +123,7 @@ class FeedArranger(metaclass=ABCMeta):
                         item.getparent().remove(item)
 
                 result = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
-                    etree.tostring(dom, encoding='unicode')
+                    to_string(dom)
 
         except etree.XMLSyntaxError as e:
             logging.getLogger().info(
@@ -153,7 +154,7 @@ class FeedArranger(metaclass=ABCMeta):
                     parsed = urlparse(link.attrib["href"].strip())
                 else:
                     logging.getLogger().info("Unable to find URL in item : (%s)" %
-                                             etree.tostring(item, encoding='unicode'))
+                                             to_string(item))
                     continue
                 if "url" in parse_qs(parsed.query):
                     feed_keep_item = not ArticleStore.instance().has_article_been_read(
@@ -176,7 +177,7 @@ class FeedArranger(metaclass=ABCMeta):
             if descriptions[0].text is not None:
                 description_xml = descriptions[0].text
             for child in descriptions[0].getchildren():
-                description_xml += etree.tostring(child, encoding='unicode')
+                description_xml += to_string(child)
 
             parent_obj = descriptions[0].getparent()
             parent_obj.remove(descriptions[0])
@@ -198,14 +199,14 @@ class FeedArranger(metaclass=ABCMeta):
         if "nsfw" in parameters:
             nsfw = parameters["nsfw"]
 
-        if description.text is not None and len(description.xpath('.//img')) == 0 and etree.tostring(description, encoding='unicode').find("&lt;img ") == -1:
+        if description.text is not None and len(xpath(description, ".//img")) == 0 and to_string(description).find("&lt;img ") == -1:
             # if description does not have a picture, add one from enclosure or media:content tag if any
             img_url: str = self.get_img_url(item)
 
             if img_url == "":
                 # uses the ThumbnailHandler to fetch an image from google search images
                 img_url = "%s/thumbnails?request=%s&blur=%s" % (
-                    self.serving_url_prefix, quote_plus(re.sub(r"</?title[^>]*>", "", etree.tostring(self.get_title(item), encoding='unicode')).strip()), nsfw)
+                    self.serving_url_prefix, quote_plus(re.sub(r"</?title[^>]*>", "", to_string(cast(etree._Element, self.get_title(item)))).strip()), nsfw)
 
             img = etree.Element("img")
             img.set("src", img_url)
@@ -213,13 +214,13 @@ class FeedArranger(metaclass=ABCMeta):
 
         # blur description images
         if nsfw == "true":
-            imgs: list = description.xpath('.//img')
+            imgs: list = xpath(description, ".//img")
             if len(imgs) > 0:
                 for img in imgs:
                     img.attrib["src"] = "%s/thumbnails?url=%s&blur=true" % (
-                        self.serving_url_prefix, quote_plus(img.attrib["src"]))
+                        self.serving_url_prefix, quote_plus(cast(str, img.attrib["src"])))
             else:
-                srcs = re.findall('src="([^"]*)"', description.text)
+                srcs = re.findall('src="([^"]*)"', cast(str, description.text))
                 for src in srcs:
                     description.text = description.text.replace(src, "%s/thumbnails?url=%s&blur=true" % (
                         self.serving_url_prefix, quote_plus(src)))
@@ -235,7 +236,7 @@ class FeedArranger(metaclass=ABCMeta):
         """
         suffix_url: str = ""
         for parameter in parameters:
-            if parameter in ["dark", "debug", "userid", "plain"]:
+            if parameter in ["dark", "debug", "userid", "plain", "hidetitle"]:
                 suffix_url += "&%s=%s" % (parameter, parameters[parameter])
 
         if suffix_url != "":

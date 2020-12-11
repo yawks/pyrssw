@@ -1,11 +1,13 @@
 import html
 import json
 import logging
+from typing import cast
 
 import requests
 from lxml import etree
 
 import utils.dom_utils
+from utils.dom_utils import to_string, xpath
 import utils.json_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
@@ -54,13 +56,12 @@ class EurosportHandler(PyRSSWRequestHandler):
             utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         # replace video links, they must be processed by getContent
-        for link in dom.xpath("//link"):
+        for link in xpath(dom, "//link"):
             # if link.text.find("/video.shtml") > -1:
             link.text = "%s" % self.get_handler_url_with_parameters(
-                {"url": link.text})
+                {"url": cast(str, link.text)})
 
-        feed = etree.tostring(dom, encoding='unicode').replace(
-            "\\u0027", "'").replace("\\u0022", "'")
+        feed = to_string(dom).replace("\\u0027", "'").replace("\\u0022", "'")
 
         return feed
 
@@ -71,10 +72,10 @@ class EurosportHandler(PyRSSWRequestHandler):
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
         dom = etree.fromstring(feed)
-        descriptions = dom.xpath(
-            "//item/link/text()[contains(., '%s')]/../../description" % link_url)
+        descriptions = xpath(dom,
+                             "//item/link/text()[contains(., '%s')]/../../description" % link_url)
         if len(descriptions) > 0:
-            description = html.unescape(descriptions[0].text)
+            description = html.unescape(cast(str, descriptions[0].text))
 
         return description
 
@@ -108,13 +109,15 @@ class EurosportHandler(PyRSSWRequestHandler):
     def _get_video_content(self, url: str, session: requests.Session) -> str:
         """ video in eurosport website are loaded using some javascript
             we build here a simplifed page with the rss.xml item description + a video object"""
+        video_content:str = "<p>404 ?</p>"
         vid = url[url.find("_vid")+len("_vid"):]
         vid = vid[:vid.find('/')]
         page = session.get(
             url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid)
         j = json.loads(page.text)
-
-        return """
+        
+        if "EmbedUrl" in j:
+            video_content =  """
                     <div>
                         <p>
                             <a href="%s"><p>%s</p></a>
@@ -131,6 +134,7 @@ class EurosportHandler(PyRSSWRequestHandler):
                                  .replace("/>", "/><br/><br/>")
                                  .replace("<img", "<img width=\"100%\""))
 
+        return video_content
 
 class ArticleBuilder():
     """Uses the json produced by eurosport pages and build a simple html page parsing it.
