@@ -89,7 +89,10 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             # france3 regions
             '//*[contains(@class, "article-share-fallback")]',
             # france3 regions
-            '//*[contains(@class, "article-share-fallback")]'
+            '//*[contains(@class, "article-share-fallback")]',
+            '//*[contains(@class, "related-content")]',
+            '//*[contains(@class, "article__thematics")]',
+            '//*[contains(@class, "article__related ")]'
         ])
 
         content = utils.dom_utils.get_content(

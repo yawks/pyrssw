@@ -96,7 +96,8 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 '//*[@id="comments"]',  # blog
                 '//*[contains(@class, "post-navigation")]',  # blog
                 '//*[contains(@class, "entry-footer")]',  # blog
-                '//*[contains(@class, "catcher")]'  # tribune
+                '//*[contains(@class, "catcher")]',  # tribune
+                '//aside'
             ])
 
             # le monde rss provides many sub websites with different html architecture

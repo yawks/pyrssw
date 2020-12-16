@@ -175,7 +175,9 @@ class LauncherHandler(RequestHandler):
                 }
 
                 .pyrssw_youtube, video {
-                    max-width:500px!important;
+                    max-width:100%!important;
+                    width: auto;
+                    height: auto;
                     margin: 0 auto;
                     display:block;
                 }
@@ -184,15 +186,22 @@ class LauncherHandler(RequestHandler):
                     text-align:center;
                 }
 
+                .pyrssw-source {
+                    text-align: right;
+                    font-style: italic;
+                }
+
                 img {
-                    max-width:500px!important;
+                    max-width:100%!important;
+                    width: auto;
+                    height: auto;
                 }
                 
         """
         source: str = ""
         domain: str = ""
         if "url" in parameters:
-            source = "<em><a href='%s'>Source</a></em>" % parameters["url"]
+            source = "<p class='pyrssw-source'><a href='%s'>Source</a></p>" % parameters["url"]
             domain = urlparse.urlparse(parameters["url"]).netloc
         if "dark" in parameters and parameters["dark"] == "true":
             style += """
@@ -220,7 +229,6 @@ class LauncherHandler(RequestHandler):
                         <body>
                             <div id=\"pyrssw_wrapper\">
                                 %s
-                                <br/>
                                 <br/>
                                 <hr/>
                                 %s
