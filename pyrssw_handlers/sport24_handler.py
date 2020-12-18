@@ -92,6 +92,10 @@ class Sport24Handler(PyRSSWRequestHandler):
                     img.set("src", imgsrc)
                     bodies[0].append(img)
             content = to_string(contents[0])
+        else:
+            content = utils.dom_utils.get_content(dom, [
+                '//article[contains(@class,"fig-content")]' #handle golf.lefigaro structure
+            ])
 
         return content
 
