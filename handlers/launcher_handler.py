@@ -164,15 +164,34 @@ class LauncherHandler(RequestHandler):
 
     def _wrapped_html_content(self, parameters: dict):
         """wrap the html content with header, body and some predefined styles"""
+        
         style: str = """
+                @import url(https://fonts.googleapis.com/css?family=Roboto:100,100italic,300,300italic,400,400italic,500,500italic,700,700italic,900,900italic&subset=latin,latin-ext,cyrillic,cyrillic-ext,greek-ext,greek,vietnamese);
+
+                body {
+                    color: #TEXT_COLOR#;
+                    background-color:#BACKGROUND_COLOR#;
+                    font-family: Roboto;
+                    font-weight: 300;
+                    line-height: 150%;
+                }
                 #pyrssw_wrapper {
                     max-width:800px;
                     margin:auto;
-                    line-height:1.6em;
                 }
-                h1 {
-                    line-height:1em;
-                }
+                * {max-width: 100%; word-break: break-word}
+                h1, h2 {font-weight: 300; line-height: 130%}
+                h1 {font-size: 170%; margin-bottom: 0.1em}
+                h2 {font-size: 140%}
+                a {color: #0099CC}
+                h1 a {color: inherit; text-decoration: none}
+                img {height: auto}
+                pre {white-space: pre-wrap; direction: ltr;}
+                blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
+                p {margin: 0.8em 0 0.8em 0}
+                p.subtitle {color: #SUBTITLE_COLOR#; border-top:1px #SUBTITLE_BORDER_COLOR#; border-bottom:1px #SUBTITLE_BORDER_COLOR#; padding-top:2px; padding-bottom:2px; font-weight:600 }
+                ul, ol {margin: 0 0 0.8em 0.6em; padding: 0 0 0 1em}
+                ul li, ol li {margin: 0 0 0.8em 0; padding: 0}
 
                 .pyrssw_youtube, video {
                     max-width:100%!important;
@@ -203,7 +222,20 @@ class LauncherHandler(RequestHandler):
         if "url" in parameters:
             source = "<p class='pyrssw-source'><a href='%s'>Source</a></p>" % parameters["url"]
             domain = urlparse.urlparse(parameters["url"]).netloc
+
+        text_color = "#000000"
+        bg_color = "#f6f6f6"
+        quote_left_color = "#a6a6a6"
+        quote_bg_color = "#e6e6e6"
+        subtitle_color = "#666666"
+        subtitle_border_color = "#ddd"
         if "dark" in parameters and parameters["dark"] == "true":
+            text_color = "#8c8c8c"
+            bg_color = "#222222"
+            quote_left_color ="#686b6f"
+            quote_bg_color = "#383b3f"
+            subtitle_color = "#8c8c8c"
+            subtitle_border_color = "#303030"
             style += """
                 body {
                     background-color: #1e1e1e;
@@ -213,7 +245,14 @@ class LauncherHandler(RequestHandler):
                     color:#0080ff
                 }
             """
-
+        
+        style = style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)\
+                     .replace("#BG_BLOCKQUOTE#", quote_bg_color)\
+                     .replace("#SUBTITLE_COLOR#", subtitle_color)\
+                     .replace("#SUBTITLE_BORDER_COLOR#", subtitle_border_color)\
+                     .replace("#TEXT_COLOR#", text_color)\
+                     .replace("#BACKGROUND_COLOR#", bg_color)
+                     
         self.contents = """<!DOCTYPE html>
                     <html>
                         <head>
@@ -221,9 +260,6 @@ class LauncherHandler(RequestHandler):
                             <link rel="icon" href="https://icons.duckduckgo.com/ip3/%s.ico"/>
                             <style>
                             %s
-                            * {
-                                font-family: "Marr Sans",Helvetica,Arial,Roboto,sans-serif
-                            }
                             </style>
                         </head>
                         <body>
