@@ -192,6 +192,7 @@ class LauncherHandler(RequestHandler):
                 p.subtitle {color: #SUBTITLE_COLOR#; border-top:1px #SUBTITLE_BORDER_COLOR#; border-bottom:1px #SUBTITLE_BORDER_COLOR#; padding-top:2px; padding-bottom:2px; font-weight:600 }
                 ul, ol {margin: 0 0 0.8em 0.6em; padding: 0 0 0 1em}
                 ul li, ol li {margin: 0 0 0.8em 0; padding: 0}
+                hr {border : 1px solid #HR_COLOR#;  background-color: #HR_COLOR#}
 
                 .pyrssw_youtube, video {
                     max-width:100%!important;
@@ -229,6 +230,7 @@ class LauncherHandler(RequestHandler):
         quote_bg_color = "#e6e6e6"
         subtitle_color = "#666666"
         subtitle_border_color = "#ddd"
+        hr_color = "#a6a6a6"
         if "dark" in parameters and parameters["dark"] == "true":
             text_color = "#8c8c8c"
             bg_color = "#222222"
@@ -236,6 +238,7 @@ class LauncherHandler(RequestHandler):
             quote_bg_color = "#383b3f"
             subtitle_color = "#8c8c8c"
             subtitle_border_color = "#303030"
+            hr_color = "#686b6f"
             style += """
                 body {
                     background-color: #1e1e1e;
@@ -251,7 +254,8 @@ class LauncherHandler(RequestHandler):
                      .replace("#SUBTITLE_COLOR#", subtitle_color)\
                      .replace("#SUBTITLE_BORDER_COLOR#", subtitle_border_color)\
                      .replace("#TEXT_COLOR#", text_color)\
-                     .replace("#BACKGROUND_COLOR#", bg_color)
+                     .replace("#BACKGROUND_COLOR#", bg_color)\
+                     .replace("#HR_COLOR#", hr_color)
                      
         self.contents = """<!DOCTYPE html>
                     <html>
