@@ -1,3 +1,4 @@
+from utils.url_utils import is_url_valid
 from handlers.feed_type.atom_arranger import NAMESPACES
 import re
 from typing import Optional, Tuple, cast
@@ -10,15 +11,6 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
 from utils.dom_utils import to_string, xpath
 
 NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
-
-URL_REGEX = re.compile(
-    r'^(?:http|ftp)s?://'  # http:// or https://
-    # domain...
-    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
-    r'localhost|'  # localhost...
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-    r'(?::\d+)?'  # optional port
-    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 IMGUR_GIFV = re.compile(r'(?:https?://.*imgur.com)(?:.*)/([^/]*).gifv')
 PREVIEW_REDDIT = 'src="(https?://preview.redd.it/([^\?]*)[^"]*)"'
@@ -106,7 +98,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         if external_link != "":
             external_hrefs = re.findall(r'href="([^"]*)"', external_link)
             for href in external_hrefs:
-                if re.match(URL_REGEX, href):  # only valid urls
+                if is_url_valid(href):
                     c: Optional[str] = self._manage_external_content(href)
                     if c is not None:
                         content = c

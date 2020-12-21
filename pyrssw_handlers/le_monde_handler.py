@@ -1,5 +1,6 @@
 import re
 import urllib.parse
+from utils.url_utils import is_url_valid
 
 import requests
 from lxml import etree
@@ -7,7 +8,7 @@ from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
-from utils.dom_utils import to_string
+from utils.dom_utils import getparent, to_string, xpath
 
 URL_CONNECTION = "https://secure.lemonde.fr/sfuser/connexion"
 URL_DECONNECTION = "https://secure.lemonde.fr/sfuser/deconnexion"
@@ -100,6 +101,9 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 '//aside'
             ])
 
+            self.process_pictures(dom)
+            self.process_inread(dom)
+
             # le monde rss provides many sub websites with different html architecture
             content = utils.dom_utils.get_content(dom, [
                 '//*[contains(@class, "zone--article")]',
@@ -108,9 +112,32 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 '//*[@id="main"]'                               # blog
             ])
 
+            
+            #content = content.replace("&amp;amp;", "&")
+            #content = content.replace("&amp;lt;", "<")
+            #content = content.replace("&amp;gt;", ">")
+            #content = content.replace("&amp;le;", ">=")
+            #content = content.replace("&amp;ge;", ">=")
+
         finally:
             self._unauthent(session)
         return content
+
+    
+
+    def process_inread(self, dom):
+        for inread in dom.xpath('//*[@data-format="inread"]'):
+            for child in inread:
+                inread.getparent().append(child)
+            inread.getparent().remove(inread)
+
+    def process_pictures(self, dom):
+        for img in xpath(dom, '//img[@data-srcset]'):
+            elements = img.attrib["data-srcset"].split(" ")
+            for element in elements:
+                if is_url_valid(element):
+                    img.attrib["src"] = element
+                    break
 
     def _authent(self, parameters: dict, session: requests.Session):
         page = session.get(url=URL_CONNECTION)

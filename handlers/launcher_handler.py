@@ -106,6 +106,7 @@ class LauncherHandler(RequestHandler):
             ArticleStore.instance().insert_article_as_read(
                 parameters["userid"], requested_url)
 
+        #twitter : https://towardsdatascience.com/hands-on-web-scraping-building-your-own-twitter-dataset-with-python-and-scrapy-8823fb7d0598
         self._replace_prefix_urls(parameters)
         self._wrapped_html_content(parameters)
 
