@@ -1,4 +1,5 @@
 import re
+from typing import cast
 
 import requests
 from lxml import etree
@@ -6,7 +7,7 @@ from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
-from utils.dom_utils import to_string
+from utils.dom_utils import to_string, xpath
 
 
 class FuturaSciencesHandler(PyRSSWRequestHandler):
@@ -41,7 +42,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         feed = session.get(url=self.get_rss_url()).text
 
         feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
-        feed = feed.replace('<link>', '<link>%s?url=' % (self.url_prefix))
+        #f eed = feed.replace('<link>', '<link>%s?url=' % (self.url_prefix))
 
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
@@ -53,6 +54,13 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
                 parameters, "category/text() = '%s'", "not(category/text() = '%s')")
 
             utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
+
+        # replace video links, they must be processed by getContent
+        for link in xpath(dom, "//link"):
+            # if link.text.find("/video.shtml") > -1:
+            link.text = "%s" % self.get_handler_url_with_parameters(
+                {"url": cast(str, link.text)})
+
 
         feed = to_string(dom)
 
@@ -79,7 +87,10 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class, "module-toretain")]',
             '//*[contains(@class, "image-module")]',
-            '//*[contains(@class, "social-button")]'
+            '//*[contains(@class, "social-button")]',
+            '//section[contains(@class, "breadcrumb")]',
+            '//section[contains(@class, "author-box")]',
+            '//*[contains(@class, "ICON-QUICKREAD")]/parent::*/parent::*'
         ])
 
         content = utils.dom_utils.get_content(
