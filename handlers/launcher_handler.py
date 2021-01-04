@@ -180,22 +180,22 @@ class LauncherHandler(RequestHandler):
                     max-width:800px;
                     margin:auto;
                 }
-                * {max-width: 100%; word-break: break-word}
-                h1, h2 {font-weight: 300; line-height: 130%}
-                h1 {font-size: 170%; margin-bottom: 0.1em}
-                h2 {font-size: 140%}
-                a {color: #0099CC}
-                h1 a {color: inherit; text-decoration: none}
-                img {height: auto}
-                pre {white-space: pre-wrap; direction: ltr;}
-                blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
-                p {margin: 0.8em 0 0.8em 0}
-                p.subtitle {color: #SUBTITLE_COLOR#; border-top:1px #SUBTITLE_BORDER_COLOR#; border-bottom:1px #SUBTITLE_BORDER_COLOR#; padding-top:2px; padding-bottom:2px; font-weight:600 }
-                ul, ol {margin: 0 0 0.8em 0.6em; padding: 0 0 0 1em}
-                ul li, ol li {margin: 0 0 0.8em 0; padding: 0}
-                hr {border : 1px solid #HR_COLOR#;  background-color: #HR_COLOR#}
+                #pyrssw_wrapper * {max-width: 100%; word-break: break-word}
+                #pyrssw_wrapper h1, #pyrssw_wrapper h2 {font-weight: 300; line-height: 130%}
+                #pyrssw_wrapper h1 {font-size: 170%; margin-bottom: 0.1em}
+                #pyrssw_wrapper h2 {font-size: 140%}
+                #pyrssw_wrapper a {color: #0099CC}
+                #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
+                #pyrssw_wrapper img {height: auto}
+                #pyrssw_wrapper pre {white-space: pre-wrap; direction: ltr;}
+                #pyrssw_wrapper blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
+                #pyrssw_wrapper p {margin: 0.8em 0 0.8em 0}
+                #pyrssw_wrapper p.subtitle {color: #SUBTITLE_COLOR#; border-top:1px #SUBTITLE_BORDER_COLOR#; border-bottom:1px #SUBTITLE_BORDER_COLOR#; padding-top:2px; padding-bottom:2px; font-weight:600 }
+                #pyrssw_wrapper ul, #pyrssw_wrapper ol {margin: 0 0 0.8em 0.6em; padding: 0 0 0 1em}
+                #pyrssw_wrapper ul li, #pyrssw_wrapper ol li {margin: 0 0 0.8em 0; padding: 0}
+                #pyrssw_wrapper hr {border : 1px solid #HR_COLOR#;  background-color: #HR_COLOR#}
 
-                .pyrssw_youtube, video {
+                .pyrssw_youtube, #pyrssw_wrapper video {
                     max-width:100%!important;
                     width: auto;
                     height: auto;
@@ -212,7 +212,7 @@ class LauncherHandler(RequestHandler):
                     font-style: italic;
                 }
 
-                img {
+                #pyrssw_wrapper img {
                     max-width:100%!important;
                     width: auto;
                     height: auto;

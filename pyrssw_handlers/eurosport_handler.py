@@ -117,18 +117,23 @@ class EurosportHandler(PyRSSWRequestHandler):
         j = json.loads(page.text)
         
         if "EmbedUrl" in j:
+            embed: str = ""
+            if "VideoUrl" in j:
+                embed = """<video width="100%%" controls="" preload="auto">
+                                    <source src="%s" />
+                                </video>""" % j["VideoUrl"]
+            
+
             video_content =  """
                     <div>
                         <p>
                             <a href="%s"><p>%s</p></a>
-                            <video width="100%%" controls="" preload="auto">
-                                <source src="%s" />
-                            </video>
+                            %s
                         </p>
                         <p>%s</p>
                     </div>""" % (j["EmbedUrl"],
                                  j["Title"],
-                                 j["VideoUrl"],
+                                 embed,
                                  self._get_rss_link_description(url[1:])
                                  .replace("\\u0027", "'")
                                  .replace("/>", "/><br/><br/>")
