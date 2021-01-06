@@ -1,3 +1,4 @@
+import re
 from handlers.feed_type.atom_arranger import AtomArranger
 from handlers.feed_type.rss2_arranger import RSS2Arranger
 import traceback
@@ -106,8 +107,7 @@ class LauncherHandler(RequestHandler):
             ArticleStore.instance().insert_article_as_read(
                 parameters["userid"], requested_url)
 
-        #twitter : https://towardsdatascience.com/hands-on-web-scraping-building-your-own-twitter-dataset-with-python-and-scrapy-8823fb7d0598
-        self._replace_prefix_urls(parameters)
+        self._post_processing(parameters)
         self._wrapped_html_content(parameters)
 
     def _process_rss(self, parameters: Dict[str, str]):
@@ -186,7 +186,8 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper h2 {font-size: 140%}
                 #pyrssw_wrapper a {color: #0099CC}
                 #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
-                #pyrssw_wrapper img {height: auto}
+                #pyrssw_wrapper img {height: auto; float:left; margin-right:15px}
+                #pyrssw_wrapper div img {width:100%;float:none;}
                 #pyrssw_wrapper pre {white-space: pre-wrap; direction: ltr;}
                 #pyrssw_wrapper blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
                 #pyrssw_wrapper p {margin: 0.8em 0 0.8em 0}
@@ -194,6 +195,9 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper ul, #pyrssw_wrapper ol {margin: 0 0 0.8em 0.6em; padding: 0 0 0 1em}
                 #pyrssw_wrapper ul li, #pyrssw_wrapper ol li {margin: 0 0 0.8em 0; padding: 0}
                 #pyrssw_wrapper hr {border : 1px solid #HR_COLOR#;  background-color: #HR_COLOR#}
+                #pyrssw_wrapper strong {font-weight:400}
+                #pyrssw_wrapper figure {margin:0}
+                #pyrssw_wrapper figure img {width:100%;float:none}
 
                 .pyrssw_youtube, #pyrssw_wrapper video {
                     max-width:100%!important;
@@ -283,7 +287,7 @@ class LauncherHandler(RequestHandler):
             if len(h1s) > 0:
                 h1s[0].getparent().remove(h1s[0])
 
-    def _replace_prefix_urls(self, parameters: dict):
+    def _replace_prefix_urls(self, parameters: dict, dom: etree._Element):
         """Replace relative urls by absolute urls using handler prefix url"""
 
         def _replace_urls_process_links(dom: etree, attribute: str):
@@ -298,10 +302,15 @@ class LauncherHandler(RequestHandler):
                     ) + o.attrib[attribute][1:]
 
         if self.handler.get_original_website() != '':
-            dom = etree.HTML(self.contents)
             if dom is not None:
                 _replace_urls_process_links(dom, "href")
                 _replace_urls_process_links(dom, "src")
                 self._manage_title(dom, parameters)
                 self.contents = to_string(dom).replace(
                     "<html>", "").replace("</html>", "").replace("<body>", "").replace("</body>", "")
+
+    def _post_processing(self, parameters: dict):
+        #twitter : https://towardsdatascience.com/hands-on-web-scraping-building-your-own-twitter-dataset-with-python-and-scrapy-8823fb7d0598
+        dom = etree.HTML(self.contents)
+        self._replace_prefix_urls(parameters, dom)
+        self.contents = self.contents.replace("data-src-lazyload", "src")

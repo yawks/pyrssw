@@ -84,6 +84,17 @@ class EurosportHandler(PyRSSWRequestHandler):
 
         if url.find("/video.shtml") > -1 and url.find("_vid") > -1:
             content = self._get_video_content(url, session)
+        elif url.find("www.rugbyrama.fr") > -1:
+            page = session.get(url=url)
+            dom = etree.HTML(page.text)
+            utils.dom_utils.delete_xpaths(dom, [
+                '//div[contains(@class, "storyfull__header")]',
+                '//div[contains(@class, "storyfull__publisher-social-button")]',
+                '//*[contains(@class, "outbrain-container")]',
+                '//*[contains(@class, "related-stories")]',
+                '//*[@id="header-sharing"]'])
+            content = utils.dom_utils.get_content(dom, [
+                '//div[contains(@class, "storyfull")]'])
         else:
             content = self._get_content(url, session)
 

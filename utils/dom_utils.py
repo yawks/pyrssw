@@ -4,7 +4,7 @@ from lxml import etree
 
 
 def to_string(dom: etree._Element) -> str:
-    return cast(str, etree.tostring(dom, encoding="unicode"))
+    return cast(str, etree.tostring(dom, method="c14n").decode("utf8"))
 
 
 def get_content(dom: etree, xpaths: list) -> str:
