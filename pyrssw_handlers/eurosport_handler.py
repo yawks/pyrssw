@@ -95,14 +95,16 @@ class EurosportHandler(PyRSSWRequestHandler):
                 '//*[@id="header-sharing"]'])
             content = utils.dom_utils.get_content(dom, [
                 '//div[contains(@class, "storyfull")]'])
-        else:
-            #content = self._get_content(url, session)
+        elif url.find("/live.shtml") > -1:
             page = session.get(url=url)
             dom = etree.HTML(page.text)
-            content = utils.dom_utils.get_content(dom, [
-                '//div[@id="content"]' #handles lives
-            ])
 
+            content = utils.dom_utils.get_content(dom, [
+                '//div[@id="content"]' #handles live scores
+            ])
+        else:
+            content = self._get_content(url, session)
+            
         return content
 
     def _get_content(self, url: str, session: requests.Session) -> str:
@@ -168,7 +170,7 @@ class ArticleBuilder():
         content: str = "<html>"
         if "title" in self.data:
             content += "<h1>%s</h1>" % self.data["title"]
-        if "picture" in self.data and "url" in ["picture"]:
+        if "picture" in self.data and "url" in self.data["picture"]:
             content += "<img width=\"100%%\" src=\"%s\"/>" % self.data["picture"]["url"]
         content += self._build_content_from_json(self.data)
         content += "</html>"
