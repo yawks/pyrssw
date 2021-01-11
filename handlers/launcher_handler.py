@@ -1,4 +1,3 @@
-import re
 from handlers.feed_type.atom_arranger import AtomArranger
 from handlers.feed_type.rss2_arranger import RSS2Arranger
 import traceback
@@ -15,13 +14,14 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import (
 from storage.article_store import ArticleStore
 from storage.session_store import SessionStore
 from utils.dom_utils import to_string, xpath
+import re
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
-
+TWEETS_REGEX = re.compile(r'(?:https://twitter.com/)(?:.*)/status/(.*)')
 
 class LauncherHandler(RequestHandler):
     """Handler which launches custom PyRSSWRequestHandler"""
@@ -51,6 +51,14 @@ class LauncherHandler(RequestHandler):
         else:
             raise Exception("No handler found for name '%s'" % module_name)
 
+        """
+        self.twitter_api = None
+        twitter_tokens = Config.instance().get_twitter_tokens()
+        if twitter_tokens[TWITTER_CONSUMER_KEY] is not None:
+            self.twitter_api = TwitterAPI(twitter_tokens[TWITTER_CONSUMER_KEY], twitter_tokens[TWITTER_CONSUMER_SECRET],
+                                          twitter_tokens[TWITTER_ACCESS_TOKEN_KEY], twitter_tokens[TWITTER_ACCESS_TOKEN_SECRET], api_version='2')
+
+        """
     def process(self):
         """process the url"""
         try:
@@ -165,7 +173,7 @@ class LauncherHandler(RequestHandler):
 
     def _wrapped_html_content(self, parameters: dict):
         """wrap the html content with header, body and some predefined styles"""
-        
+
         style: str = """
                 @import url(https://fonts.googleapis.com/css?family=Roboto:100,100italic,300,300italic,400,400italic,500,500italic,700,700italic,900,900italic&subset=latin,latin-ext,cyrillic,cyrillic-ext,greek-ext,greek,vietnamese);
 
@@ -239,7 +247,7 @@ class LauncherHandler(RequestHandler):
         if "dark" in parameters and parameters["dark"] == "true":
             text_color = "#8c8c8c"
             bg_color = "#222222"
-            quote_left_color ="#686b6f"
+            quote_left_color = "#686b6f"
             quote_bg_color = "#383b3f"
             subtitle_color = "#8c8c8c"
             subtitle_border_color = "#303030"
@@ -253,7 +261,7 @@ class LauncherHandler(RequestHandler):
                     color:#0080ff
                 }
             """
-        
+
         style = style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)\
                      .replace("#BG_BLOCKQUOTE#", quote_bg_color)\
                      .replace("#SUBTITLE_COLOR#", subtitle_color)\
@@ -261,7 +269,7 @@ class LauncherHandler(RequestHandler):
                      .replace("#TEXT_COLOR#", text_color)\
                      .replace("#BACKGROUND_COLOR#", bg_color)\
                      .replace("#HR_COLOR#", hr_color)
-                     
+
         self.contents = """<!DOCTYPE html>
                     <html>
                         <head>
@@ -310,8 +318,53 @@ class LauncherHandler(RequestHandler):
                     "<html>", "").replace("</html>", "").replace("<body>", "").replace("</body>", "")
 
     def _post_processing(self, parameters: dict):
-        #twitter : https://towardsdatascience.com/hands-on-web-scraping-building-your-own-twitter-dataset-with-python-and-scrapy-8823fb7d0598
         dom = etree.HTML(self.contents)
+        self._post_process_tweets(parameters, dom)
         self._replace_prefix_urls(parameters, dom)
         self.contents = self.contents.replace("data-src-lazyload", "src")
-        self.contents = self.contents.replace("</br>","")
+        self.contents = self.contents.replace("</br>", "")
+    
+    def _post_process_tweets(self, parameters:dict, dom: etree._Element):
+        """
+            Process tweets, to replace twitter url by tweets' content
+        """
+
+        has_tweets: bool = False
+        for a in xpath(dom, "//a[contains(@href,'https://twitter.com/')]"):
+            m = re.match(TWEETS_REGEX, a.attrib["href"])
+            if m is not None:
+                tweet_id: str = m.group(1)
+                has_tweets = True
+                script = etree.Element("script")
+                script.text = """
+                    window.onload = (function(){
+                        var tweet_%s = document.getElementById("tweet_%s");
+                        twttr.widgets.createTweet(
+                        '%s', tweet_%s,
+                        {
+                            conversation : 'none',    // or all
+                            cards        : 'hidden',  // or visible
+                            theme        : '%s'
+                        });
+                    });
+                """ % (
+                    tweet_id,
+                    tweet_id,
+                    tweet_id,
+                    tweet_id,
+                    "dark" if "dark" in parameters and parameters["dark"] == "true" else "light"
+                
+                )
+                tweet_div = etree.Element("div")
+                tweet_div.set("id", "tweet_%s" % tweet_id)
+                a.getparent().append(script)
+                a.getparent().append(tweet_div)
+                a.getparent().remove(a)
+
+        
+        if has_tweets:
+            script = etree.Element("script")
+            script.set("src", "https://platform.twitter.com/widgets.js")
+            script.set("sync", "")
+            dom.append(script)
+

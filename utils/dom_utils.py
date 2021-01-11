@@ -47,10 +47,11 @@ def get_all_contents(dom: etree, xpaths: list, alt_to_p: bool = False) -> Tuple[
 
 def xpath(dom: etree._Element, xpath_query: str, namespaces=None) -> List[etree._Element]:
     nodes: List[etree._Element] = []
-    if namespaces is None:
-        nodes = cast(List[etree._Element], dom.xpath(xpath_query))
-    else:
-        nodes = cast(List[etree._Element], dom.xpath(xpath_query, namespaces=namespaces))
+    if dom is not None:
+        if namespaces is None:
+            nodes = cast(List[etree._Element], dom.xpath(xpath_query))
+        else:
+            nodes = cast(List[etree._Element], dom.xpath(xpath_query, namespaces=namespaces))
 
     return nodes
 

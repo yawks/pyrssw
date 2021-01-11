@@ -127,17 +127,16 @@ class Config:
         return crypto_key
 
     def get_mongodb_url(self) -> str:
-        mongodb_url: str = DEFAULT_MONGODB_URL
-
-        if MONGODB_URL_KEY in self._get_configuration() and self._get_configuration()[MONGODB_URL_KEY] is not None:
-            mongodb_url = self._get_configuration()[MONGODB_URL_KEY]
+        mongodb_url = self._get_value(MONGODB_URL_KEY)
+        if mongodb_url is None:
+            mongodb_url = DEFAULT_MONGODB_URL
 
         return mongodb_url
 
     def get_storage_articlesread_age(self) -> int:
         storage_readarticles_age: int = DEFAULT_STORAGE_READARTICLES_AGE
 
-        if STORAGE_READARTICLES_AGE in self._get_configuration() and self._get_configuration()[STORAGE_READARTICLES_AGE] is not None and self._get_configuration()[STORAGE_READARTICLES_AGE].isdigit():
+        if self._get_value(STORAGE_READARTICLES_AGE) is not None and self._get_value(STORAGE_READARTICLES_AGE).isdigit():
             storage_readarticles_age = int(self._get_configuration()[
                                            STORAGE_READARTICLES_AGE])
 
@@ -146,8 +145,15 @@ class Config:
     def get_storage_sessions_duration(self) -> int:
         storage_session_duration: int = DEFAULT_STORAGE_SESSIONS_DURATION
 
-        if STORAGE_SESSIONS_DURATION in self._get_configuration() and self._get_configuration()[STORAGE_SESSIONS_DURATION] is not None and self._get_configuration()[STORAGE_SESSIONS_DURATION].isdigit():
+        if self._get_value(STORAGE_SESSIONS_DURATION) is not None and self._get_value(STORAGE_SESSIONS_DURATION).isdigit():
             storage_session_duration = int(self._get_configuration()[
                                            STORAGE_SESSIONS_DURATION])
 
         return storage_session_duration
+
+    def _get_value(self, key) -> Optional[str]:
+        value: Optional[str] = None
+        if key in self._get_configuration():
+            value = self._get_configuration()[key]
+        
+        return value

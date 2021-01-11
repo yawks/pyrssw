@@ -98,9 +98,14 @@ class EurosportHandler(PyRSSWRequestHandler):
         elif url.find("/live.shtml") > -1:
             page = session.get(url=url)
             dom = etree.HTML(page.text)
-
+            utils.dom_utils.delete_xpaths(dom, [
+                '//*[@class="nav-tab"]',
+                '//*[@class="live-match-nav__sharing"]',
+                '//*[@class="livecomments-nav"]'
+            ])
             content = utils.dom_utils.get_content(dom, [
-                '//div[@id="content"]' #handles live scores
+                '//div[@id="content"]', #handles live scores
+                '//section[@id="content"]' #handles live scores
             ])
         else:
             content = self._get_content(url, session)
