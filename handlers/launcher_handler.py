@@ -314,3 +314,4 @@ class LauncherHandler(RequestHandler):
         dom = etree.HTML(self.contents)
         self._replace_prefix_urls(parameters, dom)
         self.contents = self.contents.replace("data-src-lazyload", "src")
+        self.contents = self.contents.replace("</br>","")

@@ -94,7 +94,8 @@ class Sport24Handler(PyRSSWRequestHandler):
             content = to_string(contents[0])
         else:
             content = utils.dom_utils.get_content(dom, [
-                '//article[contains(@class,"fig-content")]' #handle golf.lefigaro structure
+                '//article[contains(@class,"fig-content")]', #handles golf.lefigaro structure
+                '//article[contains(@class,"fig-main")]' #handles lefigaro.fr/sports
             ])
 
         return content

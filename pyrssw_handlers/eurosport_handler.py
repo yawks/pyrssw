@@ -96,7 +96,12 @@ class EurosportHandler(PyRSSWRequestHandler):
             content = utils.dom_utils.get_content(dom, [
                 '//div[contains(@class, "storyfull")]'])
         else:
-            content = self._get_content(url, session)
+            #content = self._get_content(url, session)
+            page = session.get(url=url)
+            dom = etree.HTML(page.text)
+            content = utils.dom_utils.get_content(dom, [
+                '//div[@id="content"]' #handles lives
+            ])
 
         return content
 

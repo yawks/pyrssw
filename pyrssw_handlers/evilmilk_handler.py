@@ -31,18 +31,17 @@ class EvilmilkHandler(PyRSSWRequestHandler):
         page = session.get(url=url, headers={})
         dom = etree.HTML(page.text)
 
-        utils.dom_utils.delete_nodes(
-            dom.xpath('//*[@class="content-info"]'))
-        utils.dom_utils.delete_nodes(dom.xpath('//*[@class="modal"]'))
-        utils.dom_utils.delete_nodes(
-            dom.xpath('//*[@class="comments text-center"]'))
-        utils.dom_utils.delete_nodes(dom.xpath('//*[@id="undercomments"]'))
-        utils.dom_utils.delete_nodes(
-            dom.xpath('//*[@style="padding:10px"]'))
-        utils.dom_utils.delete_nodes(dom.xpath('//*[@class="hrdash"]'))
-        utils.dom_utils.delete_nodes(
-            dom.xpath('//*[@class="row heading bottomnav"]'))
-        utils.dom_utils.delete_nodes(dom.xpath('//*[@id="picdumpnav"]'))
+        utils.dom_utils.delete_xpaths(dom, [
+            '//*[@class="content-info"]',
+            '//*[@class="modal"]',
+            '//*[@class="comments text-center"]',
+            '//*[@id="undercomments"]',
+            '//*[@style="padding:10px"]',
+            '//*[@class="hrdash"]',
+            '//*[@class="row heading bottomnav"]',
+            '//*[@id="picdumpnav"]',
+            '//*[@class="container-fluid"]',
+            '//*[@id="myModal"]'])
 
         main_bodies = dom.xpath('//*[@id="mainbody"]')
         if len(main_bodies) > 0:
@@ -77,5 +76,5 @@ class EvilmilkHandler(PyRSSWRequestHandler):
                          r'href=\1https://www.evilmilk.com/', content)
         content = re.sub(
             r'src=(["\'])/', r'src=\1https://www.evilmilk.com/', content)
-        content = content.replace("<img", "<br/><br/><img")
+        content = content.replace("<ul", "<ul style='list-style-type:none;margin:0;padding:0'")
         return content

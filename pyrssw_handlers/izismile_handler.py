@@ -33,9 +33,6 @@ class IzismileHandler(PyRSSWRequestHandler):
         feed = feed.replace('<guid isPermaLink="true">', '<link>')
         feed = feed.replace('</guid>', '</link>')
 
-        feed = feed.replace("<title>Izismile.com</title>",
-                            "<title>Izismile.com local</title>")
-
         # spicy highlight links are index pages, we parse them and add new entries in the feed
         spicy_feeds: str = ""
         spicy_links: List[str] = re.findall(

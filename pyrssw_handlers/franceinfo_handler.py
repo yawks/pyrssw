@@ -80,6 +80,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[contains(@class, "breadcrumb")]',
             '//*[contains(@class, "col-left")]',
             '//*[contains(@class, "col-right")]',
+            '//*[contains(@class, "c-signature")]',
+            '//*[contains(@class, "publication-date__modified")]',
             '//*[contains(@class, "social-aside")]',  # france3 regions
             '//*[contains(@class, "aside-img__content")]',  # france3 regions
             # france3 regions
