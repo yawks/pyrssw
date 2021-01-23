@@ -206,6 +206,7 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper strong {font-weight:400}
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%;float:none}
+                #pyrssw_wrapper iframe {width:100%;min-height:500px;height:auto}
 
                 .pyrssw_youtube, #pyrssw_wrapper video {
                     max-width:100%!important;

@@ -99,7 +99,9 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[contains(@class, "subjects-list")]',
             '//*[contains(@class, "audio-component")]',
             '//*[contains(@class, "social-zone")]',
-            '//*[contains(@class, "c-signature__images")]'
+            '//*[contains(@class, "c-signature__images")]',
+            '//*[contains(@class, "article__share")]',
+            '//*[contains(@class, "audio-player-container")]'
         ])
 
         content = utils.dom_utils.get_content(
@@ -108,6 +110,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
                   '//article[contains(@id,"node")]',  # france3 regions
                   '//main[contains(@class,"article")]',  # france3 regions
                   '//article[contains(@class,"content-live")]',  # live
+                  '//*[contains(@class, "article__column--left")]', #la1ere
                   '//div[contains(@class, "content")]',
                   # sport.francetvinfo.fr
                   '//*[contains(@class,"article-detail-block")]'])

@@ -218,9 +218,20 @@ class ArticleBuilder():
             page = requests.get(
                 url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % content_dict["databaseId"])
             j = json.loads(page.text)
-            content = """<video width="100%%" controls="" preload="auto" poster="%s">
-                                <source src="%s" />
-                            </video><p><i><small>%s</small></i></p>""" % (poster, j["VideoUrl"], title)
+
+            
+            if poster == "" and "PictureUrl" in j:
+                poster = j["PictureUrl"]
+
+            if "VideoUrl" in j:
+                content = """<video width="100%%" controls="" preload="auto" poster="%s">
+                                    <source src="%s" />
+                                </video>""" % (poster, j["VideoUrl"])
+            elif "EmbedUrl" in j:
+                content = """<iframe src="%s"/>""" % (j["EmbedUrl"])
+            
+            content += "<p><i><small>%s</small></i></p>" % title
+                
 
         return content
 
