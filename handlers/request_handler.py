@@ -8,11 +8,11 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import ENCRYPTED_PREFIX
 class RequestHandler():
     """Main instance for every handler."""
 
-    contents: str = ""
-    content_type: str = ""
-    session_id: str = ""
-
     def __init__(self, source_ip: Optional[str]):
+        self.contents: str = ""
+        self.content_type: str = ""
+        self.session_id: str = ""
+        self.additional_css: str = ""
         self.logger = logging.getLogger()
         self.status: int = 200  # by default
         self.source_ip: Optional[str] = source_ip

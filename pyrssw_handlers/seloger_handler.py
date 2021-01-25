@@ -1,4 +1,5 @@
 import json
+from request.pyrssw_content import PyRSSWContent
 import random
 import re
 from typing import Optional, Tuple
@@ -180,7 +181,7 @@ class SeLogerHandler(PyRSSWRequestHandler):
 
         return json_obj
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         self._update_headers(session)
         page = session.get(url=url)
         dom = etree.HTML(page.text)
@@ -216,4 +217,4 @@ class SeLogerHandler(PyRSSWRequestHandler):
         if content == "":
             raise Exception("Unable to get content: blacklisted?")
 
-        return content
+        return PyRSSWContent(content)

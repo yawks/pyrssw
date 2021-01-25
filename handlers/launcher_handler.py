@@ -23,6 +23,7 @@ FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 SESSION_DURATION = 30 * 60
 TWEETS_REGEX = re.compile(r'(?:https://twitter.com/)(?:.*)/status/(.*)')
 
+
 class LauncherHandler(RequestHandler):
     """Handler which launches custom PyRSSWRequestHandler"""
 
@@ -59,6 +60,7 @@ class LauncherHandler(RequestHandler):
                                           twitter_tokens[TWITTER_ACCESS_TOKEN_KEY], twitter_tokens[TWITTER_ACCESS_TOKEN_SECRET], api_version='2')
 
         """
+
     def process(self):
         """process the url"""
         try:
@@ -98,17 +100,11 @@ class LauncherHandler(RequestHandler):
             # return the requested page without any modification
             self.contents = session.get(requested_url).text
         else:
-            self.contents = self.handler.get_content(
+            pyrssw_content = self.handler.get_content(
                 requested_url, parameters, session)
+            self.contents = pyrssw_content.content
+            self.additional_css = pyrssw_content.css
 
-            """doc = Document(self.contents) #get a "readable" content
-            readable_content: str = doc.summary()
-            
-            if readable_content != "<html><body/></html>":
-                self.contents = readable_content
-            else:
-                self._log("The '%s' handler did not produce readable content for url '%s', let it potentially 'not readable'" % (self.handler.get_handler_name(), url))
-            """
         SessionStore.instance().upsert_session(self.session_id, session)
 
         if "userid" in parameters:  # if user wants to keep trace of read articles
@@ -233,7 +229,6 @@ class LauncherHandler(RequestHandler):
                     width: auto;
                     height: auto;
                 }
-                
         """
         source: str = ""
         domain: str = ""
@@ -281,6 +276,8 @@ class LauncherHandler(RequestHandler):
                             <link rel="icon" href="https://icons.duckduckgo.com/ip3/%s.ico"/>
                             <style>
                             %s
+
+                            %s
                             </style>
                         </head>
                         <body>
@@ -291,7 +288,7 @@ class LauncherHandler(RequestHandler):
                                 %s
                             </div>
                         </body>
-                    </html>""" % (domain, style, self.contents, source)
+                    </html>""" % (domain, style, self.additional_css, self.contents, source)
 
     def _manage_title(self, dom: etree._Element, parameters: dict):
         if "hidetitle" in parameters and parameters["hidetitle"] == "true":
@@ -327,8 +324,8 @@ class LauncherHandler(RequestHandler):
         self._replace_prefix_urls(parameters, dom)
         self.contents = self.contents.replace("data-src-lazyload", "src")
         self.contents = self.contents.replace("</br>", "")
-    
-    def _post_process_tweets(self, parameters:dict, dom: etree._Element):
+
+    def _post_process_tweets(self, parameters: dict, dom: etree._Element):
         """
             Process tweets, to replace twitter url by tweets' content
         """
@@ -357,7 +354,7 @@ class LauncherHandler(RequestHandler):
                     tweet_id,
                     tweet_id,
                     "dark" if "dark" in parameters and parameters["dark"] == "true" else "light"
-                
+
                 )
                 tweet_div = etree.Element("div")
                 tweet_div.set("id", "tweet_%s" % tweet_id)
@@ -365,10 +362,8 @@ class LauncherHandler(RequestHandler):
                 a.getparent().append(tweet_div)
                 a.getparent().remove(a)
 
-        
         if has_tweets:
             script = etree.Element("script")
             script.set("src", "https://platform.twitter.com/widgets.js")
             script.set("sync", "")
             dom.append(script)
-

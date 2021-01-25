@@ -1,3 +1,4 @@
+from request.pyrssw_content import PyRSSWContent
 import string
 import re
 from typing import List, NewType, Optional
@@ -66,7 +67,7 @@ class Sport24Handler(PyRSSWRequestHandler):
 
         return feed
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         page = session.get(url=url, headers={})
         content = page.text
 
@@ -98,7 +99,7 @@ class Sport24Handler(PyRSSWRequestHandler):
                 '//article[contains(@class,"fig-main")]' #handles lefigaro.fr/sports
             ])
 
-        return content
+        return PyRSSWContent(content)
 
     def _process_dugout(self, session: requests.Session, dom: etree._Element):
         for iframe in xpath(dom, "//iframe"):

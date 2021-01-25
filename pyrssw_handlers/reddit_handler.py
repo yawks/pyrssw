@@ -1,3 +1,4 @@
+from request.pyrssw_content import PyRSSWContent
 from utils.url_utils import is_url_valid
 from handlers.feed_type.atom_arranger import NAMESPACES
 import re
@@ -74,7 +75,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
         return feed
 
-    def get_content(self, url: str, parameters: dict, session: Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: Session) -> PyRSSWContent:
         cookie_obj = cookies.create_cookie(
             domain="reddit.com", name="over18", value="1")
         session.cookies.set_cookie(cookie_obj)
@@ -111,7 +112,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
         content = "<article>%s%s%s</article>" % (
             title, content, self.get_comments(dom))
 
-        return content
+        return PyRSSWContent(content)
 
     def _manage_external_content(self, href: str) -> Optional[str]:
         external_content: Optional[str] = None

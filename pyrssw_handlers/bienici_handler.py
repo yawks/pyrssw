@@ -1,3 +1,4 @@
+from request.pyrssw_content import PyRSSWContent
 from typing import List
 from urllib.parse import unquote_plus
 
@@ -108,7 +109,7 @@ class BienIciHandler(PyRSSWRequestHandler):
 
         return imgs
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         content: str = ""
 
         content = session.get(url=url).text
@@ -126,7 +127,7 @@ class BienIciHandler(PyRSSWRequestHandler):
             content += "<hr/>"
             content += self._build_imgs(self._get_img_urls(json_obj))
 
-        return """
-    <div class=\"main-content\">
-        %s
-    </div>""" % (content)
+        return PyRSSWContent("""
+                <div class=\"main-content\">
+                    %s
+                </div>""" % (content))

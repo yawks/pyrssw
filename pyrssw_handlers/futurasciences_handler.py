@@ -1,6 +1,6 @@
 import re
 from typing import cast
-
+from request.pyrssw_content import PyRSSWContent
 import requests
 from lxml import etree
 
@@ -66,7 +66,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
 
         return feed
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         page = session.get(url=url)
         content = page.text.replace(">", ">\n")
 
@@ -96,4 +96,4 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         content = utils.dom_utils.get_content(
             dom, ['//div[contains(@class,"article-column")]'])
 
-        return content
+        return PyRSSWContent(content)

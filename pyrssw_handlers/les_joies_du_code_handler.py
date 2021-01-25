@@ -1,3 +1,4 @@
+from request.pyrssw_content import PyRSSWContent
 import re
 
 import requests
@@ -48,10 +49,10 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
 
         return to_string(dom)
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         page = session.get(url=url, headers={})
         content = self._clean_content(page.text)
-        return content
+        return PyRSSWContent(content)
 
     def _clean_content(self, c):
         content = ""
@@ -71,18 +72,20 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
                     img.set("src", src)
                     obj.getparent().getparent().getparent().getparent().append(img)
 
-            video_content = utils.dom_utils.get_content(dom, ['//*[contains(@class,"blog-post-content")]//video'])
+            video_content = utils.dom_utils.get_content(
+                dom, ['//*[contains(@class,"blog-post-content")]//video'])
 
             utils.dom_utils.delete_nodes(dom.xpath('//video'))
             content = utils.dom_utils.get_content(
                 dom, ['//div[contains(@class, "blog-post")]', '//div[contains(@class,"blog-post-content")]'])
-            
+
             if len(content) < 50:
-                #means there is no gif
+                # means there is no gif
                 content = video_content
             else:
                 content = content.replace('<div class="blog-post">', '')
-                content = content.replace('<div class="blog-post-content">', '')
+                content = content.replace(
+                    '<div class="blog-post-content">', '')
                 content = content.replace('</div>', '')
                 content = re.sub(r'src="data:image[^"]*', '', content)
                 content = content.replace(

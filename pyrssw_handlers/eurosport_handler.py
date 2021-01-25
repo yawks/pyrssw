@@ -1,6 +1,7 @@
 import html
 import json
 import logging
+from request.pyrssw_content import PyRSSWContent
 from typing import cast
 
 import requests
@@ -79,7 +80,7 @@ class EurosportHandler(PyRSSWRequestHandler):
 
         return description
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         content = ""
 
         if url.find("/video.shtml") > -1 and url.find("_vid") > -1:
@@ -104,13 +105,20 @@ class EurosportHandler(PyRSSWRequestHandler):
                 '//*[@class="livecomments-nav"]'
             ])
             content = utils.dom_utils.get_content(dom, [
-                '//div[@id="content"]', #handles live scores
-                '//section[@id="content"]' #handles live scores
+                '//div[@id="content"]',  # handles live scores
+                '//section[@id="content"]'  # handles live scores
             ])
         else:
             content = self._get_content(url, session)
-            
-        return content
+
+        return PyRSSWContent(content, """
+            #pyrssw_wrapper .live-summary__seo-picture img {width:100%}
+            #pyrssw_wrapper .img-link img {
+                float: none;
+                display: block;
+                margin: 0 auto;
+            }
+        """)
 
     def _get_content(self, url: str, session: requests.Session) -> str:
         content = session.get(url).text
@@ -132,22 +140,21 @@ class EurosportHandler(PyRSSWRequestHandler):
     def _get_video_content(self, url: str, session: requests.Session) -> str:
         """ video in eurosport website are loaded using some javascript
             we build here a simplifed page with the rss.xml item description + a video object"""
-        video_content:str = "<p>404 ?</p>"
+        video_content: str = "<p>404 ?</p>"
         vid = url[url.find("_vid")+len("_vid"):]
         vid = vid[:vid.find('/')]
         page = session.get(
             url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid)
         j = json.loads(page.text)
-        
+
         if "EmbedUrl" in j:
             embed: str = ""
             if "VideoUrl" in j:
                 embed = """<video width="100%%" controls="" preload="auto">
                                     <source src="%s" />
                                 </video>""" % j["VideoUrl"]
-            
 
-            video_content =  """
+            video_content = """
                     <div>
                         <p>
                             <a href="%s"><p>%s</p></a>
@@ -163,6 +170,7 @@ class EurosportHandler(PyRSSWRequestHandler):
                                  .replace("<img", "<img width=\"100%\""))
 
         return video_content
+
 
 class ArticleBuilder():
     """Uses the json produced by eurosport pages and build a simple html page parsing it.
@@ -219,7 +227,6 @@ class ArticleBuilder():
                 url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % content_dict["databaseId"])
             j = json.loads(page.text)
 
-            
             if poster == "" and "PictureUrl" in j:
                 poster = j["PictureUrl"]
 
@@ -229,9 +236,8 @@ class ArticleBuilder():
                                 </video>""" % (poster, j["VideoUrl"])
             elif "EmbedUrl" in j:
                 content = """<iframe src="%s"/>""" % (j["EmbedUrl"])
-            
+
             content += "<p><i><small>%s</small></i></p>" % title
-                
 
         return content
 

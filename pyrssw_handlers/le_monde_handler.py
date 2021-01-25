@@ -1,3 +1,4 @@
+from request.pyrssw_content import PyRSSWContent
 import re
 import urllib.parse
 from utils.url_utils import is_url_valid
@@ -78,7 +79,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
         return suffix
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         self._authent(parameters, session)
         try:
             page = session.get(url=url)
@@ -121,7 +122,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
         finally:
             self._unauthent(session)
-        return content
+        return PyRSSWContent(content)
 
     
 

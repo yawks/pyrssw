@@ -1,5 +1,6 @@
 import datetime
 import logging
+from request.pyrssw_content import PyRSSWContent
 import re
 from abc import ABCMeta, abstractmethod
 from typing import Dict, Optional
@@ -78,7 +79,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         """Takes an url and a dictionary of parameters and must return the result content.
 
         Arguments:
@@ -87,7 +88,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             parameters {requests.Session} -- the session provided to process HTTP queries
 
         Returns:
-            str -- the content reworked
+            PyRSSWContent -- the content reworked
         """
 
     @abstractmethod

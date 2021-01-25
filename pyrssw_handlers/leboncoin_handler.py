@@ -1,4 +1,5 @@
 import json
+from request.pyrssw_content import PyRSSWContent
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
@@ -133,7 +134,7 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
 
         return price
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         content: str = ""
 
         page = session.get(url=url)
@@ -166,7 +167,7 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
                         content += "<p><strong>%s</strong>: %s</p>" % (key_label, get_node_value_if_exists(
                             attribute, "value_label"))
 
-        return """
-    <div class=\"main-content\">
-        %s
-    </div>""" % (content)
+        return PyRSSWContent("""
+                <div class=\"main-content\">
+                    %s
+                </div>""" % (content))

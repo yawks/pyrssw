@@ -1,3 +1,4 @@
+from request.pyrssw_content import PyRSSWContent
 from urllib.parse import unquote_plus
 
 import requests
@@ -119,7 +120,7 @@ class LogicImmoHandler(PyRSSWRequestHandler):
 
         return url_detail
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         content: str = ""
 
         # for some reasons logicimmo website does not work with sessions
@@ -159,7 +160,7 @@ class LogicImmoHandler(PyRSSWRequestHandler):
             content += utils.dom_utils.get_content(
                 dom, ['//*[contains(@class, "offer-description")]'])
 
-        return """
-    <div class=\"main-content\">
-        %s
-    </div>""" % (content)
+        return PyRSSWContent("""
+            <div class=\"main-content\">
+                %s
+            </div>""" % (content))

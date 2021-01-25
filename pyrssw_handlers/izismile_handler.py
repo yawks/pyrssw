@@ -7,6 +7,7 @@ import requests
 from lxml import etree
 import datetime
 import time
+from request.pyrssw_content import PyRSSWContent
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
@@ -58,7 +59,7 @@ class IzismileHandler(PyRSSWRequestHandler):
 
         return feed
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         content, url_next_page_2 = self._get_content(url, session)
 
         if url_next_page_2 != "":
@@ -73,7 +74,7 @@ class IzismileHandler(PyRSSWRequestHandler):
                     url_next_page_3, session)
                 content += next_content
 
-        return content
+        return PyRSSWContent(content)
 
     def _get_content(self, url, session: requests.Session):
         url_next_page = ""
@@ -92,21 +93,29 @@ class IzismileHandler(PyRSSWRequestHandler):
         for script in dom.xpath('//script'):
             script.getparent().remove(script)
 
-        izi_videos = dom.xpath('//*[@class="daily_a" and text()=".mp4"]')
+        """
+        izi_videos = dom.xpath('//*[@class="daily_a"]')
         for izi_video in izi_videos:
-            parent = izi_video.getparent()
+            if "href" in izi_video.attrib and izi_video.attrib["href"].endswith(".mp4"):
+                parent = izi_video.getparent()
 
-            video = etree.Element("video")
-            video.set("controls", "")
-            video.set("preload", "auto")
-            video.set("poster", "")
-            video.set("width", "100%")
+                video = etree.Element("video")
+                video.set("controls", "")
+                video.set("preload", "auto")
+                video.set("width", "100%")
 
-            source = etree.Element("source")
-            source.set("src", izi_video.attrib["href"])
-            video.append(source)
-            parent.getparent().append(video)
+                poster = ""
+                for v in dom.xpath("//*[@data-poster]"):
+                    poster = v.attrib["data-poster"]
+                    break
 
+                video.set("poster", poster)
+
+                source = etree.Element("source")
+                source.set("src", izi_video.attrib["href"])
+                video.append(source)
+                parent.getparent().append(video)
+        """
         pagers = dom.xpath('//*[@class="postpages"]')
         if len(pagers) > 2:
             url_next_page = dom.xpath(
@@ -156,6 +165,7 @@ class IzismileHandler(PyRSSWRequestHandler):
                                   '<div class="tools" style="display: block;"/>')
         content = re.sub(r'src="data:image/[^"]*"', '', content)
         content = content.replace("data-src=", "src=")
+        content = content.replace("data-poster=", "poster=")
         content = content.replace("class=\"lazyload\"", "")
         content = content.replace("Advertisement", "")
         return "<article>%s</article>" % content.replace("><", ">\n<")

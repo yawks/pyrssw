@@ -1,3 +1,4 @@
+from request.pyrssw_content import PyRSSWContent
 from typing import List, Optional
 from urllib.parse import unquote_plus
 
@@ -139,7 +140,7 @@ class BellesDemeuresHandler(PyRSSWRequestHandler):
 
         return imgs
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         content: str = ""
 
         content = session.get(url=url).text
@@ -170,7 +171,7 @@ class BellesDemeuresHandler(PyRSSWRequestHandler):
             content += utils.dom_utils.get_content(
                 dom, ['//*[contains(@class, "detailInfos")]'])
 
-        return """
-    <div class=\"main-content\">
-        %s
-    </div>""" % (content)
+        return PyRSSWContent("""
+                <div class=\"main-content\">
+                    %s
+                </div>""" % (content))

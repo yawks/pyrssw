@@ -4,6 +4,7 @@ import requests
 from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
+from request.pyrssw_content import PyRSSWContent
 
 
 class EvilmilkHandler(PyRSSWRequestHandler):
@@ -27,7 +28,7 @@ class EvilmilkHandler(PyRSSWRequestHandler):
 
         return self._replace_urls(feed)
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         page = session.get(url=url, headers={})
         dom = etree.HTML(page.text)
 
@@ -58,7 +59,7 @@ class EvilmilkHandler(PyRSSWRequestHandler):
         content = re.sub(r'poster=(["\'])/',
                          r'poster=\1https://www.evilmilk.com/', content)
 
-        return content
+        return PyRSSWContent(content)
 
     def _clean_content(self, c):
         content = c.replace('<div class="break"/>', '')

@@ -1,3 +1,4 @@
+from request.pyrssw_content import PyRSSWContent
 import re
 from typing import cast
 
@@ -62,7 +63,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
         return feed
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         page = session.get(url=url)
         content = page.text.replace(">", ">\n")
 
@@ -119,4 +120,4 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             # less than 150 chars, we did not manage to get the content, use readability facility
             content = super().get_readable_content(url)
 
-        return content
+        return PyRSSWContent(content)
