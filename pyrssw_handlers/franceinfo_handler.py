@@ -107,11 +107,12 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
         content = utils.dom_utils.get_content(
             dom, ['//div[contains(@class,"article-detail-block")]',
-                  '//article[contains(@class,"page-content")]',  # francetvinfos
+                  # francetvinfos
+                  '//article[contains(@class,"page-content")]',
                   '//article[contains(@id,"node")]',  # france3 regions
                   '//main[contains(@class,"article")]',  # france3 regions
                   '//article[contains(@class,"content-live")]',  # live
-                  '//*[contains(@class, "article__column--left")]', #la1ere
+                  '//*[contains(@class, "article__column--left")]',  # la1ere
                   '//div[contains(@class, "content")]',
                   # sport.francetvinfo.fr
                   '//*[contains(@class,"article-detail-block")]'])
@@ -119,5 +120,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
         if len(content.replace("\n", "").strip()) < 150:
             # less than 150 chars, we did not manage to get the content, use readability facility
             content = super().get_readable_content(url)
+
+        # avoid loosing topCallImage because of remove script
+        content = content.replace("id=\"topCallImage\"", "id=\"topCallImage--\"")
 
         return PyRSSWContent(content)

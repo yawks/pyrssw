@@ -201,7 +201,7 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper hr {border : 1px solid #HR_COLOR#;  background-color: #HR_COLOR#}
                 #pyrssw_wrapper strong {font-weight:400}
                 #pyrssw_wrapper figure {margin:0}
-                #pyrssw_wrapper figure img {width:100%;float:none}
+                #pyrssw_wrapper figure img {width:100%!important;float:none}
                 #pyrssw_wrapper iframe {width:100%;min-height:500px;height:auto}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
                 #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}

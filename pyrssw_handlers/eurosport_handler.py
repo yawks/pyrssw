@@ -111,12 +111,19 @@ class EurosportHandler(PyRSSWRequestHandler):
         else:
             content = self._get_content(url, session)
 
+        content = content.replace("width=\"100%\"", "style=\"width:100%\"")
+
         return PyRSSWContent(content, """
+            #eurosport_handler .storyfull__ng-picture img {width:100%}
             #eurosport_handler .live-summary__seo-picture img {width:100%}
             #eurosport_handler .img-link img {
                 float: none;
                 display: block;
                 margin: 0 auto;
+            }
+
+            #eurosport_handler .storyfull__publisher-time span::before {
+                content: ' | ';
             }
         """)
 
