@@ -195,7 +195,7 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper a {color: #0099CC}
                 #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
                 #pyrssw_wrapper img {height: auto; float:left; margin-right:15px}
-                #pyrssw_wrapper div img {width:100%;float:none;}
+                #pyrssw_wrapper div img {float:left;}
                 #pyrssw_wrapper pre {white-space: pre-wrap; direction: ltr;}
                 #pyrssw_wrapper blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
                 #pyrssw_wrapper p {margin: 0.8em 0 0.8em 0}
@@ -207,6 +207,9 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%;float:none}
                 #pyrssw_wrapper iframe {width:100%;min-height:500px;height:auto}
+                #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
+                #pyrssw_wrapper blockquote.twitter-tweet iframe {min-height:auto}
+                #pyrssw_wrapper .twitter-tweet {margin: 0 auto}
 
                 .pyrssw_youtube, #pyrssw_wrapper video {
                     max-width:100%!important;
@@ -344,7 +347,7 @@ class LauncherHandler(RequestHandler):
                         '%s', tweet_%s,
                         {
                             conversation : 'none',    // or all
-                            cards        : 'hidden',  // or visible
+                            cards        : 'visible',
                             theme        : '%s'
                         });
                     });
