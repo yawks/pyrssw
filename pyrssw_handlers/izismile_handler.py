@@ -74,7 +74,9 @@ class IzismileHandler(PyRSSWRequestHandler):
                     url_next_page_3, session)
                 content += next_content
 
-        return PyRSSWContent(content)
+        return PyRSSWContent(content, """
+            #pyrssw_wrapper #izismile_handler div img {float:none}
+        """)
 
     def _get_content(self, url, session: requests.Session):
         url_next_page = ""

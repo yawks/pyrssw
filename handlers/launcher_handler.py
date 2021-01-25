@@ -21,7 +21,7 @@ FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
-TWEETS_REGEX = re.compile(r'(?:https://twitter.com/)(?:.*)/status/(.*)')
+TWEETS_REGEX = re.compile(r'(?:https://twitter.com/)(?:.*)/status/([^\?]*)')
 
 
 class LauncherHandler(RequestHandler):
@@ -204,7 +204,7 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper figure img {width:100%;float:none}
                 #pyrssw_wrapper iframe {width:100%;min-height:500px;height:auto}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
-                #pyrssw_wrapper blockquote.twitter-tweet iframe {min-height:auto}
+                #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
                 #pyrssw_wrapper .twitter-tweet {margin: 0 auto}
 
                 .pyrssw_youtube, #pyrssw_wrapper video {
@@ -281,14 +281,16 @@ class LauncherHandler(RequestHandler):
                             </style>
                         </head>
                         <body>
-                            <div id=\"pyrssw_wrapper\">
-                                %s
+                            <div id="pyrssw_wrapper">
+                                <div id="%s_handler">
+                                    %s
+                                </div>
                                 <br/>
                                 <hr/>
                                 %s
                             </div>
                         </body>
-                    </html>""" % (domain, style, self.additional_css, self.contents, source)
+                    </html>""" % (domain, style, self.additional_css, self.handler.get_handler_name(), self.contents, source)
 
     def _manage_title(self, dom: etree._Element, parameters: dict):
         if "hidetitle" in parameters and parameters["hidetitle"] == "true":
