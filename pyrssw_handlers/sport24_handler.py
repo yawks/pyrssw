@@ -91,7 +91,7 @@ class Sport24Handler(PyRSSWRequestHandler):
                 if len(bodies) > 0:
                     img = etree.Element("img")
                     img.set("src", imgsrc)
-                    bodies[0].append(img)
+                    bodies[0].insert(0, img)
             content = to_string(contents[0])
         else:
             content = utils.dom_utils.get_content(dom, [
@@ -99,7 +99,25 @@ class Sport24Handler(PyRSSWRequestHandler):
                 '//article[contains(@class,"fig-main")]' #handles lefigaro.fr/sports
             ])
 
-        return PyRSSWContent(content)
+        return PyRSSWContent(content, """
+            #sport24_handler .object-left {
+                display: block;
+                text-align: center;
+                width: auto;
+                max-width: fit-content;
+                float: left;
+                margin: 5px;
+            }
+
+            #sport24_handler .object-left img {
+                float:none;
+                margin:0;
+            }
+
+            #sport24_handler .embed {
+                clear:both;
+            }
+        """)
 
     def _process_dugout(self, session: requests.Session, dom: etree._Element):
         for iframe in xpath(dom, "//iframe"):
@@ -134,15 +152,18 @@ class Sport24Handler(PyRSSWRequestHandler):
                         p3 = etree.Element("p")
                         p3.text = dugout_metadata["description"]
 
+                        """
                         parents: List[etree._Element] = xpath(
                             dom, '//*[@class="s24-art__content s24-art__resize"]')
 
                         if len(parents) > 0:
                             parents[0].append(p1)
-                            parents[0].append(p1)
                             parents[0].append(p2)
                             parents[0].append(p3)
-
+                        """
+                        iframe.getparent().append(p1)
+                        iframe.getparent().append(p2)
+                        iframe.getparent().append(p3)
                         iframe.getparent().remove(iframe)
                     except Exception as err:
                         self.log_info(

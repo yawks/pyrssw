@@ -96,18 +96,28 @@ class EurosportHandler(PyRSSWRequestHandler):
                 '//*[@id="header-sharing"]'])
             content = utils.dom_utils.get_content(dom, [
                 '//div[contains(@class, "storyfull")]'])
-        elif url.find("/live.shtml") > -1:
+        elif url.find("/live.shtml") > -1 or url.find("/liveevent.shtml") > -1:
             page = session.get(url=url)
             dom = etree.HTML(page.text)
             utils.dom_utils.delete_xpaths(dom, [
                 '//*[@class="nav-tab"]',
                 '//*[@class="live-match-nav__sharing"]',
-                '//*[@class="livecomments-nav"]'
+                '//*[@class="livecomments-nav"]',
+                '//*[@id="subnavigation-nav-tabs"]',
+                '//*[contains(@class,"livecomments-header")]',
+                '//*[contains(@class,"score-cards--hide-desktop-sm")]'
             ])
+            self._process_lazy_img(dom)
             content = utils.dom_utils.get_content(dom, [
                 '//div[@id="content"]',  # handles live scores
-                '//section[@id="content"]'  # handles live scores
+                '//section[@id="content"]',  # handles live scores
+                '//*[@class="livecomments-content"]'  # handler live transfers
             ])
+
+            content = utils.dom_utils.get_content(dom, [
+                # add score if any
+                '//*[contains(@class,"heromatch__col heromatch__col--center")]'
+            ]) + content
         else:
             content = self._get_content(url, session)
 
@@ -125,6 +135,20 @@ class EurosportHandler(PyRSSWRequestHandler):
             #eurosport_handler .storyfull__publisher-time span::before {
                 content: ' | ';
             }
+
+            #eurosport_handler .heromatch__status {
+                display: block;
+            }
+
+            #eurosport_handler .heromatch__col heromatch__col--center, #eurosport_handler .heromatch__score, #eurosport_handler  .heromatch__score-dash, #eurosport_handler .heromatch__score {
+                display: inline-block;
+            }
+
+            #eurosport_handler img.livecomments-icon, #eurosport_handler img.isg-interchange {
+                float:none;
+            }
+
+            
         """)
 
     def _get_content(self, url: str, session: requests.Session) -> str:
@@ -177,6 +201,14 @@ class EurosportHandler(PyRSSWRequestHandler):
                                  .replace("<img", "<img width=\"100%\""))
 
         return video_content
+
+    def _process_lazy_img(self, dom: etree._Element):
+        for n in dom.xpath('//*[@data-lazy-type="img"]'):
+            if "data-lazy" in n.attrib:
+                img = etree.Element("img")
+                img.attrib["src"] = n.attrib["data-lazy"]
+                n.getparent().append(img)
+                n.getparent().remove(n)
 
 
 class ArticleBuilder():

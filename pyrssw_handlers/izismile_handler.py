@@ -170,4 +170,5 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace("data-poster=", "poster=")
         content = content.replace("class=\"lazyload\"", "")
         content = content.replace("Advertisement", "")
+        content = content.replace("#0000ff", "#0099CC")
         return "<article>%s</article>" % content.replace("><", ">\n<")
