@@ -21,7 +21,7 @@ FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
-TWEETS_REGEX = re.compile(r'(?:https://twitter.com/)(?:.*)/status/([^\?]*)')
+TWEETS_REGEX = re.compile(r'(?:(?:https:)?//twitter.com/)(?:.*)/status/([^\?]*)')
 
 
 class LauncherHandler(RequestHandler):
@@ -190,8 +190,7 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper h2 {font-size: 140%}
                 #pyrssw_wrapper a {color: #0099CC}
                 #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
-                #pyrssw_wrapper img {height: auto; float:left; margin-right:15px}
-                #pyrssw_wrapper div img {float:left;}
+                #pyrssw_wrapper img {height: auto; f margin-right:15px}
                 #pyrssw_wrapper pre {white-space: pre-wrap; direction: ltr;}
                 #pyrssw_wrapper blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
                 #pyrssw_wrapper p {margin: 0.8em 0 0.8em 0}
@@ -333,14 +332,14 @@ class LauncherHandler(RequestHandler):
         """
 
         has_tweets: bool = False
-        for a in xpath(dom, "//a[contains(@href,'https://twitter.com/')]"):
+        for a in xpath(dom, "//a[contains(@href,'https://twitter.com/')]|//a[contains(@href,'//twitter.com/')]"):
             m = re.match(TWEETS_REGEX, a.attrib["href"])
             if m is not None:
                 tweet_id: str = m.group(1)
                 has_tweets = True
                 script = etree.Element("script")
                 script.text = """
-                    window.onload = (function(){
+                    window.addEventListener("load", function() {
                         var tweet_%s = document.getElementById("tweet_%s");
                         twttr.widgets.createTweet(
                         '%s', tweet_%s,
@@ -350,18 +349,20 @@ class LauncherHandler(RequestHandler):
                             theme        : '%s'
                         });
                     });
+                    document.getElementById("parent-%s").style.display = "none";
                 """ % (
                     tweet_id,
                     tweet_id,
                     tweet_id,
                     tweet_id,
-                    "dark" if "dark" in parameters and parameters["dark"] == "true" else "light"
-
+                    "dark" if "dark" in parameters and parameters["dark"] == "true" else "light",
+                    tweet_id
                 )
                 tweet_div = etree.Element("div")
                 tweet_div.set("id", "tweet_%s" % tweet_id)
-                a.getparent().append(script)
-                a.getparent().append(tweet_div)
+                a.getparent().addnext(script)
+                a.getparent().addnext(tweet_div)
+                a.getparent().set("id", "parent-%s" % tweet_id)
                 a.getparent().remove(a)
 
         if has_tweets:

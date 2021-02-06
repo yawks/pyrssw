@@ -90,6 +90,16 @@ class IzismileHandler(PyRSSWRequestHandler):
 
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class, "banners_btw_pics")]',
+            '//*[@id="header"]',
+            '//*[@id="footer"]',
+            '//*[@id="browseby"]',
+            '//*[@id="IZI_BTF_300c"]',
+            '//*[contains(@class,"right_block")]',
+            '//*[contains(@class,"help-comments-text")]',
+            '//*[contains(@class,"paging")]',
+            '//*[contains(@class,"like-list")]',
+            '//*[contains(@class,"left_stat")]',
+            '//*[contains(@class,"ajax-")]',
             '//*[contains(@class, "sordering")]'])
 
         for script in dom.xpath('//script'):
@@ -159,6 +169,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace("<div class=\"tools\"/>", "")
         content = content.replace("<div class=\"clear\"/>", "")
         content = content.replace(" class=\"owl-carousel\"", "")
+        content = content.replace("margin-bottom:30px;","")
         content = re.sub(
             r'<span class="sordering"><a class="back" href="#[^"]*"/><a name="[^"]*">[^<]*</a><a class="next" href="#[^"]*"/></span>', '', content)
         content = content.replace('id="post-list"', 'id="mainbody"')
