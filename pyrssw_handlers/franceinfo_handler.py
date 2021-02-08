@@ -124,4 +124,6 @@ class FranceInfoHandler(PyRSSWRequestHandler):
         # avoid loosing topCallImage because of remove script
         content = content.replace("id=\"topCallImage\"", "id=\"topCallImage--\"")
 
-        return PyRSSWContent(content)
+        return PyRSSWContent(content, """
+            #franceinfo_handler img.also-link__content__img {float:left;margin:0 10px 10px 0;}
+        """)

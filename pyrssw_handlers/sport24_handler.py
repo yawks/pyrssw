@@ -117,6 +117,10 @@ class Sport24Handler(PyRSSWRequestHandler):
             #sport24_handler .embed {
                 clear:both;
             }
+            
+            #sport24_handler div.object-right {
+                text-align:center;
+            }
         """)
 
     def _process_dugout(self, session: requests.Session, dom: etree._Element):

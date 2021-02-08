@@ -88,6 +88,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         elif url.find("www.rugbyrama.fr") > -1:
             page = session.get(url=url)
             dom = etree.HTML(page.text)
+            self._process_lazy_img(dom)
             utils.dom_utils.delete_xpaths(dom, [
                 '//div[contains(@class, "storyfull__header")]',
                 '//div[contains(@class, "storyfull__publisher-social-button")]',
@@ -147,8 +148,6 @@ class EurosportHandler(PyRSSWRequestHandler):
             #eurosport_handler img.livecomments-icon, #eurosport_handler img.isg-interchange {
                 float:none;
             }
-
-            
         """)
 
     def _get_content(self, url: str, session: requests.Session) -> str:
@@ -209,6 +208,16 @@ class EurosportHandler(PyRSSWRequestHandler):
                 img.attrib["src"] = n.attrib["data-lazy"]
                 n.getparent().append(img)
                 n.getparent().remove(n)
+        
+        for n in dom.xpath('//div[@data-img-interchange]/img'):
+            try:
+                data_img_interchange_json = json.loads(n.getparent().attrib["data-img-interchange"])
+                if "f" in data_img_interchange_json:
+                    for size in data_img_interchange_json["f"]:
+                        if "src" in data_img_interchange_json["f"][size]:
+                            n.attrib["src"] = data_img_interchange_json["f"][size]["src"]
+            except:
+                logging.getLogger().info("Unable to parse 'data-img-interchange'")
 
 
 class ArticleBuilder():
@@ -319,6 +328,9 @@ class ArticleBuilder():
             elif entry["type"] == "YouTube" and "url" in entry and "label" in entry:
                 content += "<iframe class=\"pyrssw_youtube\" src=\"%s\">%s</iframe><p class=\"pyrssw_centered\"><i>%s</i></p>" % (
                     entry["url"], entry["label"], entry["label"])
+            elif entry["type"] == "Twitter" and "url" in entry and "label" in entry:
+                content += "<a href=\"%s\">%s/<a>" % (
+                    entry["url"], entry["label"])
             else:
                 logging.getLogger().debug(
                     "Entry type '%s' not (fully) handled", entry["type"])
