@@ -339,7 +339,7 @@ class LauncherHandler(RequestHandler):
                 has_tweets = True
                 script = etree.Element("script")
                 script.text = """
-                    window.addEventListener("load", function() {
+                    window.addEventListener("pyrssw_article_loaded", function() {
                         var tweet_%s = document.getElementById("tweet_%s");
                         twttr.widgets.createTweet(
                         '%s', tweet_%s,
