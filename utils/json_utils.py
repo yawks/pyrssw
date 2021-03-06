@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Union
 
 
 def get_nodes_by_name(json, node_name: str) -> List[dict]:
@@ -15,7 +15,10 @@ def get_nodes_by_name(json, node_name: str) -> List[dict]:
     if json is not None:
         for node in json:
             if node == node_name:
-                nodes.append(json[node])
+                if isinstance(json, list):
+                    node = json
+                else:
+                    nodes.append(json[node])
             elif isinstance(node, (list, dict)):
                 nodes.extend(get_nodes_by_name(node, node_name))
             elif isinstance(json, dict) and isinstance(json[node], (dict, list)):
@@ -24,10 +27,32 @@ def get_nodes_by_name(json, node_name: str) -> List[dict]:
     return nodes
 
 
+def get_node(json: dict, *kwargs):
+    """equivalent to xpath. Return the node following kwargs node names
+
+    Args:
+        json (dict): root
+
+    Returns:
+        Union[Optional[dict], str]: value or json node
+    """
+    node = None
+    found: bool = True
+    if kwargs is not None and len(kwargs) > 0:
+        node = json
+        for node_name in kwargs:
+            if node is not None and node_name in node:
+                node = node[node_name]
+            else:
+                found = False
+                break
+
+    return node if found else None
+
+
 def get_node_value_if_exists(node, key) -> str:
     value: str = ""
     if key in node and not node[key] is None:
         value = node[key]
 
     return value
-    

@@ -1,15 +1,16 @@
 import html
 import json
 import logging
+from base64 import b64decode
 from request.pyrssw_content import PyRSSWContent
-from typing import cast
+from typing import Dict, List, Optional, cast
 
 import requests
 from lxml import etree
 
 import utils.dom_utils
 from utils.dom_utils import to_string, xpath
-import utils.json_utils
+from utils import json_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
@@ -24,7 +25,8 @@ class EurosportHandler(PyRSSWRequestHandler):
        to invert filtering, prefix it with: ^
        eg :
          - /eurosport/rss?filter=tennis             #only feeds about tennis
-         - /eurosport/rss?filter=football,tennis    #only feeds about football and tennis
+         #only feeds about football and tennis
+         - /eurosport/rss?filter=football,tennis
          - /eurosport/rss?filter=^football,tennis   #all feeds but football and tennis
 
     Content:
@@ -125,27 +127,27 @@ class EurosportHandler(PyRSSWRequestHandler):
         content = content.replace("width=\"100%\"", "style=\"width:100%\"")
 
         return PyRSSWContent(content, """
-            #eurosport_handler .storyfull__ng-picture img {width:100%}
-            #eurosport_handler .live-summary__seo-picture img {width:100%}
-            #eurosport_handler .img-link img {
+            # eurosport_handler .storyfull__ng-picture img {width:100%}
+            # eurosport_handler .live-summary__seo-picture img {width:100%}
+            # eurosport_handler .img-link img {
                 float: none;
                 display: block;
                 margin: 0 auto;
             }
 
-            #eurosport_handler .storyfull__publisher-time span::before {
+            # eurosport_handler .storyfull__publisher-time span::before {
                 content: ' | ';
             }
 
-            #eurosport_handler .heromatch__status {
+            # eurosport_handler .heromatch__status {
                 display: block;
             }
 
-            #eurosport_handler .heromatch__col heromatch__col--center, #eurosport_handler .heromatch__score, #eurosport_handler  .heromatch__score-dash, #eurosport_handler .heromatch__score {
+            # eurosport_handler .heromatch__col heromatch__col--center, #eurosport_handler .heromatch__score, #eurosport_handler  .heromatch__score-dash, #eurosport_handler .heromatch__score {
                 display: inline-block;
             }
 
-            #eurosport_handler img.livecomments-icon, #eurosport_handler img.isg-interchange {
+            # eurosport_handler img.livecomments-icon, #eurosport_handler img.isg-interchange {
                 float:none;
             }
         """)
@@ -160,12 +162,40 @@ class EurosportHandler(PyRSSWRequestHandler):
             end = content[idx+offset:].find("</script>")
 
             data = json.loads(content[idx+offset+1:idx+offset+end])
-            articles = utils.json_utils.get_nodes_by_name(data, "article")
-            for article in articles:
-                if "publicationTime" in article:
-                    content = ArticleBuilder(article).build_article()
+
+            ql_ref = self._get_ql_ref(data)
+            if ql_ref is not None:
+                content = QLArticleBuilder(data, ql_ref).build_article()
+            else:
+                articles = json_utils.get_nodes_by_name(data, "article")
+                for article in articles:
+                    if "publicationTime" in article:
+                        content = ArticleBuilder(article).build_article()
 
         return content
+
+    def _get_ql_ref(self, data: dict) -> Optional[str]:
+        """Returns ql article ref if found
+
+        Args:
+            data (dict): data loaded in html page
+
+        Returns:
+            Optional[str]: ref article or None if not found
+        """
+        ql_ref: Optional[str] = None
+        page_unique_ids = json_utils.get_nodes_by_name(
+            data, "pageUniqueID")
+        if len(page_unique_ids) == 1:
+            client_roots = json_utils.get_nodes_by_name(
+                data, "articleByDatabaseId(databaseId:%s)" % page_unique_ids[0])
+            if len(client_roots) == 1:
+                refs = json_utils.get_nodes_by_name(
+                    client_roots[0], "__ref")
+                if len(refs) > 0:
+                    ql_ref = cast(str, refs[0])
+
+        return ql_ref
 
     def _get_video_content(self, url: str, session: requests.Session) -> str:
         """ video in eurosport website are loaded using some javascript
@@ -173,6 +203,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         video_content: str = "<p>404 ?</p>"
         vid = url[url.find("_vid")+len("_vid"):]
         vid = vid[:vid.find('/')]
+
         page = session.get(
             url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid)
         j = json.loads(page.text)
@@ -208,10 +239,11 @@ class EurosportHandler(PyRSSWRequestHandler):
                 img.attrib["src"] = n.attrib["data-lazy"]
                 n.getparent().append(img)
                 n.getparent().remove(n)
-        
+
         for n in dom.xpath('//div[@data-img-interchange]/img'):
             try:
-                data_img_interchange_json = json.loads(n.getparent().attrib["data-img-interchange"])
+                data_img_interchange_json = json.loads(
+                    n.getparent().attrib["data-img-interchange"])
                 if "f" in data_img_interchange_json:
                     for size in data_img_interchange_json["f"]:
                         if "src" in data_img_interchange_json["f"][size]:
@@ -240,7 +272,7 @@ class ArticleBuilder():
 
     def _build_content_from_json(self, data) -> str:
         content: str = ""
-        bodies = utils.json_utils.get_nodes_by_name(data, "body")
+        bodies = json_utils.get_nodes_by_name(data, "body")
         if len(bodies) > 0:
             for entry in bodies[0]:
                 if "node" in entry:
@@ -347,3 +379,132 @@ class ArticleBuilder():
                     style = style % "<i>%s/</i>"
 
         return style
+
+
+class QLArticleBuilder():
+    """New way to defined articles with GraphQL
+    """
+
+    def __init__(self, data: dict, ql_ref: str) -> None:
+        self.data: dict = data
+        self.root: Optional[dict] = json_utils.get_node(
+            self.data, "props", "pageProps", "serverQueryRecords")
+        if self.root is not None:
+            #self.root = self.root[next(iter(self.root))]
+            self.ql_article: dict = self.root[ql_ref]
+            # self.ql_article: Optional[dict] = cast(Optional[dict], json_utils.get_first_node_in_subpath(
+            #    data, ql_ref))
+        self.graph_ql_body: Optional[str] = None
+
+    def build_article(self) -> str:
+        content: str = ""
+        if self.ql_article is not None:
+            if "title" in self.ql_article:
+                content += "<h1>%s</h1>" % self.ql_article["title"]
+            # picture_id = cast(str, json_utils.get_first_node_in_subpath(
+            #    self.ql_article, "picture", "__ref"))
+            picture_id = json_utils.get_node(
+                cast(dict, self.ql_article), "picture", "__ref")
+            if picture_id is not None:
+                picture_node = json_utils.get_node(
+                    cast(dict, self.root), cast(str,picture_id))
+                if picture_node is not None:
+                    content += "<img src=\"%s\"/>" % json_utils.get_node(
+                        picture_node, "url")
+
+            self.graph_ql_body = cast(str, json_utils.get_node(
+                self.ql_article, "graphQLBody", "__ref"))
+            if self.graph_ql_body is not None:
+                content += self._build(self.graph_ql_body)
+
+        return content
+
+    def _build(self, node_name: str) -> str:
+        content: str = ""
+
+        node = cast(dict, json_utils.get_node(
+            cast(dict,self.root), node_name))
+        content_formatter: str = self._format(node)
+
+        nodes_index = self._get_nodes_index(node_name)
+        if isinstance(nodes_index, list):
+            for node_index in nodes_index:
+                refs_node_name = cast(str, json_utils.get_node(
+                    cast(dict, self.root), node_index, "__id"))
+                if refs_node_name is not None:
+                    content += self._build(refs_node_name)
+
+        return content_formatter % content if content_formatter.find("%s") > -1 else content_formatter
+
+    def _get_nodes_index(self, node_name: str) -> Optional[List[str]]:
+        nodes_index: Optional[List[str]] = cast(Optional[List[str]], json_utils.get_node(
+            cast(dict, self.root), node_name,  "contents", "__refs"))
+        if not isinstance(nodes_index, list):
+            internal_content_ref = cast(Optional[str], json_utils.get_node(
+                cast(dict, self.root), node_name,  "content", "__ref"))
+            if internal_content_ref is not None:
+                nodes_index = [internal_content_ref]
+            else:
+                nodes_index = cast(Optional[List[str]], json_utils.get_node(
+                    cast(dict, self.root), node_name,  "listItems", "__refs"))
+
+        return nodes_index
+
+    def _format(self, node: dict) -> str:
+        node_format: str = ""
+        type_name = cast(str, json_utils.get_node(node, "__typename"))
+        """
+            "BreadcrumbItem": "%s",
+            "__Root": "%s",
+            "Article": "%s",
+            "ContextItem": "%s",
+        """
+        if type_name == "HyperLink":
+            node_format = "<a href=\"%s\">%s</a>" % (
+                json_utils.get_node(node, "url"), "%s")
+        elif type_name == "Picture":
+            node_format = "<img src=\"%s\" alt=\"%s\"></img>%s" % (
+                json_utils.get_node(node, "url"),
+                json_utils.get_node(node, "caption") if json_utils.get_node(
+                    node, "caption") is not None else "",
+                "%s")
+        elif type_name == "Video":
+            node_format = self._format_video(node)
+        elif type_name in ["Paragraph", "ListItem"]:
+            node_format = "<p>%s</p>"
+        elif type_name == "Text":
+            node_format = "%s%s" % (json_utils.get_node(node, "content"), "%s")
+        elif type_name == "H2":
+            node_format = "<h2>%s</h2>"
+        elif type_name in ["Body", "InternalContent", "List", "HyperLinkInternal", "CyclingStage"]:
+            node_format = "%s"
+        elif type_name == "BreakLine":
+            node_format = "<br/>"
+        else:
+            node_format = "<p><i><small>Unknown type name: '%s'%s</small></i></p>" % (type_name, "%s")
+
+        return node_format
+
+    def _format_video(self, node: dict) -> str:
+        content: str = ""
+        video_id: str = b64decode(cast(str, json_utils.get_node(
+            node, "id")).encode("ascii")).decode("ascii")
+        page = requests.get(
+            url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % video_id[len("Video:"):])
+        j = json.loads(page.text)
+
+        poster = ""
+        if "PictureUrl" in j:
+            poster = j["PictureUrl"]
+
+        if "VideoUrl" in j:
+            content = """<video width="100%%" controls="" preload="auto" poster="%s">
+                                <source src="%s" />
+                            </video>""" % (poster, j["VideoUrl"])
+        elif "EmbedUrl" in j:
+            content = """<iframe src="%s"/>""" % (j["EmbedUrl"])
+
+        content += "<p><i><small>%s</small></i></p>" % json_utils.get_node(
+            node, "title")
+
+        return content
