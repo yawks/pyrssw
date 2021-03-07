@@ -407,7 +407,7 @@ class QLArticleBuilder():
                 cast(dict, self.ql_article), "picture", "__ref")
             if picture_id is not None:
                 picture_node = json_utils.get_node(
-                    cast(dict, self.root), cast(str,picture_id))
+                    cast(dict, self.root), cast(str, picture_id))
                 if picture_node is not None:
                     content += "<img src=\"%s\"/>" % json_utils.get_node(
                         picture_node, "url")
@@ -423,10 +423,11 @@ class QLArticleBuilder():
         content: str = ""
 
         node = cast(dict, json_utils.get_node(
-            cast(dict,self.root), node_name))
+            cast(dict, self.root), node_name))
         content_formatter: str = self._format(node)
 
-        nodes_index = self._get_nodes_index(node_name)
+        nodes_index = cast(Optional[List[str]], json_utils.get_node(
+            cast(dict, self.root), node_name,  "contents", "__refs"))
         if isinstance(nodes_index, list):
             for node_index in nodes_index:
                 refs_node_name = cast(str, json_utils.get_node(
@@ -436,54 +437,75 @@ class QLArticleBuilder():
 
         return content_formatter % content if content_formatter.find("%s") > -1 else content_formatter
 
-    def _get_nodes_index(self, node_name: str) -> Optional[List[str]]:
-        nodes_index: Optional[List[str]] = cast(Optional[List[str]], json_utils.get_node(
-            cast(dict, self.root), node_name,  "contents", "__refs"))
-        if not isinstance(nodes_index, list):
-            internal_content_ref = cast(Optional[str], json_utils.get_node(
-                cast(dict, self.root), node_name,  "content", "__ref"))
-            if internal_content_ref is not None:
-                nodes_index = [internal_content_ref]
-            else:
-                nodes_index = cast(Optional[List[str]], json_utils.get_node(
-                    cast(dict, self.root), node_name,  "listItems", "__refs"))
-
-        return nodes_index
-
     def _format(self, node: dict) -> str:
-        node_format: str = ""
         type_name = cast(str, json_utils.get_node(node, "__typename"))
-        """
-            "BreadcrumbItem": "%s",
-            "__Root": "%s",
-            "Article": "%s",
-            "ContextItem": "%s",
-        """
+        node_format: str = "<p><i><small>Unknown type name: '%s'%s</small></i></p>" % (
+            type_name, "%s")  # default value if type name not handled
+
         if type_name == "HyperLink":
             node_format = "<a href=\"%s\">%s</a>" % (
-                json_utils.get_node(node, "url"), "%s")
+                node["url"], "%s")
         elif type_name == "Picture":
             node_format = "<img src=\"%s\" alt=\"%s\"></img>%s" % (
-                json_utils.get_node(node, "url"),
-                json_utils.get_node(node, "caption") if json_utils.get_node(
-                    node, "caption") is not None else "",
+                node["url"],
+                node["caption"],
                 "%s")
         elif type_name == "Video":
             node_format = self._format_video(node)
         elif type_name in ["Paragraph", "ListItem"]:
             node_format = "<p>%s</p>"
         elif type_name == "Text":
-            node_format = "%s%s" % (json_utils.get_node(node, "content"), "%s")
+            node_format = node["content"]
         elif type_name == "H2":
             node_format = "<h2>%s</h2>"
-        elif type_name in ["Body", "InternalContent", "List", "HyperLinkInternal", "CyclingStage"]:
+        elif type_name == "HyperLinkInternal":
+            node_format = "<a href=\"%s\">%s</a>" % (self._build(
+                cast(str, json_utils.get_node(node, "content", "__ref"))),
+                node["label"])
+        elif type_name == "Link":
+            node_format = node["url"]
+        elif type_name == "InternalContent":
+            node_format = self._build(
+                cast(str, json_utils.get_node(node,  "content", "__ref")))
+        elif type_name == "List":
+            node_format = self._format_list(node)
+        elif type_name == "Blockquote":
+            node_format = "<blockquote>%s</blockquote>"
+        elif type_name in ["Body", "CyclingStage"]:
             node_format = "%s"
         elif type_name == "BreakLine":
             node_format = "<br/>"
-        else:
-            node_format = "<p><i><small>Unknown type name: '%s'%s</small></i></p>" % (type_name, "%s")
+        elif type_name in ["TeamSportsMatch", "Article"]:
+            node_format = self._build(
+                cast(str, json_utils.get_node(node, "link", "__ref")))
+        elif type_name == "Embed":
+            node_format = self._format_embed(node)
 
         return node_format
+
+    def _format_embed(self, node: dict) -> str:
+        content: str
+        type_node: Optional[str] = node["type"]
+        if type_node == "ACAST":
+            content = "<a href=\"%s\">%s</a>" % (node["url"], node["label"])
+        elif type_node == "TWITTER":
+            content = "<p><a href=\"%s\">%s</a></p>" % (
+                node["url"], node["label"])
+        else:
+            content = "<p><i><small>Unknown embed type name: '%s'%s</small></i></p>" % (
+                type_node, "%s")
+
+        return content
+
+    def _format_list(self, node: dict) -> str:
+        content: str = ""
+        nodes_index: Optional[List[str]] = cast(Optional[List[str]], json_utils.get_node(
+            node,  "listItems", "__refs"))
+        if nodes_index is not None:
+            for node_index in nodes_index:
+                content += self._build(node_index)
+
+        return content
 
     def _format_video(self, node: dict) -> str:
         content: str = ""
