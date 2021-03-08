@@ -9,7 +9,7 @@ import utils.dom_utils
 from urllib.parse import urlparse
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
-from utils.dom_utils import to_string, xpath
+from utils.dom_utils import get_content, to_string, xpath
 
 NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
 
@@ -93,6 +93,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                                                          '//*[contains(@data-click-id,"media")]//video',
                                                          '//*[@data-test-id="post-content"]//*[contains(@class,"RichTextJSON-root")]'], alt_to_p=True)
 
+        content += self._get_figures(dom)
         # case of posts with link(s) to external source(s) : we load the external content(s)
         external_link: str = utils.dom_utils.get_content(
             dom, ['//a[contains(@class,"styled-outbound-link")]'])
@@ -114,10 +115,25 @@ class RedditInfoHandler(PyRSSWRequestHandler):
 
         return PyRSSWContent(content)
 
+    def _get_figures(self, dom: etree._Element) -> str:
+        """Extract pictures in figure lists (ie multi images in /r/comics)
+
+        Args:
+            dom (etree._Element): root node of the page
+
+        Returns:
+            str: html content
+        """
+        content: str = ""
+        for node in xpath(dom, '//*[@data-test-id="post-content"]//ul/li/figure/a'):
+            if "href" in node.attrib:
+                content += "<p><img src=\"%s\"/></p>" % node.attrib["href"]
+        return content
+    
     def _manage_external_content(self, href: str) -> Optional[str]:
         external_content: Optional[str] = None
         if not self._is_a_picture_link(href):
-            external_content = super().get_readable_content(href, add_source_link=True)
+                external_content = super().get_readable_content(href, add_source_link=True)
         else:
             m = re.match(IMGUR_GIFV, href)
             if m is not None:

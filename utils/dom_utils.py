@@ -51,7 +51,8 @@ def xpath(dom: etree._Element, xpath_query: str, namespaces=None) -> List[etree.
         if namespaces is None:
             nodes = cast(List[etree._Element], dom.xpath(xpath_query))
         else:
-            nodes = cast(List[etree._Element], dom.xpath(xpath_query, namespaces=namespaces))
+            nodes = cast(List[etree._Element], dom.xpath(
+                xpath_query, namespaces=namespaces))
 
     return nodes
 
@@ -77,8 +78,10 @@ def get_attr_value(dom: etree._Element, attr_name: str) -> str:
 def text(dom: etree._Element) -> str:
     return cast(str, dom.text)
 
+
 def getparent(dom: etree._Element) -> etree._Element:
     return cast(etree._Element, dom.getparent())
+
 
 def _get_alts(alt_to_p: bool, result: etree._Element) -> str:
     alts: str = ""

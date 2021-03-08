@@ -491,6 +491,8 @@ class QLArticleBuilder():
         elif type_node == "TWITTER":
             content = "<p><a href=\"%s\">%s</a></p>" % (
                 node["url"], node["label"])
+        elif type_node in ["YOUTUBE", "DAILYMOTION"]:
+            content = "<iframe width=\"560\" height=\"315\" src=\"%s\"></iframe>" % node["url"]
         else:
             content = "<p><i><small>Unknown embed type name: '%s'%s</small></i></p>" % (
                 type_node, "%s")
@@ -509,24 +511,30 @@ class QLArticleBuilder():
 
     def _format_video(self, node: dict) -> str:
         content: str = ""
-        video_id: str = b64decode(cast(str, json_utils.get_node(
-            node, "id")).encode("ascii")).decode("ascii")
-        page = requests.get(
-            url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % video_id[len("Video:"):])
-        j = json.loads(page.text)
 
-        poster = ""
-        if "PictureUrl" in j:
-            poster = j["PictureUrl"]
+        if "id" not in node:
+            link: Optional[str] = cast(Optional[str], json_utils.get_node(node, "link", "__ref"))
+            if link is not None:
+                content = self._build(link)
+        else:
+            video_id: str = b64decode(
+                cast(str, node["id"]).encode("ascii")).decode("ascii")
+            page = requests.get(
+                url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % video_id[len("Video:"):])
+            j = json.loads(page.text)
 
-        if "VideoUrl" in j:
-            content = """<video width="100%%" controls="" preload="auto" poster="%s">
-                                <source src="%s" />
-                            </video>""" % (poster, j["VideoUrl"])
-        elif "EmbedUrl" in j:
-            content = """<iframe src="%s"/>""" % (j["EmbedUrl"])
+            poster = ""
+            if "PictureUrl" in j:
+                poster = j["PictureUrl"]
 
-        content += "<p><i><small>%s</small></i></p>" % json_utils.get_node(
-            node, "title")
+            if "VideoUrl" in j:
+                content = """<video width="100%%" controls="" preload="auto" poster="%s">
+                                    <source src="%s" />
+                                </video>""" % (poster, j["VideoUrl"])
+            elif "EmbedUrl" in j:
+                content = """<iframe src="%s"/>""" % (j["EmbedUrl"])
+
+            content += "<p><i><small>%s</small></i></p>" % json_utils.get_node(
+                node, "title")
 
         return content
