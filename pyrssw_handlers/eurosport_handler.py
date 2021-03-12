@@ -15,6 +15,9 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
 
+CONTENT_MARKER = "#CONTENT#"
+
+
 class EurosportHandler(PyRSSWRequestHandler):
     """Handler for french <a href="https://www.eurosport.fr">Eurosport</a> website.
 
@@ -435,29 +438,29 @@ class QLArticleBuilder():
                 if refs_node_name is not None:
                     content += self._build(refs_node_name)
 
-        return content_formatter % content if content_formatter.find("%s") > -1 else content_formatter
+        return content_formatter.replace(CONTENT_MARKER, content)
 
     def _format(self, node: dict) -> str:
         type_name = cast(str, json_utils.get_node(node, "__typename"))
         node_format: str = "<p><i><small>Unknown type name: '%s'%s</small></i></p>" % (
-            type_name, "%s")  # default value if type name not handled
+            type_name, CONTENT_MARKER)  # default value if type name not handled
 
         if type_name == "HyperLink":
             node_format = "<a href=\"%s\">%s</a>" % (
-                node["url"], "%s")
+                node["url"], CONTENT_MARKER)
         elif type_name == "Picture":
             node_format = "<img src=\"%s\" alt=\"%s\"></img>%s" % (
                 node["url"],
                 node["caption"],
-                "%s")
+                CONTENT_MARKER)
         elif type_name == "Video":
             node_format = self._format_video(node)
         elif type_name in ["Paragraph", "ListItem"]:
-            node_format = "<p>%s</p>"
+            node_format = "<p>%s</p>" % CONTENT_MARKER
         elif type_name == "Text":
             node_format = node["content"]
         elif type_name == "H2":
-            node_format = "<h2>%s</h2>"
+            node_format = "<h2>%s</h2>" % CONTENT_MARKER
         elif type_name == "HyperLinkInternal":
             node_format = "<a href=\"%s\">%s</a>" % (self._build(
                 cast(str, json_utils.get_node(node, "content", "__ref"))),
@@ -470,9 +473,9 @@ class QLArticleBuilder():
         elif type_name == "List":
             node_format = self._format_list(node)
         elif type_name == "Blockquote":
-            node_format = "<blockquote>%s</blockquote>"
-        elif type_name in ["Body", "CyclingStage"]:
-            node_format = "%s"
+            node_format = "<blockquote>%s</blockquote>" % CONTENT_MARKER
+        elif type_name in ["Body", "CyclingStage", "Program"]:
+            node_format = CONTENT_MARKER
         elif type_name == "BreakLine":
             node_format = "<br/>"
         elif type_name in ["TeamSportsMatch", "Article"]:
@@ -491,11 +494,11 @@ class QLArticleBuilder():
         elif type_node == "TWITTER":
             content = "<p><a href=\"%s\">%s</a></p>" % (
                 node["url"], node["label"])
-        elif type_node in ["YOUTUBE", "DAILYMOTION"]:
+        elif type_node in ["YOUTUBE", "DAILYMOTION", "INSTAGRAM"]:
             content = "<iframe width=\"560\" height=\"315\" src=\"%s\"></iframe>" % node["url"]
         else:
             content = "<p><i><small>Unknown embed type name: '%s'%s</small></i></p>" % (
-                type_node, "%s")
+                type_node, CONTENT_MARKER)
 
         return content
 
@@ -513,7 +516,8 @@ class QLArticleBuilder():
         content: str = ""
 
         if "id" not in node:
-            link: Optional[str] = cast(Optional[str], json_utils.get_node(node, "link", "__ref"))
+            link: Optional[str] = cast(
+                Optional[str], json_utils.get_node(node, "link", "__ref"))
             if link is not None:
                 content = self._build(link)
         else:
