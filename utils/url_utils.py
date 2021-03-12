@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 
 URL_REGEX = re.compile(
@@ -11,5 +12,8 @@ URL_REGEX = re.compile(
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 
-def is_url_valid(url:str) -> bool:
-    return re.match(URL_REGEX, url) is not None
+def is_url_valid(url: Optional[str]) -> bool:
+    is_url_valid: bool = False
+    if url is not None and url != "":
+        is_url_valid = re.match(URL_REGEX, url) is not None
+    return is_url_valid

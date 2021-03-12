@@ -1,0 +1,221 @@
+import json
+import html
+import requests
+from request.pyrssw_content import PyRSSWContent
+from utils.url_utils import is_url_valid
+from handlers.feed_type.atom_arranger import NAMESPACES
+import re
+from typing import Dict, List, Optional, cast
+from requests import cookies, Session
+from lxml import etree
+from urllib.parse import urlparse
+from pyrssw_handlers.abstract_pyrssw_request_handler import \
+    PyRSSWRequestHandler
+from utils.dom_utils import get_content, to_string, xpath
+from utils.json_utils import get_node, get_node_value_if_exists
+
+NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
+
+IMGUR_GIFV = re.compile(r'(?:https?://.*imgur.com)(?:.*)/([^/]*).gifv')
+
+
+class RedditHandler(PyRSSWRequestHandler):
+    """Handler for reddit.
+
+    Handler name: redditng
+
+    RSS parameters:
+      - sub : sub suffix, eg: france (which will be translated to: https://www.reddit.com/r/france/.rss)
+
+    Content:
+        Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
+    """
+
+    @staticmethod
+    def get_handler_name() -> str:
+        return "redditng"
+
+    def get_original_website(self) -> str:
+        return "https://www.reddit.com/"
+
+    def get_rss_url(self) -> str:
+        return "https://www.reddit.com/.rss"
+
+    def _manage_rg(self, url: str) -> str:
+        page = requests.get(url)
+        dom = etree.HTML(page.text)
+
+        return get_content(dom, ['//video'])
+
+    def get_feed(self, parameters: dict, session: Session) -> str:
+        rss_url: str = self.get_rss_url()
+
+        if "sub" in parameters:
+            rss_url = "https://www.reddit.com/r/%s/.rss" % parameters["sub"]
+
+        feed = session.get(url=rss_url, headers={}).text
+
+        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
+        # I probably do not use etree as I should
+        dom = etree.fromstring(feed)
+
+        for entry in xpath(dom, "//atom:entry", namespaces=NAMESPACES):
+            content = cast(str, xpath(entry, "./atom:content",
+                                      namespaces=NAMESPACES)[0].text)
+
+            # try to replace thumbnail with real picture
+            imgs = re.findall(r'"http[^"]*jpg"', content)
+            thumb: str = ""
+            other: str = ""
+            for img in imgs:
+                if "thumbs.redditmedia" in img:
+                    thumb = img
+                else:
+                    other = img
+            if other != "":
+                xpath(entry, "./atom:content", namespaces=NAMESPACES)[0].text = content.replace(
+                    thumb, other).replace("<td> &#32;", "</tr><tr><td> &#32;")
+
+            for link in xpath(entry, "./atom:link", namespaces=NAMESPACES):
+                link.attrib["href"] = self.get_handler_url_with_parameters(
+                    {"url": cast(str, link.attrib["href"].strip())})
+
+        feed = to_string(dom)
+
+        return feed
+
+    def get_content(self, url: str, parameters: dict, session: Session) -> PyRSSWContent:
+        cookie_obj = cookies.create_cookie(
+            domain="reddit.com", name="over18", value="1")
+        session.cookies.set_cookie(cookie_obj)
+        content: str = ""
+
+        root = json.loads(session.get(url="%s/.json" % url).content)
+        datatypes = self._get_datatypes_json(root, "t3")  # t3 : content
+        for data in datatypes:
+            content += "<h1>%s</h1>" % get_node_value_if_exists(
+                data, "title")
+            self_html: str = get_node_value_if_exists(data, "selftext_html")
+            post_hint: str = get_node_value_if_exists(data, "post_hint")
+            url_overridden_by_dest: str = get_node_value_if_exists(
+                data, "url_overridden_by_dest")
+            preview_image: Optional[str] = cast(
+                Optional[str], get_node(data, "preview", "images", 0, "source", "url"))
+            is_gallery: str = str(get_node_value_if_exists(data, "is_gallery"))
+            domain: Optional[str] = cast(str, get_node(data, "domain"))
+
+            if self_html != "":
+                content += html.unescape(self_html)
+
+            if is_gallery == "True":
+                content += self._manage_gallery(data)
+
+            c: Optional[str] = self._manage_external_content(
+                url_overridden_by_dest, post_hint, preview_image, domain)
+            if c is not None:
+                content += c
+
+            content = content.replace("<video ", "<video controls ")
+
+        comments: str = "<hr/><h2>Comments</h2>"
+        comments_json = self._get_datatypes_json(
+            root, "t1")  # t1 : comments
+        for comment_json in comments_json:
+            comments += self.get_comments(comment_json)
+
+
+        content = "<article>%s%s</article>" % (
+            content, comments)
+
+        return PyRSSWContent(content)
+
+    def _get_datatypes_json(self, data: dict, ttype: str) -> List[dict]:
+        datatype_json: List[dict] = []
+        if len(data) > 0:
+            for d in data:
+                nodes = get_node(d, "data", "children")
+                for node in nodes:
+                    if "kind" in node and node["kind"] == ttype and "data" in node:
+                        datatype_json.append(node["data"])
+
+        return datatype_json
+
+    def _manage_external_content(self, href: Optional[str], post_hint: str, preview_image: Optional[str], domain: str) -> Optional[str]:
+        external_content: Optional[str] = None
+        if is_url_valid(href):
+            url: str = cast(str, href)
+            if post_hint == "link":
+                external_content = super().get_readable_content(url, add_source_link=True)
+            elif post_hint == "rich:video":
+                m = re.match(IMGUR_GIFV, url)
+                if m is not None:
+                    imgur_id: str = m.group(1)
+                    external_content = """<p><video poster="//i.imgur.com/%s.jpg" preload="auto" autoplay="autoplay" muted="muted" loop="loop" webkit-playsinline="" style="width: 480px; height: 854px;">
+                            <source src="//i.imgur.com/%s.mp4" type="video/mp4">
+                        </video></p>""" % (imgur_id, imgur_id)
+                elif url.find("ifs.com") > -1:
+                    external_content = self._manage_rg(url)
+                else:
+                    external_content = "<p><img src=\"%s\"/></p><p><a href=\"%s\">Source : %s</a></p>" % (
+                        preview_image, url, domain)
+            elif post_hint == "image":
+                external_content = "<p><img src=\"%s\"/></p>" % url
+            elif post_hint != "":
+                external_content = "<p>UNKOWN post_hint '%s'</p>" % post_hint
+
+        return external_content
+
+    def get_comments(self, comments: dict, deep: int = 0) -> str:
+        """Append comments to the content. The webscrapped version contains only 2 levels in threads.
+        The comments are displayed in a <ul> list. Only the comment, no nickname, no points, no date.
+
+        Args:
+            comments (dict): json containing comments
+
+        Returns:
+            str: html content for comments
+        """
+        
+        comments_html: str = ""
+        if deep < 3: #not to deep
+            if "body" in comments:
+                comments_html += "<li>%s</li>" % comments["body"]
+            
+            replies = get_node(comments, "replies", "data", "children")
+            if isinstance(replies, list):
+                for reply in replies:
+                    if "kind" in reply and reply["kind"] == "t1" and "data" in reply:
+                        comments_html += self.get_comments(reply["data"], deep+1)
+            
+            comments_html = "<ul>%s</ul>" % comments_html
+
+        return comments_html
+
+    def _manage_gallery(self, post: dict) -> str:
+        gallery_html: str = ""
+        images: Dict[str, str] = self._get_gallery_images(post)
+
+        if "gallery_data" in post and "items" in post["gallery_data"]:
+            for item in post["gallery_data"]["items"]:
+                if "caption" in item:
+                    if "outbound_url" in item:
+                        gallery_html += "<p><a href=\"%s\">%s</a></p>" % (
+                            item["outbound_url"], item["caption"])
+                    else:
+                        gallery_html += "<p>%s</p>" % item["caption"]
+
+                if item["media_id"] in images:
+                    gallery_html += images[item["media_id"]]
+
+        return gallery_html
+
+    def _get_gallery_images(self, post: dict) -> Dict[str, str]:
+        images: Dict[str, str] = {}
+
+        if "media_metadata" in post:
+            for node_name in post["media_metadata"]:
+                node = post["media_metadata"][node_name]
+                if "e" in node and node["e"] == "Image" and "p" in node and len(node["p"]) > 0:
+                    images[node["id"]] = "<p><img src=\"%s\"/>" % node["p"][-1]["u"]
+
+        return images

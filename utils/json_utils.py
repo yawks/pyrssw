@@ -41,7 +41,7 @@ def get_node(json: dict, *kwargs):
     if kwargs is not None and len(kwargs) > 0:
         node = json
         for node_name in kwargs:
-            if node is not None and node_name in node:
+            if node is not None and (isinstance(node_name, int) or node_name in node):
                 node = node[node_name]
             else:
                 found = False
