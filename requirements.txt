@@ -6,3 +6,4 @@ pymongo
 python-dateutil
 readability-lxml
 Pillow
+ftfy
