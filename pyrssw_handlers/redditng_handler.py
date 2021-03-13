@@ -8,7 +8,6 @@ import re
 from typing import Dict, List, Optional, cast
 from requests import cookies, Session
 from lxml import etree
-from urllib.parse import urlparse
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 from utils.dom_utils import get_content, to_string, xpath
@@ -17,6 +16,7 @@ from utils.json_utils import get_node, get_node_value_if_exists
 NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
 
 IMGUR_GIFV = re.compile(r'(?:https?://.*imgur.com)(?:.*)/([^/]*).gifv')
+IMG_PREVIEW_REDDIT = 'src="(https?://preview.redd.it/([^\?]*)[^"]*)"'
 
 
 class RedditHandler(PyRSSWRequestHandler):
@@ -110,11 +110,12 @@ class RedditHandler(PyRSSWRequestHandler):
             if is_gallery == "True":
                 content += self._manage_gallery(data)
 
-            c: Optional[str] = self._manage_external_content(
-                url_overridden_by_dest, post_hint, preview_image, domain)
+            c: Optional[str] = self._manage_external_content(session,
+                                                             url_overridden_by_dest, post_hint, preview_image, domain, data)
             if c is not None:
                 content += c
 
+            content = self._manage_reddit_preview_images(content)
             content = content.replace("<video ", "<video controls ")
 
         comments: str = "<hr/><h2>Comments</h2>"
@@ -123,11 +124,38 @@ class RedditHandler(PyRSSWRequestHandler):
         for comment_json in comments_json:
             comments += self.get_comments(comment_json)
 
-
         content = "<article>%s%s</article>" % (
             content, comments)
 
         return PyRSSWContent(content)
+
+    def _manage_reddit_preview_images(self, content) -> str:
+        """Use directly the image instead of the preview
+
+        Args:
+            content ([type]): html content
+
+        Returns:
+            str: the content where preview images have been replaced by target
+        """
+        content_without_preview: str = content
+        img_previews = re.findall(IMG_PREVIEW_REDDIT, content)
+        for preview in img_previews:
+            content_without_preview = content.replace(
+                preview[0], "https://i.redd.it/%s" % preview[1])
+
+        dom = etree.HTML(content_without_preview)
+        for a in xpath(dom, "//a"):
+            if "href" in a.attrib and a.attrib["href"].find("://preview.redd.it/") > -1:
+                img = etree.Element("img")
+                img.set("src", a.attrib["href"].replace(
+                    "preview.redd.it", "i.redd.it"))
+                a.getparent().append(img)
+                a.getparent().remove(a)
+
+        content_without_preview = to_string(dom)
+
+        return content_without_preview
 
     def _get_datatypes_json(self, data: dict, ttype: str) -> List[dict]:
         datatype_json: List[dict] = []
@@ -140,17 +168,32 @@ class RedditHandler(PyRSSWRequestHandler):
 
         return datatype_json
 
-    def _manage_external_content(self, href: Optional[str], post_hint: str, preview_image: Optional[str], domain: str) -> Optional[str]:
+    def _manage_external_content(self, session: Session, href: Optional[str], post_hint: str, preview_image: Optional[str], domain: str, data: dict) -> Optional[str]:
         external_content: Optional[str] = None
         if is_url_valid(href):
             url: str = cast(str, href)
-            if post_hint == "link":
-                external_content = super().get_readable_content(url, add_source_link=True)
+            if url.startswith("https://twitter.com/"):
+                external_content = "<p><a href=\"%s\">Tweet</a></p>" % url
+            elif url.startswith("https://www.youtube.com/"):
+                external_content = "<iframe class=\"pyrssw_youtube\" src=\"%s\">Youtube</iframe></p>" % url.replace("watch?v=","embed/")
+            elif post_hint in ["", "link"]:
+                headers = {
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+                    "Content-Type": "text/html; charset=utf-8",
+                    "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
+                    "Cache-Control": "no-cache",
+                    "Upgrade-Insecure-Requests": "1",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
+                    "Pragma": "no-cache",
+                    "Referer": "https://www.reddit.com/"
+                }
+                external_content = super().get_readable_content(
+                    session, url, headers=headers,  add_source_link=True)
             elif post_hint == "rich:video":
                 m = re.match(IMGUR_GIFV, url)
                 if m is not None:
                     imgur_id: str = m.group(1)
-                    external_content = """<p><video poster="//i.imgur.com/%s.jpg" preload="auto" autoplay="autoplay" muted="muted" loop="loop" webkit-playsinline="" style="width: 480px; height: 854px;">
+                    external_content = """<p><video poster="//i.imgur.com/%s.jpg" preload="auto" autoplay="autoplay" muted="muted" loop="loop" webkit-playsinline="" >
                             <source src="//i.imgur.com/%s.mp4" type="video/mp4">
                         </video></p>""" % (imgur_id, imgur_id)
                 elif url.find("ifs.com") > -1:
@@ -158,9 +201,14 @@ class RedditHandler(PyRSSWRequestHandler):
                 else:
                     external_content = "<p><img src=\"%s\"/></p><p><a href=\"%s\">Source : %s</a></p>" % (
                         preview_image, url, domain)
+            elif post_hint == "hosted:video":
+                video_url = get_node(data, "media", "reddit_video", "hls_url")
+                external_content = """<p><video poster="%s" preload="auto" autoplay="autoplay" muted="muted" loop="loop" webkit-playsinline="" >
+                            <source src="%s" type="application/vnd.apple.mpegURL">
+                        </video></p>""" % (preview_image, video_url)
             elif post_hint == "image":
                 external_content = "<p><img src=\"%s\"/></p>" % url
-            elif post_hint != "":
+            else:
                 external_content = "<p>UNKOWN post_hint '%s'</p>" % post_hint
 
         return external_content
@@ -175,18 +223,20 @@ class RedditHandler(PyRSSWRequestHandler):
         Returns:
             str: html content for comments
         """
-        
+
         comments_html: str = ""
-        if deep < 3: #not to deep
-            if "body" in comments:
-                comments_html += "<li>%s</li>" % comments["body"]
-            
+        if deep < 3:  # not to deep
+            if "body_html" in comments:
+                comments_html += "<li>%s</li>" % html.unescape(
+                    comments["body_html"])
+
             replies = get_node(comments, "replies", "data", "children")
             if isinstance(replies, list):
                 for reply in replies:
                     if "kind" in reply and reply["kind"] == "t1" and "data" in reply:
-                        comments_html += self.get_comments(reply["data"], deep+1)
-            
+                        comments_html += self.get_comments(
+                            reply["data"], deep+1)
+
             comments_html = "<ul>%s</ul>" % comments_html
 
         return comments_html

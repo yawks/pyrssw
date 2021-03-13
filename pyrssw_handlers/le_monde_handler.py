@@ -113,13 +113,6 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 '//*[@id="main"]'                               # blog
             ])
 
-            
-            #content = content.replace("&amp;amp;", "&")
-            #content = content.replace("&amp;lt;", "<")
-            #content = content.replace("&amp;gt;", ">")
-            #content = content.replace("&amp;le;", ">=")
-            #content = content.replace("&amp;ge;", ">=")
-
         finally:
             self._unauthent(session)
         return PyRSSWContent(content)
@@ -160,7 +153,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
                     url=URL_CONNECTION, data=data, headers=self._get_headers(URL_CONNECTION))
 
     def _get_headers(self, referer):
-        headers = {
+        return {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
@@ -174,7 +167,6 @@ class LeMondeHandler(PyRSSWRequestHandler):
             "Pragma": "no-cache",
             "Referer": referer
         }
-        return headers
 
     def _unauthent(self, session: requests.Session):
         session.get(url=URL_DECONNECTION, headers=self._get_headers("/"))

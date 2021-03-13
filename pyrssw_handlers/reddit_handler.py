@@ -101,7 +101,7 @@ class RedditInfoHandler(PyRSSWRequestHandler):
             external_hrefs = re.findall(r'href="([^"]*)"', external_link)
             for href in external_hrefs:
                 if is_url_valid(href):
-                    c: Optional[str] = self._manage_external_content(href)
+                    c: Optional[str] = self._manage_external_content(session, href)
                     if c is not None:
                         content = c
                         break
@@ -130,10 +130,10 @@ class RedditInfoHandler(PyRSSWRequestHandler):
                 content += "<p><img src=\"%s\"/></p>" % node.attrib["href"]
         return content
     
-    def _manage_external_content(self, href: str) -> Optional[str]:
+    def _manage_external_content(self, session: Session, href: str) -> Optional[str]:
         external_content: Optional[str] = None
         if not self._is_a_picture_link(href):
-                external_content = super().get_readable_content(href, add_source_link=True)
+                external_content = super().get_readable_content(session, href, add_source_link=True)
         else:
             m = re.match(IMGUR_GIFV, href)
             if m is not None:

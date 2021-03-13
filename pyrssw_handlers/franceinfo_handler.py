@@ -119,7 +119,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
         if len(content.replace("\n", "").strip()) < 150:
             # less than 150 chars, we did not manage to get the content, use readability facility
-            content = super().get_readable_content(url)
+            content = super().get_readable_content(session, url)
 
         # avoid loosing topCallImage because of remove script
         content = content.replace("id=\"topCallImage\"", "id=\"topCallImage--\"")

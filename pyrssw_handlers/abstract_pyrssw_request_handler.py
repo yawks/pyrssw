@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Dict, Optional, cast
 from urllib.parse import quote_plus
 from readability import Document
+from ftfy import fix_text
 
 import requests
 from cryptography.fernet import Fernet
@@ -118,7 +119,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
         """
     
         
-    def get_readable_content(self, url: Optional[str], add_source_link=False) -> str:
+    def get_readable_content(self, session: requests.Session, url: Optional[str], headers:Dict[str,str]={}, add_source_link=False) -> str:
         """Return the readable content of the given url
 
         Args:
@@ -130,12 +131,13 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
         """
         readable_content: str = ""
         if is_url_valid(url):
-            doc = Document(requests.get(cast(str, url)).text)
+            r = session.get(cast(str, url), headers=headers)
+            doc = Document(r.text)
             url_prefix = url[:len("https://")+len(url[len("https://"):].split("/")[0])+1]
 
             if add_source_link:
                 readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (url, url_prefix)
-            readable_content += doc.summary()
+            readable_content += fix_text(doc.summary())
             readable_content = readable_content.replace("<html>","").replace("</html>","").replace("<body>","").replace("</body>","")
             
             #replace relative links
@@ -143,12 +145,16 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             readable_content = readable_content.replace('src="/', 'src="' + url_prefix)
             readable_content = readable_content.replace('href=\'/', 'href=\'' + url_prefix)
             readable_content = readable_content.replace('src=\'/', 'src=\'' + url_prefix)
+            readable_content = readable_content.replace("<noscript>", "").replace("</noscript>", "")
 
+            """
+            Not sure still useful with fix_text
             if readable_content.find("\x92") > -1 or readable_content.find("\x96") > -1 or readable_content.find("\xa0") > -1:
                 #fix enconding stuffs
                 try:
                     readable_content = readable_content.encode("latin1").decode("cp1252")
                 except UnicodeEncodeError:
                     pass
+            """
                 
         return readable_content
