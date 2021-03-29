@@ -1,11 +1,15 @@
 # PyRSSW
 
-PyRSSW stands for Python RSS Wrapper. This is a RSS proxy reworking existing RSS feeds to provide:
+PyRSSW stands for Python RSS Wrapper.
+This is a RSS proxy reworking existing RSS feeds in order to provide new feed links handling content.
+The purpose is to provide an enhanced clean content (no header/footer, menu, ads, ...):
+- dark mode available
+- ability to use credentials to get authentified content
+- automatic insertion of tweets instead of their links
+- language translation available
 
-- new features to existing RSS feeds (filtering, dark mode, ...)
-- the feeds content, and only the [readable](https://github.com/mozilla/readability) part of it, even if a login/password is required
 
-The main objective is to provide clean content to RSS clients like [Flym](https://github.com/FredJul/Flym) or [FeedBro](https://nodetics.com/feedbro/) which can display feeds content inline.
+Best way to use PyRSSW are RSS clients like [Flym](https://github.com/FredJul/Flym) or [FeedBro](https://nodetics.com/feedbro/) which can display feeds content inline.
 
 Get feed
 ```mermaid
@@ -136,10 +140,11 @@ Each handle can define its own parameters, but PyRSSW also provides a bunch of g
 
 - `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
   ie: `/dummy/rss?dark=true`
-- `hidetitle` (boolean): if set to true, the first h1 of the article will be hidden 
+- `hidetitle` (boolean): if set to true, the first h1 of the article will be hidden
 - `userid` (string): if defined every feed content URL requested for the given userid will be stored in a database in order to not be presented in the next RSS get_feed calls (is a simple way to propose only new feeds between 2 different RSS readers apps) This is very simple and not securized enough.
   A mongodb database must be up and running. See the _storage.mongodb.url_ and _storage.readarticles.age_ parameters in the [configuration file](#configuration-file).
   ie: `/dummy/rss?userid=mat`
+- `translateto` (string): if set (and valid), the content will be translated using google translate (ie: "en", "fr", "fi")
 - `debug` (boolean): if set to true, will display the session id at the end of the RSS feed.
 - `nsfw` (boolean): if set to true, the feed thumbnail is blurred
   ie: `/dummy/rss?debug=true`
@@ -204,7 +209,7 @@ class DummyHandler(PyRSSWRequestHandler):
 
         return content
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> str:
+    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         """Takes an url and a dictionary of parameters and must return the result content.
 
         Arguments:
@@ -213,7 +218,7 @@ class DummyHandler(PyRSSWRequestHandler):
             parameters {requests.Session} -- the session provided to process HTTP queries
 
         Returns:
-            str -- the content reworked
+            PyRSSWContent -- the content reworked + a custom css if needed
         """
 
         content: str = session.get(url).text
@@ -221,7 +226,7 @@ class DummyHandler(PyRSSWRequestHandler):
         #make any change on the content
         #to test your content with mozilla readability, you can use the "reader view" feature of Firefox or install the chrome version (https://chrome.google.com/webstore/detail/reader-view/ecabifbgmdmgdllomnfinbmaellmclnh)
 
-        return content
+        return PyRSSWContent(content, ".myclass {color:blue;}")
 
 ```
 

@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import logging
-from utils.dom_utils import to_string, xpath
+from utils.dom_utils import to_string, translate_dom, xpath
 from storage.article_store import ArticleStore
 from typing import Dict, Optional, cast
 import datetime
@@ -185,6 +185,11 @@ class FeedArranger(metaclass=ABCMeta):
             description = etree.Element(descriptions[0].tag)  # "description")
             description.text = html.unescape(
                 description_xml.strip()).replace("&nbsp;", " ")
+            if "translateto" in parameters:
+                dom = etree.HTML(description.text)
+                translate_dom(dom, parameters["translateto"])
+                description.text = to_string(dom)
+
             parent_obj.append(description)
 
             if "debug" in parameters and parameters["debug"] == "true":
@@ -203,10 +208,14 @@ class FeedArranger(metaclass=ABCMeta):
             # if description does not have a picture, add one from enclosure or media:content tag if any
             img_url: str = self.get_img_url(item)
 
+            title_node: etree._Element = cast(
+                etree._Element, self.get_title(item))
+            if "translateto" in parameters:
+                translate_dom(title_node, parameters["translateto"])
             if img_url == "":
                 # uses the ThumbnailHandler to fetch an image from google search images
                 img_url = "%s/thumbnails?request=%s&blur=%s" % (
-                    self.serving_url_prefix, quote_plus(re.sub(r"</?title[^>]*>", "", to_string(cast(etree._Element, self.get_title(item)))).strip()), nsfw)
+                    self.serving_url_prefix, quote_plus(re.sub(r"</?title[^>]*>", "", to_string(title_node)).strip()), nsfw)
 
             img = etree.Element("img")
             img.set("src", img_url)
@@ -236,7 +245,7 @@ class FeedArranger(metaclass=ABCMeta):
         """
         suffix_url: str = ""
         for parameter in parameters:
-            if parameter in ["dark", "debug", "userid", "plain", "hidetitle"]:
+            if parameter in ["dark", "debug", "userid", "plain", "hidetitle", "translateto"]:
                 suffix_url += "&%s=%s" % (parameter, parameters[parameter])
 
         if suffix_url != "":

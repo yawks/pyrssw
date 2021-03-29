@@ -1,27 +1,27 @@
+from typing import Dict, List, Optional, Tuple, Type
+import re
+import traceback
+import requests
+import urllib.parse as urlparse
+from lxml import etree
+from urllib.parse import parse_qs, unquote_plus
+from cryptography.fernet import Fernet, InvalidToken
 from handlers.feed_type.atom_arranger import AtomArranger
 from handlers.feed_type.rss2_arranger import RSS2Arranger
-import traceback
-import urllib.parse as urlparse
-from typing import Dict, List, Optional, Tuple
-from urllib.parse import parse_qs, unquote_plus
-import requests
-from cryptography.fernet import Fernet, InvalidToken
-from lxml import etree
-from typing_extensions import Type
 from handlers.request_handler import RequestHandler
 from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)
 from storage.article_store import ArticleStore
 from storage.session_store import SessionStore
-from utils.dom_utils import to_string, xpath
-import re
+from utils.dom_utils import to_string, translate_dom, xpath
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
-TWEETS_REGEX = re.compile(r'(?:(?:https:)?//twitter.com/)(?:.*)/status/([^\?]*)')
+TWEETS_REGEX = re.compile(
+    r'(?:(?:https:)?//twitter.com/)(?:.*)/status/([^\?]*)')
 
 
 class LauncherHandler(RequestHandler):
@@ -102,6 +102,7 @@ class LauncherHandler(RequestHandler):
         else:
             pyrssw_content = self.handler.get_content(
                 requested_url, parameters, session)
+
             self.contents = pyrssw_content.content
             self.additional_css = pyrssw_content.css
 
@@ -111,7 +112,7 @@ class LauncherHandler(RequestHandler):
             ArticleStore.instance().insert_article_as_read(
                 parameters["userid"], requested_url)
 
-        self._post_processing(parameters)
+        self._post_processing(parameters, url)
         self._wrapped_html_content(parameters)
 
     def _process_rss(self, parameters: Dict[str, str]):
@@ -311,18 +312,21 @@ class LauncherHandler(RequestHandler):
                     o.attrib[attribute] = self.handler.get_original_website(
                     ) + o.attrib[attribute][1:]
 
-        if self.handler.get_original_website() != '':
-            if dom is not None:
-                _replace_urls_process_links(dom, "href")
-                _replace_urls_process_links(dom, "src")
-                self._manage_title(dom, parameters)
-                self.contents = to_string(dom).replace(
-                    "<html>", "").replace("</html>", "").replace("<body>", "").replace("</body>", "")
+        if self.handler.get_original_website() != '' and dom is not None:
+            _replace_urls_process_links(dom, "href")
+            _replace_urls_process_links(dom, "src")
+            self._manage_title(dom, parameters)
 
-    def _post_processing(self, parameters: dict):
+    def _post_processing(self, parameters: dict, url: str):
         dom = etree.HTML(self.contents)
         self._post_process_tweets(parameters, dom)
         self._replace_prefix_urls(parameters, dom)
+        self._manage_translation(parameters, dom, url)
+        self.contents = to_string(dom)\
+            .replace("<html>", "")\
+            .replace("</html>", "")\
+            .replace("<body>", "")\
+            .replace("</body>", "")
         self.contents = self.contents.replace("data-src-lazyload", "src")
         self.contents = self.contents.replace("</br>", "")
 
@@ -370,3 +374,7 @@ class LauncherHandler(RequestHandler):
             script.set("src", "https://platform.twitter.com/widgets.js")
             script.set("sync", "")
             dom.append(script)
+
+    def _manage_translation(self, parameters: dict, dom: etree._Element, url: str):
+        if "translateto" in parameters:
+            translate_dom(dom, parameters["translateto"], url)
