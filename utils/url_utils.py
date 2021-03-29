@@ -1,5 +1,6 @@
 import re
 from typing import Optional
+from urllib.parse import urlparse
 
 
 URL_REGEX = re.compile(
@@ -17,3 +18,22 @@ def is_url_valid(url: Optional[str]) -> bool:
     if url is not None and url != "":
         is_url_valid = re.match(URL_REGEX, url) is not None
     return is_url_valid
+
+
+def is_a_picture_url(href: str) -> bool:
+        """Returns True if the href is a link to a picture
+
+        Args:
+            href (str): url
+
+        Returns:
+            bool: True if the href leads to real content
+        """
+        _is_a_picture_link: bool = False
+        parsed_url = urlparse(href)
+        for extension in [".jpg", ".jpeg", ".png", ".gif", ".gifv"]:
+            if parsed_url.path.lower().endswith(extension):
+                _is_a_picture_link = True
+                break
+
+        return _is_a_picture_link
