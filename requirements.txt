@@ -7,4 +7,4 @@ python-dateutil
 readability-lxml
 Pillow
 ftfy
-googletrans
+googletrans==3.1.0a0

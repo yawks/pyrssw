@@ -1,12 +1,11 @@
 # PyRSSW
 
 PyRSSW stands for Python RSS Wrapper.
-This is a RSS proxy reworking existing RSS feeds in order to provide new feed links handling content.
-The purpose is to provide an enhanced clean content (no header/footer, menu, ads, ...):
-- dark mode available
-- ability to use credentials to get authentified content
-- automatic insertion of tweets instead of their links
-- language translation available
+This is a RSS proxy reworking existing RSS feeds in order to provide enhanced clean articles content (no header/footer, no menu, no ads, ...) with optional features:
+- get authentified content using credentials
+- display content in dark mode
+- automatic insertion of tweets using the tweet a href links
+- translate content (through google translate)
 
 
 Best way to use PyRSSW are RSS clients like [Flym](https://github.com/FredJul/Flym) or [FeedBro](https://nodetics.com/feedbro/) which can display feeds content inline.
@@ -131,12 +130,12 @@ PyRSSW add to rss feeds some facilities.
 
 Any RSS feed provided by get_feed methods will be reworked:
 
-- if no picture is present on the description, the picture provided in _media:content_ or in _enclosure_ tags will be added. If no media:content or enclosure tag exists, a picture found in google images will be proposed by querying it with the _title_ tag
+- if no picture is present on the description, the picture provided in _media:content_ or in _enclosure_ tags will be added. If no _media:content_ or _enclosure_ tag exists, a picture found in google images will be proposed by querying it with the _title_ tag
 - a "source" link will be added in the end of every feed item provided pointing to the original website.
 
 ### Generic parameters
 
-Each handle can define its own parameters, but PyRSSW also provides a bunch of generic parameters for every handlers:
+Each handler can define its own parameters, but PyRSSW also provides a bunch of generic parameters for every handlers:
 
 - `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
   ie: `/dummy/rss?dark=true`
@@ -145,11 +144,11 @@ Each handle can define its own parameters, but PyRSSW also provides a bunch of g
   A mongodb database must be up and running. See the _storage.mongodb.url_ and _storage.readarticles.age_ parameters in the [configuration file](#configuration-file).
   ie: `/dummy/rss?userid=mat`
 - `translateto` (string): if set (and valid), the content will be translated using google translate (ie: "en", "fr", "fi")
-- `debug` (boolean): if set to true, will display the session id at the end of the RSS feed.
 - `nsfw` (boolean): if set to true, the feed thumbnail is blurred
   ie: `/dummy/rss?debug=true`
 - the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto*key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by **!e:**
   ie: `/dummy/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==`
+- `debug` (boolean): if set to true, will display some debug information after the content
 
 All the parameters can be combined, ie: `/dummy/rss?debug=true&dark=true&userid=mat`
 
@@ -200,14 +199,14 @@ class DummyHandler(PyRSSWRequestHandler):
         # You can use the given session to make http queries
         # This session is created first time the http client is requesting this handler by using a generated session id cookie
         # This session is stored in a mongo database to be reused between 2 get_feed calls (or get_content). The session will be deleted after "storage.sessions.duration" minutes (see the configuration file).
-        content: str = session.get(url).text
+        feed: str = session.get(url).text
         filters: str = ""
         if "filter" in parameters:
             filters = parameters["filter"].split(",")
             #...
             #make any change on the RSS feed
 
-        return content
+        return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         """Takes an url and a dictionary of parameters and must return the result content.
@@ -229,7 +228,7 @@ class DummyHandler(PyRSSWRequestHandler):
         return PyRSSWContent(content, ".myclass {color:blue;}")
 
 ```
-
+This source file must be added in handlers/pyrssw_handlers directory.
 The class description is used by the server to generate the root page content using _docstring_.
 
 See [existing handlers](./pyrssw_handlers) to see what's possible with PyRSSW.

@@ -178,7 +178,7 @@ class RedditHandler(PyRSSWRequestHandler):
             url: str = cast(str, href)
             external_content = self._get_content_by_url(
                 session, url, post_hint)
-            if external_content is None:
+            if external_content is None or external_content == "":
                 external_content = self._get_content_by_post_hint(
                     session, url, post_hint, preview_image, domain, data)
                 if external_content is None:
@@ -193,6 +193,8 @@ class RedditHandler(PyRSSWRequestHandler):
         elif url.startswith("https://www.youtube.com/"):
             external_content = "<iframe class=\"pyrssw_youtube\" src=\"%s\">Youtube</iframe></p>" % url.replace(
                 "watch?v=", "embed/")
+        elif is_a_picture_url(url):
+            external_content = "<img src=\"%s\"/>" % url
         elif url.find("imgur.com/") > -1:
             external_content = self._manage_imgur(session, url)
         elif url.find("gifs.com/") > -1:
