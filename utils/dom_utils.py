@@ -1,4 +1,5 @@
 import logging
+import traceback
 from typing import List, Optional, Tuple, cast
 from googletrans import Translator, LANGUAGES
 from utils.url_utils import is_url_valid
@@ -163,7 +164,7 @@ def get_xpath_expression_for_filters(parameters, xpath_to_include, xpath_to_excl
     return "//rss/channel/item[%s]" % xpath_expression
 
 
-def translate_dom(dom: etree._Element, dest_language: str, original_url:Optional[str] = None):
+def translate_dom(dom: etree._Element, dest_language: str, original_url: Optional[str] = None):
     if dest_language in LANGUAGES:
         translator = Translator()
         for node in dom.iter():
@@ -201,7 +202,7 @@ def _translate(text: Optional[str], translator: Translator, dest_language: str) 
                                     text, dest=dest_language).text,
                                 trailing_space)
         except Exception as e:
-            logging.getLogger().info("Error translating '%s' => '%s'",
-                                     text, str(e))
+            logging.getLogger().info("Error translating '%s' => '%s' (%s)",
+                                     text, str(e), traceback.format_exc())
 
     return value

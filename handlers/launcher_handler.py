@@ -191,7 +191,7 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper h2 {font-size: 140%}
                 #pyrssw_wrapper a {color: #0099CC}
                 #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
-                #pyrssw_wrapper img {height: auto; f margin-right:15px}
+                #pyrssw_wrapper img {height: auto; margin-right:15px}
                 #pyrssw_wrapper pre {white-space: pre-wrap; direction: ltr;}
                 #pyrssw_wrapper blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
                 #pyrssw_wrapper p {margin: 0.8em 0 0.8em 0}
@@ -273,6 +273,7 @@ class LauncherHandler(RequestHandler):
                     <html>
                         <head>
                             <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+                            <meta name='viewport' content='width=device-width'/>
                             <link rel="icon" href="https://icons.duckduckgo.com/ip3/%s.ico"/>
                             <style>
                             %s
