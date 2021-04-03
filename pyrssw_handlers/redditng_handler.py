@@ -65,7 +65,7 @@ class RedditHandler(PyRSSWRequestHandler):
                     thumb = img
                 else:
                     other = img
-            if other != "":
+            if thumb != "" and other != "":
                 xpath(entry, "./atom:content", namespaces=NAMESPACES)[0].text = content.replace(
                     thumb, other).replace("<td> &#32;", "</tr><tr><td> &#32;")
 
@@ -98,6 +98,8 @@ class RedditHandler(PyRSSWRequestHandler):
             if removed_by == "":
                 url_overridden_by_dest: str = get_node_value_if_exists(
                     data, "url_overridden_by_dest")
+                if len(url_overridden_by_dest) > 0 and url_overridden_by_dest[:1] == '/':
+                    url_overridden_by_dest = "https://www.reddit.com" + url_overridden_by_dest
                 preview_image: Optional[str] = cast(
                     Optional[str], get_node(data, "preview", "images", 0, "source", "url"))
                 is_gallery: str = str(
@@ -201,7 +203,7 @@ class RedditHandler(PyRSSWRequestHandler):
             page = session.get(url)
             dom = etree.HTML(page.text)
             external_content = get_content(dom, ["//video"])
-        elif url.find("://v.redd.it/") > -1 and post_hint in ["link", ""]:
+        elif (url.find("://v.redd.it/") > -1 or url.find("://www.reddit.com/") > -1) and post_hint in ["link", ""]:
             r = session.get(url)
             external_content = self.get_reddit_content(
                 r.url, session, False).content

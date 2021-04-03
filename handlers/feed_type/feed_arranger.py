@@ -169,9 +169,11 @@ class FeedArranger(metaclass=ABCMeta):
             description: etree._Element = descriptions[0]
             self._arrange_description_image(item, description, parameters)
 
+            """
             n = self._get_source(item)
             if n is not None:
                 description.append(n)
+            """
 
             description_xml: str = ""
             if descriptions[0].text is not None:

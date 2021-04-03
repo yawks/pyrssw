@@ -319,17 +319,18 @@ class LauncherHandler(RequestHandler):
             self._manage_title(dom, parameters)
 
     def _post_processing(self, parameters: dict, url: str):
-        dom = etree.HTML(self.contents)
-        self._post_process_tweets(parameters, dom)
-        self._replace_prefix_urls(parameters, dom)
-        self._manage_translation(parameters, dom, url)
-        self.contents = to_string(dom)\
-            .replace("<html>", "")\
-            .replace("</html>", "")\
-            .replace("<body>", "")\
-            .replace("</body>", "")
-        self.contents = self.contents.replace("data-src-lazyload", "src")
-        self.contents = self.contents.replace("</br>", "")
+        if len(self.contents.strip()) > 0:
+            dom = etree.HTML(self.contents)
+            self._post_process_tweets(parameters, dom)
+            self._replace_prefix_urls(parameters, dom)
+            self._manage_translation(parameters, dom, url)
+            self.contents = to_string(dom)\
+                .replace("<html>", "")\
+                .replace("</html>", "")\
+                .replace("<body>", "")\
+                .replace("</body>", "")
+            self.contents = self.contents.replace("data-src-lazyload", "src")
+            self.contents = self.contents.replace("</br>", "")
 
     def _post_process_tweets(self, parameters: dict, dom: etree._Element):
         """

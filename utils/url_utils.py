@@ -31,7 +31,7 @@ def is_a_picture_url(href: str) -> bool:
         """
         _is_a_picture_link: bool = False
         parsed_url = urlparse(href)
-        for extension in [".jpg", ".jpeg", ".png", ".gif", ".gifv"]:
+        for extension in [".jpg", ".jpeg", ".png", ".gif"]:
             if parsed_url.path.lower().endswith(extension):
                 _is_a_picture_link = True
                 break

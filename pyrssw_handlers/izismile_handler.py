@@ -105,29 +105,6 @@ class IzismileHandler(PyRSSWRequestHandler):
         for script in dom.xpath('//script'):
             script.getparent().remove(script)
 
-        """
-        izi_videos = dom.xpath('//*[@class="daily_a"]')
-        for izi_video in izi_videos:
-            if "href" in izi_video.attrib and izi_video.attrib["href"].endswith(".mp4"):
-                parent = izi_video.getparent()
-
-                video = etree.Element("video")
-                video.set("controls", "")
-                video.set("preload", "auto")
-                video.set("width", "100%")
-
-                poster = ""
-                for v in dom.xpath("//*[@data-poster]"):
-                    poster = v.attrib["data-poster"]
-                    break
-
-                video.set("poster", poster)
-
-                source = etree.Element("source")
-                source.set("src", izi_video.attrib["href"])
-                video.append(source)
-                parent.getparent().append(video)
-        """
         pagers = dom.xpath('//*[@class="postpages"]')
         if len(pagers) > 2:
             url_next_page = dom.xpath(
@@ -170,6 +147,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace("<div class=\"clear\"/>", "")
         content = content.replace(" class=\"owl-carousel\"", "")
         content = content.replace("margin-bottom:30px;","")
+        content = content.replace("<video", "<video preload=\"none\"")
         content = re.sub(
             r'<span class="sordering"><a class="back" href="#[^"]*"/><a name="[^"]*">[^<]*</a><a class="next" href="#[^"]*"/></span>', '', content)
         content = content.replace('id="post-list"', 'id="mainbody"')
