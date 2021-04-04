@@ -42,7 +42,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         feed = session.get(url=self.get_rss_url()).text
 
         feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
-        #f eed = feed.replace('<link>', '<link>%s?url=' % (self.url_prefix))
+        # f eed = feed.replace('<link>', '<link>%s?url=' % (self.url_prefix))
 
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
@@ -60,7 +60,6 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
             # if link.text.find("/video.shtml") > -1:
             link.text = "%s" % self.get_handler_url_with_parameters(
                 {"url": cast(str, link.text)})
-
 
         feed = to_string(dom)
 
@@ -84,6 +83,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
             new_img.set("src", img.attrib["src"])
             img.getparent().getparent().getparent().getparent().getparent().append(new_img)
 
+        title = utils.dom_utils.get_content(dom, ["//h1"])
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class, "module-toretain")]',
             '//*[contains(@class, "image-module")]',
@@ -93,7 +93,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
             '//*[contains(@class, "ICON-QUICKREAD")]/parent::*/parent::*'
         ])
 
-        content = utils.dom_utils.get_content(
-            dom, ['//div[contains(@class,"article-column")]'])
+        content = "%s%s" % (title, utils.dom_utils.get_content(
+            dom, ['//div[contains(@class,"article-column")]']))
 
         return PyRSSWContent(content)

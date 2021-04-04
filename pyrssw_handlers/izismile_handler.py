@@ -60,7 +60,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
-        content, url_next_page_2 = self._get_content(url, session)
+        content, url_next_page_2 = self._get_content(url, session, True)
 
         if url_next_page_2 != "":
             # add a page 2
@@ -75,14 +75,14 @@ class IzismileHandler(PyRSSWRequestHandler):
                 content += next_content
 
         return PyRSSWContent(content, """
-            #pyrssw_wrapper #izismile_handler div img {float:none}
+            #pyrssw_wrapper #izismile_handler div img {float:none; min-width:400px}
         """)
 
-    def _get_content(self, url, session: requests.Session):
+    def _get_content(self, url, session: requests.Session, with_title:bool = False):
         url_next_page = ""
         page = self._get_page_from_url(url, session)
         dom = etree.HTML(page.text)
-
+        title = "" if not with_title else utils.dom_utils.get_content(dom, ["//h1"])
         for a in dom.xpath("//a[contains(@href, \"https://izismile.com/outgoing.php\")]"):
             parsed = urlparse.urlparse(a.attrib["href"])
             if "url" in parse_qs(parsed.query):
@@ -129,7 +129,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         else:
             content = etree.tostring(dom, encoding='unicode')
 
-        content = self._clean_content(content)
+        content = "%s%s" %(title, self._clean_content(content))
 
         return content, url_next_page
 

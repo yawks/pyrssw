@@ -31,6 +31,7 @@ class EvilmilkHandler(PyRSSWRequestHandler):
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         page = session.get(url=url, headers={})
         dom = etree.HTML(page.text)
+        title = utils.dom_utils.get_content(dom, ["//h1"])
 
         utils.dom_utils.delete_xpaths(dom, [
             '//*[@class="content-info"]',
@@ -58,6 +59,7 @@ class EvilmilkHandler(PyRSSWRequestHandler):
         content = content.replace('playsinline=""', '')
         content = re.sub(r'poster=(["\'])/',
                          r'poster=\1https://www.evilmilk.com/', content)
+        content = "%s%s" % (title, content)
 
         return PyRSSWContent(content)
 
@@ -77,5 +79,6 @@ class EvilmilkHandler(PyRSSWRequestHandler):
                          r'href=\1https://www.evilmilk.com/', content)
         content = re.sub(
             r'src=(["\'])/', r'src=\1https://www.evilmilk.com/', content)
-        content = content.replace("<ul", "<ul style='list-style-type:none;margin:0;padding:0'")
+        content = content.replace(
+            "<ul", "<ul style='list-style-type:none;margin:0;padding:0'")
         return content

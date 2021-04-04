@@ -14,7 +14,7 @@ class RSS2Arranger(FeedArranger):
         return item.xpath(".//link")
 
     def get_url_from_link(self, link: etree) -> str:
-        return link.text.strip()
+        return "" if link.text is None else link.text.strip()
 
     def set_url_from_link(self, link: etree._Element, url: str):
         link.text = url

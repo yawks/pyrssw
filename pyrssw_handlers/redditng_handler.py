@@ -168,9 +168,10 @@ class RedditHandler(PyRSSWRequestHandler):
         if len(data) > 0:
             for d in data:
                 nodes = get_node(d, "data", "children")
-                for node in nodes:
-                    if "kind" in node and node["kind"] == ttype and "data" in node:
-                        datatype_json.append(node["data"])
+                if nodes is not None:
+                    for node in nodes:
+                        if "kind" in node and node["kind"] == ttype and "data" in node:
+                            datatype_json.append(node["data"])
 
         return datatype_json
 

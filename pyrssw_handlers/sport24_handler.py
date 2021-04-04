@@ -1,14 +1,14 @@
 from request.pyrssw_content import PyRSSWContent
 import string
 import re
-from typing import List, NewType, Optional
+from typing import List
 import requests
 from lxml import etree
 import json
 import base64
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
-from utils.dom_utils import get_attr_value, getparent, text, to_string, xpath
+from utils.dom_utils import get_attr_value, text, to_string, xpath
 
 DUGOUT_VIDEO = re.compile(r'(?:https?://embed.dugout.com/v2/\?p=)([^/]*)')
 
@@ -49,8 +49,9 @@ class Sport24Handler(PyRSSWRequestHandler):
         utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         for link in xpath(dom, "//item/link"):
-            link.text = self.get_handler_url_with_parameters(
-                {"url": text(link).strip()})
+            if link is not None and text(link) is not None:
+                link.text = self.get_handler_url_with_parameters(
+                    {"url": text(link).strip()})
 
         feed = to_string(dom)
 
@@ -72,6 +73,7 @@ class Sport24Handler(PyRSSWRequestHandler):
         content = page.text
 
         dom = etree.HTML(page.text)
+        title = utils.dom_utils.get_content(dom, ["//h1"])
         imgs = dom.xpath("//img[@srcset]")
         imgsrc = ""
         if len(imgs) > 0:
@@ -99,6 +101,7 @@ class Sport24Handler(PyRSSWRequestHandler):
                 '//article[contains(@class,"fig-main")]' #handles lefigaro.fr/sports
             ])
 
+        content = "%s%s" % (title, content)
         return PyRSSWContent(content, """
             #sport24_handler .object-left {
                 display: block;
