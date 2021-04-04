@@ -40,9 +40,6 @@ $ pip install -r requirements.txt #first time only
 $ python main.py -c resources/config.ini
 ```
 
-*Optional:*
-To use all features of PyRSSW you need to setup up a mongo db, named *pyrssw*, see *storage.mongodb.url* in the [configuration file](#configuration-file).
-
 ### WSGI
 
 For security purposes PyRSSW should be used through WSGI:
@@ -105,16 +102,6 @@ server.keyfile=resources/localhost.key
 #server.basicauth.login=
 #server.basicauth.password=
 
-#to store http sessions between many calls of get_feed or get_content and to store read articles, a mongo database must be set up
-#this is optional, if no mongodb is available, pyrssw will work without these 2 features.
-#storage.mongodb.url=mongodb://localhost:27017/
-
-#when using userid parameter in feed urls keep trace of read articles in days, older will be deleted
-storage.readarticles.age=30
-
-#keep sessions in cache durig x minutes, older will be deleted
-storage.sessions.duration=30
-
 #server.crypto_key=
 
 ```
@@ -140,8 +127,6 @@ Each handler can define its own parameters, but PyRSSW also provides a bunch of 
 - `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
   ie: `/dummy/rss?dark=true`
 - `hidetitle` (boolean): if set to true, the first h1 of the article will be hidden
-- `userid` (string): if defined every feed content URL requested for the given userid will be stored in a database in order to not be presented in the next RSS get_feed calls (is a simple way to propose only new feeds between 2 different RSS readers apps) This is very simple and not securized enough.
-  A mongodb database must be up and running. See the _storage.mongodb.url_ and _storage.readarticles.age_ parameters in the [configuration file](#configuration-file).
   ie: `/dummy/rss?userid=mat`
 - `translateto` (string): if set (and valid), the content will be translated using google translate (ie: "en", "fr", "fi")
 - `nsfw` (boolean): if set to true, the feed thumbnail is blurred
@@ -198,7 +183,6 @@ class DummyHandler(PyRSSWRequestHandler):
 
         # You can use the given session to make http queries
         # This session is created first time the http client is requesting this handler by using a generated session id cookie
-        # This session is stored in a mongo database to be reused between 2 get_feed calls (or get_content). The session will be deleted after "storage.sessions.duration" minutes (see the configuration file).
         feed: str = session.get(url).text
         filters: str = ""
         if "filter" in parameters:

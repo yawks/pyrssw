@@ -11,12 +11,11 @@ from handlers.feed_type.rss2_arranger import RSS2Arranger
 from handlers.request_handler import RequestHandler
 from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)
-from storage.article_store import ArticleStore
-from storage.session_store import SessionStore
 from utils.dom_utils import to_string, translate_dom, xpath
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
@@ -89,7 +88,8 @@ class LauncherHandler(RequestHandler):
         self._log("content page requested: %s" % unquote_plus(url))
         requested_url = url
         self.content_type = HTML_CONTENT_TYPE
-        session: requests.Session = SessionStore.instance().get_session(self.session_id)
+        session: requests.Session = requests.Session()
+        session.headers.update({"User-Agent": USER_AGENT})
 
         if "url" in parameters:
             requested_url = parameters["url"]
@@ -106,19 +106,14 @@ class LauncherHandler(RequestHandler):
             self.contents = pyrssw_content.content
             self.additional_css = pyrssw_content.css
 
-        SessionStore.instance().upsert_session(self.session_id, session)
-
-        if "userid" in parameters:  # if user wants to keep trace of read articles
-            ArticleStore.instance().insert_article_as_read(
-                parameters["userid"], requested_url)
-
         self._post_processing(parameters, url)
         self._wrapped_html_content(parameters)
 
     def _process_rss(self, parameters: Dict[str, str]):
         self._log("/rss requested for module '%s' (%s)" %
                   (self.module_name, self.url))
-        session: requests.Session = SessionStore.instance().get_session(self.session_id)
+        session: requests.Session = requests.Session()
+        session.headers.update({"User-Agent": USER_AGENT})
         self.content_type = FEED_XML_CONTENT_TYPE
         self.contents = self.handler.get_feed(parameters, session)
         if self.contents.find("<rss ") > -1:
@@ -127,8 +122,6 @@ class LauncherHandler(RequestHandler):
         elif self.contents.find("<feed ") > -1:
             self.contents = AtomArranger(
                 self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents)
-
-        SessionStore.instance().upsert_session(self.session_id, session)
 
     def _extract_path_and_parameters(self, url: str) -> Tuple[str, dict]:
         """Extract url path and parameters (and decrypt them if they were crypted)

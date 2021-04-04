@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import logging
 from utils.dom_utils import to_string, translate_dom, xpath
-from storage.article_store import ArticleStore
 from typing import Dict, Optional, cast
 import datetime
 import re
@@ -116,11 +115,8 @@ class FeedArranger(metaclass=ABCMeta):
                 dom = etree.fromstring(result)
 
                 for item in self.get_items(dom):
-                    if self._arrange_feed_keep_item(item, parameters):
-                        self._arrange_item(item, parameters)
-                        self._arrange_feed_link(item, parameters)
-                    else:
-                        item.getparent().remove(item)
+                    self._arrange_item(item, parameters)
+                    self._arrange_feed_link(item, parameters)
 
                 result = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
                     to_string(dom)
@@ -133,34 +129,6 @@ class FeedArranger(metaclass=ABCMeta):
                 str(e))
 
         return result
-
-    def _arrange_feed_keep_item(self, item: etree._Element, parameters: Dict[str, str]) -> bool:
-        """return true if the item must not be deleted.
-        The item must be deleted if the article has already been read.
-
-        Arguments:
-            item {etree._Element} -- rss feed item
-            parameters {Dict[str, str]} -- url paramters which may contain the userid which is associated to read articles
-
-        Returns:
-            bool -- true if the item must not be deleted
-        """
-        feed_keep_item: bool = True
-        if "userid" in parameters:
-            for link in self.get_links(item):
-                if link.text is not None:
-                    parsed = urlparse(link.text.strip())
-                elif "href" in link.attrib:
-                    parsed = urlparse(link.attrib["href"].strip())
-                else:
-                    logging.getLogger().info("Unable to find URL in item : (%s)" %
-                                             to_string(item))
-                    continue
-                if "url" in parse_qs(parsed.query):
-                    feed_keep_item = not ArticleStore.instance().has_article_been_read(
-                        parameters["userid"], parse_qs(parsed.query)["url"][0])
-
-        return feed_keep_item
 
     def _arrange_item(self, item: etree._Element, parameters: dict):
         descriptions = self.get_descriptions(item)
@@ -225,18 +193,21 @@ class FeedArranger(metaclass=ABCMeta):
 
         # blur description images
         if nsfw == "true":
-            imgs: list = xpath(description, ".//img")
-            if len(imgs) > 0:
-                for img in imgs:
-                    img.attrib["src"] = "%s/thumbnails?url=%s&blur=true" % (
-                        self.serving_url_prefix, quote_plus(cast(str, img.attrib["src"])))
-            else:
-                srcs = re.findall('src="([^"]*)"', cast(str, description.text))
-                for src in srcs:
-                    description.text = description.text.replace(src, "%s/thumbnails?url=%s&blur=true" % (
-                        self.serving_url_prefix, quote_plus(src)))
-            self.replace_img_links(
-                item, self.serving_url_prefix + "/thumbnails?url=%s&blur=true")
+            self._manage_blur_image_link(item, description)
+
+    def _manage_blur_image_link(self, item: etree._Element, description: etree._Element):
+        imgs: list = xpath(description, ".//img")
+        if len(imgs) > 0:
+            for img in imgs:
+                img.attrib["src"] = "%s/thumbnails?url=%s&blur=true" % (
+                    self.serving_url_prefix, quote_plus(cast(str, img.attrib["src"])))
+        else:
+            srcs = re.findall('src="([^"]*)"', cast(str, description.text))
+            for src in srcs:
+                description.text = description.text.replace(src, "%s/thumbnails?url=%s&blur=true" % (
+                    self.serving_url_prefix, quote_plus(src)))
+        self.replace_img_links(
+            item, self.serving_url_prefix + "/thumbnails?url=%s&blur=true")
 
     def _arrange_feed_link(self, item: etree._Element, parameters: Dict[str, str]):
         """arrange feed link, by adding dark and userid parameters if required

@@ -2,7 +2,6 @@ lxml
 requests
 typing_extensions
 cryptography
-pymongo
 python-dateutil
 readability-lxml
 Pillow

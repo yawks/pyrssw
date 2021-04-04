@@ -6,7 +6,7 @@ from PIL import ImageFilter
 import requests
 from urllib.parse import urlparse, parse_qs
 from handlers.request_handler import RequestHandler
-from storage.session_store import USER_AGENT
+from handlers.launcher_handler import USER_AGENT
 from PIL import Image
 from io import BytesIO
 import io
