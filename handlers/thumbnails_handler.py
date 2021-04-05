@@ -14,7 +14,7 @@ import io
 
 class ThumbnailHandler(RequestHandler):
     """Thumbnail generator.
-    
+
     Handler name: thumbnails
     Parameters:
      - request: get the first thumbnail of Google Images of the request keywords.
@@ -29,32 +29,46 @@ class ThumbnailHandler(RequestHandler):
 
     def __init__(self, path: str, source_ip: Optional[str]):
         super().__init__(source_ip)
-        original_website: str = "https://www.google.fr/search?source=lnms&tbm=isch&q="
 
+        content = self._get_content(path)
+
+        self.content_type = "image/webp"
+        # TODO : improve this, and avoid type ignore
+        self.contents = content  # type: ignore
+
+    def _get_content(self, path: str, try_to_replace_amp: bool = False):
         content = b""
+        original_website: str = "https://www.google.fr/search?source=lnms&tbm=isch&q="
 
         parsed = urlparse(path)
         if "request" in parse_qs(parsed.query):
             content = self._process_request(
                 parse_qs(parsed.query)["request"][0], original_website)
         elif "url" in parse_qs(parsed.query):
-            content = requests.get(unquote_plus(
-                parse_qs(parsed.query)["url"][0])).content
+            url = unquote_plus(parse_qs(parsed.query)["url"][0])
+            if try_to_replace_amp:
+                url = url.replace("&amp;", "&")
+            content = requests.get(url).content
         else:
             # returns an empty image
             content = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
 
         if "blur" in parse_qs(parsed.query) and parse_qs(parsed.query)["blur"][0] == "true":
-            img = Image.open(BytesIO(content))
-            img = img.resize((128, 128))
-            blurred_image = img.filter(ImageFilter.BoxBlur(10))
-            img_byte_arr = io.BytesIO()
-            blurred_image.save(img_byte_arr, format='PNG')
-            content = img_byte_arr.getvalue()
+            try:
+                img = Image.open(BytesIO(content))
+                img = img.resize((128, 128))
+                blurred_image = img.filter(ImageFilter.BoxBlur(10))
+                img_byte_arr = io.BytesIO()
+                blurred_image.save(img_byte_arr, format='PNG')
+                content = img_byte_arr.getvalue()
+            except Exception as e:
+                if "url" in parse_qs((parsed.query)) and not try_to_replace_amp:
+                    content = self._get_content(path, True)
+                else:
+                    self._log(
+                        "Unable to blur image (path: %s) (reason : '%s')" % (path, str(e)))
 
-        self.content_type = "image/webp"
-        # TODO : improve this, and avoid type ignore
-        self.contents = content  # type: ignore
+        return content
 
     def _process_request(self, request: str, original_website: str) -> bytes:
         content = b""
