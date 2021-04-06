@@ -147,7 +147,6 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace("<div class=\"clear\"/>", "")
         content = content.replace(" class=\"owl-carousel\"", "")
         content = content.replace("margin-bottom:30px;","")
-        content = content.replace("<video", "<video preload=\"none\"")
         content = re.sub(
             r'<span class="sordering"><a class="back" href="#[^"]*"/><a name="[^"]*">[^<]*</a><a class="next" href="#[^"]*"/></span>', '', content)
         content = content.replace('id="post-list"', 'id="mainbody"')

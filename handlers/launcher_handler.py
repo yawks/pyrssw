@@ -195,7 +195,7 @@ class LauncherHandler(RequestHandler):
                 #pyrssw_wrapper strong {font-weight:400}
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%!important;float:none}
-                #pyrssw_wrapper iframe {width:100%;min-height:500px;height:auto}
+                #pyrssw_wrapper iframe {width:100%;min-height:30vw;height:auto}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
                 #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
                 #pyrssw_wrapper .twitter-tweet {margin: 0 auto}
@@ -321,7 +321,9 @@ class LauncherHandler(RequestHandler):
                 .replace("<html>", "")\
                 .replace("</html>", "")\
                 .replace("<body>", "")\
-                .replace("</body>", "")
+                .replace("</body>", "")\
+                .replace("<video", "<video preload=\"none\"")
+
             self.contents = self.contents.replace("data-src-lazyload", "src")
             self.contents = self.contents.replace("</br>", "")
 
