@@ -86,7 +86,8 @@ class RedditHandler(PyRSSWRequestHandler):
 
     def get_reddit_content(self, url: str, session: Session, with_comments: bool) -> PyRSSWContent:
         content: str = ""
-        root = json.loads(session.get(url="%s/.json" % url).content)
+        json_content = session.get(url="%s/.json" % url, headers=self._get_headers()).content
+        root = json.loads(json_content)
         datatypes = self._get_datatypes_json(root, "t3")  # t3 : content
         for data in datatypes:
             content += "<h1>%s</h1>" % get_node_value_if_exists(
@@ -296,7 +297,7 @@ class RedditHandler(PyRSSWRequestHandler):
         gallery_html: str = ""
         images: Dict[str, str] = self._get_gallery_images(post)
 
-        if "gallery_data" in post and "items" in post["gallery_data"]:
+        if "gallery_data" in post and post["gallery_data"] is not None and "items" in post["gallery_data"]:
             for item in post["gallery_data"]["items"]:
                 if "caption" in item:
                     if "outbound_url" in item:
@@ -320,3 +321,16 @@ class RedditHandler(PyRSSWRequestHandler):
                     images[node["id"]] = "<p><img src=\"%s\"/>" % node["p"][-1]["u"]
 
         return images
+
+    def _get_headers(self):
+        return {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
+            "Connection": "keep-alive",
+            "Pragma": "no-cache"
+        }

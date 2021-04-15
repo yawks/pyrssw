@@ -74,8 +74,8 @@ class Sport24Handler(PyRSSWRequestHandler):
 
         dom = etree.HTML(page.text)
         title = utils.dom_utils.get_content(dom, ["//h1"])
-        imgs = dom.xpath("//img[@srcset]")
         imgsrc = ""
+        imgs = dom.xpath("//img[@srcset]")
         if len(imgs) > 0:
             imgsrc = imgs[0].get("srcset")
 
@@ -85,6 +85,10 @@ class Sport24Handler(PyRSSWRequestHandler):
             dom.xpath('//*[@class="s24-art-pub-top"]'))
 
         self._process_dugout(session, dom)
+
+        for img in dom.xpath("//img[@data-srcset]"):
+            if "src" not in img.attrib:
+                img.attrib["src"] = img.get("data-srcset").split(" ")[0]
 
         contents = dom.xpath('//*[@class="s24-art__content s24-art__resize"]')
         if len(contents) > 0:
