@@ -57,3 +57,15 @@ class RSS2Arranger(FeedArranger):
         for media in cast(List[etree._Element], item.xpath(".//*[local-name()='content'][@url]")):
             media.attrib["url"] = replace_with % quote_plus(
                 cast(str, media.attrib["url"]))
+
+    def set_thumbnail_item(self, item: etree._Element, img_url: str):
+        enclosures = item.xpath(".//enclosure")
+        enclosure: etree._Element
+        if len(enclosures) > 0:
+            enclosure = enclosures[0]
+        else:
+            enclosure = etree.Element("enclosure")
+            item.append(enclosure)
+
+        enclosure.attrib["url"] = img_url
+        enclosure.attrib["type"] = "image/jpeg"

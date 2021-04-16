@@ -8,6 +8,9 @@ import html
 from urllib.parse import urlparse, quote_plus, parse_qs
 from lxml import etree
 
+IMG_URL_REGEX = re.compile(
+    r'.*&lt;img src=(?:"|\')([^(\'|")]+).*')
+
 
 class FeedArranger(metaclass=ABCMeta):
 
@@ -100,6 +103,15 @@ class FeedArranger(metaclass=ABCMeta):
             replace_with (str): string to use to replace the img links: if this string contains "%s" it will be used to set the original img link: ie "/thumbnail?url=%s"
         """
 
+    @abstractmethod
+    def set_thumbnail_item(self, item: etree._Element, img_url: str):
+        """Change or create a thumbnail item with the given img_url
+
+        Args:
+            item (etree._Element): feed item
+            img_url (str): new thumbnail url
+        """
+
     def arrange(self, parameters: Dict[str, str], contents: str) -> str:
         result: str = contents
 
@@ -132,10 +144,14 @@ class FeedArranger(metaclass=ABCMeta):
 
     def _arrange_item(self, item: etree._Element, parameters: dict):
         descriptions = self.get_descriptions(item)
+        thumbnail_url: str = self.get_img_url(item)
 
         if len(descriptions) > 0:
             description: etree._Element = descriptions[0]
-            self._arrange_description_image(item, description, parameters)
+            img_url = self._add_thumbnail_in_description(
+                item, description, parameters, thumbnail_url)
+            if thumbnail_url == "" and img_url != "":
+                self.set_thumbnail_item(item, img_url)
 
             """
             n = self._get_source(item)
@@ -169,31 +185,48 @@ class FeedArranger(metaclass=ABCMeta):
                 p.append(i)
                 descriptions[0].append(p)
 
-    def _arrange_description_image(self, item: etree._Element, description: etree._Element, parameters: Dict[str, str]):
-        nsfw: str = "false"  # safe for work by default
-        if "nsfw" in parameters:
-            nsfw = parameters["nsfw"]
+    def _get_thumbnail_url_from_description(self, description: etree._Element) -> str:
+        thumbnail_url: str = ""
+        imgs = xpath(description, ".//img")
+        if len(imgs) > 0:
+            thumbnail_url = imgs[0].attrib["url"]
+        else:
+            m = re.match(IMG_URL_REGEX, to_string(description))
+            if m is not None:
+                thumbnail_url = m.group(1)
 
-        if description.text is not None and len(xpath(description, ".//img")) == 0 and to_string(description).find("&lt;img ") == -1:
-            # if description does not have a picture, add one from enclosure or media:content tag if any
-            img_url: str = self.get_img_url(item)
+        return thumbnail_url
 
-            title_node: etree._Element = cast(
-                etree._Element, self.get_title(item))
-            if "translateto" in parameters:
-                translate_dom(title_node, parameters["translateto"])
-            if img_url == "":
-                # uses the ThumbnailHandler to fetch an image from google search images
-                img_url = "%s/thumbnails?request=%s&blur=%s" % (
-                    self.serving_url_prefix, quote_plus(re.sub(r"</?title[^>]*>", "", to_string(title_node)).strip()), nsfw)
+    def _add_thumbnail_in_description(self, item: etree._Element, description: etree._Element, parameters: Dict[str, str], thumbnail_url: str) -> str:
+        img_url: str = thumbnail_url
 
-            img = etree.Element("img")
-            img.set("src", img_url)
-            description.append(img)
+        nsfw: str = "false" if "nsfw" not in parameters else parameters["nsfw"]
+        if description.text is not None:
+            description_thumbnail_url: str = self._get_thumbnail_url_from_description(
+                description)
+            if description_thumbnail_url == "":
+                # if description does not have a picture, add one from enclosure or media:content tag if any
+
+                title_node: etree._Element = cast(
+                    etree._Element, self.get_title(item))
+                if "translateto" in parameters:
+                    translate_dom(title_node, parameters["translateto"])
+                if img_url == "":
+                    # uses the ThumbnailHandler to fetch an image from google search images
+                    img_url = "%s/thumbnails?request=%s&blur=%s" % (
+                        self.serving_url_prefix, quote_plus(re.sub(r"</?title[^>]*>", "", to_string(title_node)).strip()), nsfw)
+
+                img = etree.Element("img")
+                img.set("src", img_url)
+                description.append(img)
+            else:
+                img_url = description_thumbnail_url
 
         # blur description images
         if nsfw == "true":
             self._manage_blur_image_link(item, description)
+
+        return img_url
 
     def _manage_blur_image_link(self, item: etree._Element, description: etree._Element):
         imgs: list = xpath(description, ".//img")

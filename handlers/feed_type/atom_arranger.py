@@ -2,10 +2,14 @@ from typing import Optional, cast
 from utils.dom_utils import xpath
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
+from lxml.builder import ElementMaker
 from urllib.parse import quote_plus
 
 
-NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
+NAMESPACES = {
+    "atom": "http://www.w3.org/2005/Atom",
+    "media": "http://search.yahoo.com/mrss/"
+}
 
 
 class AtomArranger(FeedArranger):
@@ -56,3 +60,16 @@ class AtomArranger(FeedArranger):
             # media:thumbnail tag
             media.attrib["url"] = replace_with % quote_plus(
                 cast(str, media.attrib["url"]))
+
+    def set_thumbnail_item(self, item: etree._Element, img_url: str):
+        medias = item.xpath(
+            ".//*[local-name()='thumbnail'][@url]", namespaces=NAMESPACES)
+        media: etree._Element
+        if len(medias) > 0:
+            media = medias[0]
+        else:
+            media = etree.Element("{%s}thumbnail" %
+                                  NAMESPACES["media"], nsmap=NAMESPACES)
+            item.append(media)
+
+        media.attrib["url"] = img_url
