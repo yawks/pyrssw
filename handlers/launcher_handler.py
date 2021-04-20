@@ -52,15 +52,6 @@ class LauncherHandler(RequestHandler):
         else:
             raise Exception("No handler found for name '%s'" % module_name)
 
-        """
-        self.twitter_api = None
-        twitter_tokens = Config.instance().get_twitter_tokens()
-        if twitter_tokens[TWITTER_CONSUMER_KEY] is not None:
-            self.twitter_api = TwitterAPI(twitter_tokens[TWITTER_CONSUMER_KEY], twitter_tokens[TWITTER_CONSUMER_SECRET],
-                                          twitter_tokens[TWITTER_ACCESS_TOKEN_KEY], twitter_tokens[TWITTER_ACCESS_TOKEN_SECRET], api_version='2')
-
-        """
-
     def process(self):
         """process the url"""
         try:
@@ -139,6 +130,8 @@ class LauncherHandler(RequestHandler):
         params: dict = parse_qs(parsed.query)
         for k in params:
             parameters[k] = self._get_parameter_value(params[k][0])
+            if params[k][0].find(ENCRYPTED_PREFIX) > -1:
+                parameters["%s_crypted" % k] = params[k][0]
 
         return path, parameters
 

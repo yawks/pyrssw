@@ -43,7 +43,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return "https://www.lemonde.fr/rss/une.xml"
-    
+
     @staticmethod
     def get_favicon_url() -> str:
         return "https://www.lemonde.fr/dist/assets/img/logos/favicon.ico"
@@ -78,8 +78,8 @@ class LeMondeHandler(PyRSSWRequestHandler):
         suffix = ""
         if "login" in parameters and "password" in parameters:
             suffix = "login=%s&amp;password=%s&amp;" % (
-                urllib.parse.quote_plus(self.encrypt(parameters["login"])),
-                urllib.parse.quote_plus(self.encrypt(parameters["password"])))
+                urllib.parse.quote_plus(parameters["login_crypted"]),
+                urllib.parse.quote_plus(parameters["password_crypted"]))
 
         return suffix
 
@@ -120,8 +120,6 @@ class LeMondeHandler(PyRSSWRequestHandler):
         finally:
             self._unauthent(session)
         return PyRSSWContent(content)
-
-    
 
     def process_inread(self, dom):
         for inread in dom.xpath('//*[@data-format="inread"]'):
