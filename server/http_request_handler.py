@@ -52,7 +52,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.path, server.get_serving_url_prefix(), source_ip)
 
             self.respond({'handler': launcher.get_handler(
-                SimpleCookie(self.headers.get("Cookie")))})
+                SimpleCookie(self.headers.get("Cookie")), self.headers.get("Referer"))})
 
         else:  # basic auth required
             logging.getLogger().error("Invalid credentials")

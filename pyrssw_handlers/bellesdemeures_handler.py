@@ -34,6 +34,10 @@ class BellesDemeuresHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return ""
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://www.bellesdemeures.com/Content/static/img/favicon/favicon-32x32.png?v=3"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         items: str = ""

@@ -46,6 +46,10 @@ class EurosportHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return "https://www.eurosport.fr/rss.xml"
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://layout.eurosport.com/i/v8/favicon/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text

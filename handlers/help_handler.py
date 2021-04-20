@@ -2,7 +2,7 @@ from typing import List, Optional
 from typing_extensions import Type
 
 from pyrssw_handlers.abstract_pyrssw_request_handler \
-  import PyRSSWRequestHandler
+    import PyRSSWRequestHandler
 from handlers.request_handler import RequestHandler
 
 
@@ -27,8 +27,9 @@ class HelpHandler(RequestHandler):
                 # try to intanciate the class to display error if any
                 handler_type()
 
-                content += "<hr/><br/><a href='%s/rss'>%s</a>\n\n" % (
+                content += "<hr/><br/><a style='text-align:center;' href='%s/rss'><img style='height:24px;margin-right:5px' src='%s'/>%s</a>\n\n" % (
                     handler_type.get_handler_name(),
+                    handler_type.get_favicon_url(),
                     handler_type.get_handler_name())
                 if handler_type.__doc__ is not None:
                     content += handler_type.__doc__ + "\n\n"

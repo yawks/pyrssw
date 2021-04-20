@@ -251,7 +251,7 @@ class FeedArranger(metaclass=ABCMeta):
         """
         suffix_url: str = ""
         for parameter in parameters:
-            if parameter in ["dark", "debug", "userid", "plain", "hidetitle", "translateto"]:
+            if parameter in ["dark", "debug", "userid", "plain", "hidetitle", "translateto", "fontsize"]:
                 suffix_url += "&%s=%s" % (parameter, parameters[parameter])
 
         if suffix_url != "":

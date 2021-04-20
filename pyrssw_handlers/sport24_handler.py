@@ -24,6 +24,10 @@ class Sport24Handler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return "https://sport24.lefigaro.fr/rssfeeds/sport24-%s.xml"
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://sport24.lefigaro.fr/bundles/sport24site/img/favicons/favicon-32x32.png?v=Lefigaro"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         if "filter" in parameters and parameters["filter"] == ("tennis" or "football" or "rugby" or "cyclisme" or "golf"):

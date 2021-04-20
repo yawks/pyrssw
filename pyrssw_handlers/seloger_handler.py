@@ -40,6 +40,10 @@ class SeLogerHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return ""
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://www.seloger.com/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         items: str = ""

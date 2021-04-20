@@ -24,6 +24,10 @@ class IzismileHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://feeds2.feedburner.com/izismile"
 
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://izismile.com/favicon.ico"
+
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text
 
@@ -75,14 +79,15 @@ class IzismileHandler(PyRSSWRequestHandler):
                 content += next_content
 
         return PyRSSWContent(content, """
-            #pyrssw_wrapper #izismile_handler div img {float:none; min-width:400px}
+            #pyrssw_wrapper #izismile_handler div img {float:none; max-height: 90vh;margin: 0 auto; display: block;}
         """)
 
-    def _get_content(self, url, session: requests.Session, with_title:bool = False):
+    def _get_content(self, url, session: requests.Session, with_title: bool = False):
         url_next_page = ""
         page = self._get_page_from_url(url, session)
         dom = etree.HTML(page.text)
-        title = "" if not with_title else utils.dom_utils.get_content(dom, ["//h1"])
+        title = "" if not with_title else utils.dom_utils.get_content(dom, [
+                                                                      "//h1"])
         for a in dom.xpath("//a[contains(@href, \"https://izismile.com/outgoing.php\")]"):
             parsed = urlparse.urlparse(a.attrib["href"])
             if "url" in parse_qs(parsed.query):
@@ -129,7 +134,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         else:
             content = etree.tostring(dom, encoding='unicode')
 
-        content = "%s%s" %(title, self._clean_content(content))
+        content = "%s%s" % (title, self._clean_content(content))
 
         return content, url_next_page
 
@@ -146,7 +151,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace("<div class=\"tools\"/>", "")
         content = content.replace("<div class=\"clear\"/>", "")
         content = content.replace(" class=\"owl-carousel\"", "")
-        content = content.replace("margin-bottom:30px;","")
+        content = content.replace("margin-bottom:30px;", "")
         content = re.sub(
             r'<span class="sordering"><a class="back" href="#[^"]*"/><a name="[^"]*">[^<]*</a><a class="next" href="#[^"]*"/></span>', '', content)
         content = content.replace('id="post-list"', 'id="mainbody"')

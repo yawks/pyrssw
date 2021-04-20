@@ -125,6 +125,7 @@ Any RSS feed provided by get_feed methods will be reworked:
 Each handler can define its own parameters, but PyRSSW also provides a bunch of generic parameters for every handlers:
 
 - `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
+- `fontsize` (percent): percentage of global font size. By default 100%. fontsize=120% will increase font size of 20%
   ie: `/dummy/rss?dark=true`
 - `hidetitle` (boolean): if set to true, the first h1 of the article will be hidden
   ie: `/dummy/rss?userid=mat`
@@ -161,14 +162,17 @@ class DummyHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name() -> str:
-        return "myhandlername"
+        return "mywebsitewithnews"
 
     def get_original_website(self) -> str:
-        return "https://www.handlerwebsite.com/"
+        return "https://www.mywebsitewithnews.com/"
 
     def get_rss_url(self) -> str:
-        return "https://www.handlerwebsite.com/rss.xml"
+        return "https://www.mywebsitewithnews.com/rss.xml"
 
+    @staticmethod
+    def get_favicon_url(self) -> str:
+        return "https://www.mywebsitewithnews.com/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         """Takes a dictionary of parameters and must return the xml of the rss feed

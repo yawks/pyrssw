@@ -18,6 +18,10 @@ class EvilmilkHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return "https://www.evilmilk.com/rss.xml"
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://www.evilmilk.com/icons/em-icon-32.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text
@@ -61,7 +65,10 @@ class EvilmilkHandler(PyRSSWRequestHandler):
                          r'poster=\1https://www.evilmilk.com/', content)
         content = "%s%s" % (title, content)
 
-        return PyRSSWContent(content)
+        return PyRSSWContent(content, """
+            #pyrssw_wrapper #evilmilk_handler div img { max-height: 90vh;margin: 0 auto; display: block;}
+            #pyrssw_wrapper #evilmilk_handler div video {height: 90vh;}
+        """)
 
     def _clean_content(self, c):
         content = c.replace('<div class="break"/>', '')

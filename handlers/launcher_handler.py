@@ -173,6 +173,7 @@ class LauncherHandler(RequestHandler):
                     font-family: Roboto;
                     font-weight: 300;
                     line-height: 150%;
+                    font-size: #GLOBAL_FONT_SIZE#;
                 }
                 #pyrssw_wrapper {
                     max-width:800px;
@@ -253,6 +254,9 @@ class LauncherHandler(RequestHandler):
                     color:#0080ff
                 }
             """
+        global_font_size = "100%"
+        if "fontsize" in parameters:
+            global_font_size = parameters["fontsize"]
 
         style = style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)\
                      .replace("#BG_BLOCKQUOTE#", quote_bg_color)\
@@ -260,7 +264,8 @@ class LauncherHandler(RequestHandler):
                      .replace("#SUBTITLE_BORDER_COLOR#", subtitle_border_color)\
                      .replace("#TEXT_COLOR#", text_color)\
                      .replace("#BACKGROUND_COLOR#", bg_color)\
-                     .replace("#HR_COLOR#", hr_color)
+                     .replace("#HR_COLOR#", hr_color)\
+                     .replace("#GLOBAL_FONT_SIZE#", global_font_size)
 
         self.contents = """<!DOCTYPE html>
                     <html>

@@ -65,9 +65,11 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
                 hasattr(subclass, "get_handler_name") and
                 callable(subclass.get_handler_name) and
                 hasattr(subclass, "get_rss_url") and
-                callable(subclass.get_rss_url)
+                callable(subclass.get_rss_url) and
+                hasattr(subclass, "get_favicon_url") and
+                callable(subclass.get_favicon_url)
                 or NotImplemented)
-
+    
     @abstractmethod
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         """Takes a dictionary of parameters and must return the xml of the rss feed
@@ -118,6 +120,14 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             str -- handler name
         """
     
+    @staticmethod
+    @abstractmethod
+    def get_favicon_url() -> str:
+        """Return the favicon url
+
+        Returns:
+            str: favicon url
+        """
         
     def get_readable_content(self, session: requests.Session, url: Optional[str], headers:Dict[str,str]={}, add_source_link=False) -> str:
         """Return the readable content of the given url

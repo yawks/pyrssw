@@ -39,6 +39,10 @@ class FranceInfoHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "http://www.franceinfo.fr/rss.xml"
 
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://www.francetvinfo.fr/skin/www/img/favicon/favicon.ico"
+
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text
 
@@ -122,7 +126,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             content = super().get_readable_content(session, url)
 
         # avoid loosing topCallImage because of remove script
-        content = content.replace("id=\"topCallImage\"", "id=\"topCallImage--\"")
+        content = content.replace(
+            "id=\"topCallImage\"", "id=\"topCallImage--\"")
 
         return PyRSSWContent(content, """
             #franceinfo_handler img.also-link__content__img {float:left;margin:0 10px 10px 0;}

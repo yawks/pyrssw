@@ -34,6 +34,10 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return ""
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://www.leboncoin.fr/_next/static/favicon-32-543f08dc.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         items: str = ""

@@ -26,6 +26,10 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return "http://lesjoiesducode.fr/rss"
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://lesjoiesducode.fr/wp-content/uploads/2020/03/cropped-59760110_2118870124856761_2769282087964901376_n-32x32.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         r = session.get(url=self.get_rss_url(), headers={})

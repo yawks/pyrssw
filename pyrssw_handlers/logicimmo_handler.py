@@ -33,6 +33,10 @@ class LogicImmoHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return ""
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://www.logic-immo.com/refonte/img/favicons/favicon-32x32.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         items: str = ""

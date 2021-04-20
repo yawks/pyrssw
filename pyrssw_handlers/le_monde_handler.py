@@ -43,6 +43,10 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return "https://www.lemonde.fr/rss/une.xml"
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://www.lemonde.fr/dist/assets/img/logos/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text

@@ -40,6 +40,10 @@ class RedditHandler(PyRSSWRequestHandler):
     def get_rss_url(self) -> str:
         return "https://www.reddit.com/.rss"
 
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://www.redditstatic.com/desktop2x/img/favicon/favicon-32x32.png"
+
     def get_feed(self, parameters: dict, session: Session) -> str:
         rss_url: str = self.get_rss_url()
 
@@ -86,7 +90,8 @@ class RedditHandler(PyRSSWRequestHandler):
 
     def get_reddit_content(self, url: str, session: Session, with_comments: bool) -> PyRSSWContent:
         content: str = ""
-        json_content = session.get(url="%s/.json" % url, headers=self._get_headers()).content
+        json_content = session.get(url="%s/.json" %
+                                   url, headers=self._get_headers()).content
         root = json.loads(json_content)
         datatypes = self._get_datatypes_json(root, "t3")  # t3 : content
         for data in datatypes:

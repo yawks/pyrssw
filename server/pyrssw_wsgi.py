@@ -1,3 +1,4 @@
+from handlers.favicon_handler import FaviconHandler
 import logging
 import os
 import sys
@@ -69,7 +70,7 @@ class WSGILauncherHandler:
         self.serving_url_prefix: Optional[str] = serving_url_prefix
         self.source_ip: Optional[str] = source_ip
 
-    def get_handler(self, cookies: SimpleCookie) -> RequestHandler:
+    def get_handler(self, cookies: SimpleCookie, referer: str) -> RequestHandler:
         try:
             module_name = self._parse_module_name()
             handler: Optional[RequestHandler] = None
@@ -79,6 +80,9 @@ class WSGILauncherHandler:
                     HandlersManager.instance().get_handlers(), self.serving_url_prefix, self.source_ip)
             elif module_name == "thumbnails":
                 handler = ThumbnailHandler(suffix_url, self.source_ip)
+            elif module_name == "favicon.ico":
+                handler = FaviconHandler(
+                    HandlersManager.instance().get_handlers(), referer, self.source_ip)
             else:  # use a custom handler via LauncherHandler
                 handler = LauncherHandler(module_name, HandlersManager.instance().get_handlers(),
                                           self.serving_url_prefix, suffix_url,

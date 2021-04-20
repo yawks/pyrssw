@@ -34,6 +34,10 @@ class BienIciHandler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return ""
+    
+    @staticmethod
+    def get_favicon_url() -> str:
+        return "https://res.bienici.com/cacheForever/ca36cf95984b75fd4620b9dd4ca0b24bc82a2116/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         items: str = ""
