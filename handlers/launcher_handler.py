@@ -21,6 +21,7 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 
 SESSION_DURATION = 30 * 60
 TWEETS_REGEX = re.compile(
     r'(?:(?:https:)?//twitter.com/)(?:.*)/status/([^\?]*)')
+PERCENTAGE_REGEX = re.compile(r'\d+(?:\.\d+)?%')
 
 
 class LauncherHandler(RequestHandler):
@@ -175,6 +176,13 @@ class LauncherHandler(RequestHandler):
                     line-height: 150%;
                     font-size: #GLOBAL_FONT_SIZE#;
                 }
+
+                @media screen and (max-width : 640px) {
+                    body {
+                        font-size:#SMARTPHONE_GLOBAL_FONT_SIZE#;
+                    }
+                }
+
                 #pyrssw_wrapper {
                     max-width:800px;
                     margin:auto;
@@ -255,8 +263,11 @@ class LauncherHandler(RequestHandler):
                 }
             """
         global_font_size = "100%"
-        if "fontsize" in parameters:
+        smartphone_global_font_size = "120%"
+        if "fontsize" in parameters and re.match(PERCENTAGE_REGEX, parameters["fontsize"]):
             global_font_size = parameters["fontsize"]
+            smartphone_global_font_size = str(
+                int(int(global_font_size.split("%")[0])) * 1.2) + "%"
 
         style = style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)\
                      .replace("#BG_BLOCKQUOTE#", quote_bg_color)\
@@ -265,7 +276,8 @@ class LauncherHandler(RequestHandler):
                      .replace("#TEXT_COLOR#", text_color)\
                      .replace("#BACKGROUND_COLOR#", bg_color)\
                      .replace("#HR_COLOR#", hr_color)\
-                     .replace("#GLOBAL_FONT_SIZE#", global_font_size)
+                     .replace("#GLOBAL_FONT_SIZE#", global_font_size)\
+                     .replace("#SMARTPHONE_GLOBAL_FONT_SIZE#", smartphone_global_font_size)
 
         self.contents = """<!DOCTYPE html>
                     <html>
