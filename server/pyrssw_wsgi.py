@@ -25,6 +25,9 @@ def application(environ, start_response):
     elif "UWSGI_ROUTER" in environ:
         http = environ["UWSGI_ROUTER"]
 
+    for e in environ:
+        print("%s:%s" % (e, environ[e]))
+
     suffix: str = ""
     if "HTTP_X_ORIGINAL_URI" in environ:
         original_uri: str = environ["HTTP_X_ORIGINAL_URI"]
@@ -40,7 +43,8 @@ def application(environ, start_response):
     cookie: SimpleCookie = SimpleCookie()
     if "HTTP_COOKIE" in environ:
         cookie = SimpleCookie(environ["HTTP_COOKIE"])
-    handler: RequestHandler = launcher.get_handler(cookie)
+    referer: str = environ["HTTP_REFERER"] if "HTTP_REFERER" in environ else ""
+    handler: RequestHandler = launcher.get_handler(cookie, referer)
 
     cookie = SimpleCookie()
     cookie["sessionId"] = handler.session_id
