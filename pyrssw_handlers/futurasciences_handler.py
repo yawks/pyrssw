@@ -45,9 +45,6 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url()).text
 
-        feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
-        # f eed = feed.replace('<link>', '<link>%s?url=' % (self.url_prefix))
-
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
         dom = etree.fromstring(feed)
@@ -60,11 +57,10 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
             utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         # replace video links, they must be processed by getContent
-        for link in xpath(dom, "//link"):
-            # if link.text.find("/video.shtml") > -1:
-            link.text = "%s" % self.get_handler_url_with_parameters(
-                {"url": cast(str, link.text)})
-
+        for node in xpath(dom, "//link|//guid"):
+            node.text = "%s" % self.get_handler_url_with_parameters(
+                {"url": cast(str, node.text)})
+        
         feed = to_string(dom)
 
         return feed

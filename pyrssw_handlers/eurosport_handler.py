@@ -66,10 +66,10 @@ class EurosportHandler(PyRSSWRequestHandler):
             utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         # replace video links, they must be processed by getContent
-        for link in xpath(dom, "//link"):
+        for node in xpath(dom, "//link|//guid"):
             # if link.text.find("/video.shtml") > -1:
-            link.text = "%s" % self.get_handler_url_with_parameters(
-                {"url": cast(str, link.text)})
+            node.text = "%s" % self.get_handler_url_with_parameters(
+                {"url": cast(str, node.text)})
 
         feed = to_string(dom).replace("\\u0027", "'").replace("\\u0022", "'")
 

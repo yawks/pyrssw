@@ -31,6 +31,16 @@ class FeedArranger(metaclass=ABCMeta):
         """
 
     @abstractmethod
+    def arrange_channel_links(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str]):
+        """Arrange links in channel node
+
+        Args:
+            dom (etree._Element): root node of the feed xml
+            rss_url_prefix (str): url prefix of /rss handler
+            parameters (Dict[str,str]): url parameters
+        """
+
+    @abstractmethod
     def get_links(self, item: etree._Element) -> list:
         """Get links from item depending on feed type (rss2, atom)
 
@@ -112,7 +122,7 @@ class FeedArranger(metaclass=ABCMeta):
             img_url (str): new thumbnail url
         """
 
-    def arrange(self, parameters: Dict[str, str], contents: str) -> str:
+    def arrange(self, parameters: Dict[str, str], contents: str, rss_url_prefix: str) -> str:
         result: str = contents
 
         try:
@@ -125,6 +135,8 @@ class FeedArranger(metaclass=ABCMeta):
                     r'<\?xml-stylesheet [^>]*?>', '', result).strip()
 
                 dom = etree.fromstring(result)
+
+                self.arrange_channel_links(dom, rss_url_prefix, parameters)
 
                 for item in self.get_items(dom):
                     self._arrange_item(item, parameters)
@@ -279,3 +291,13 @@ class FeedArranger(metaclass=ABCMeta):
                 n = etree.Element("p")
                 n.append(a)
         return n
+
+    def _generated_complete_url(self, handler_url_prefix: str, parameters: Dict[str, str]) -> str:
+        complete_url: str = handler_url_prefix
+        first = True
+        for parameter in parameters:
+            complete_url += "?" if first else "&"
+            complete_url += "%s=%s" % (parameter, parameters[parameter])
+            first = False
+
+        return complete_url

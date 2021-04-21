@@ -1,4 +1,5 @@
-from typing import List, Optional, cast
+from typing import Dict, List, Optional, cast
+from utils.dom_utils import xpath
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
 from urllib.parse import quote_plus
@@ -69,3 +70,14 @@ class RSS2Arranger(FeedArranger):
 
         enclosure.attrib["url"] = img_url
         enclosure.attrib["type"] = "image/jpeg"
+
+    def arrange_channel_links(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str]):
+        other_link_nodes = xpath(
+            dom, "./channel/*[local-name()='link' and @href] | ./channel/link")
+        for link_node in other_link_nodes:
+            if "href" in link_node.attrib:
+                link_node.attrib["href"] = self._generated_complete_url(
+                    rss_url_prefix, parameters)
+            else:
+                link_node.text = self._generated_complete_url(
+                    rss_url_prefix, parameters)

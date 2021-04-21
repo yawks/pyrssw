@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import Dict, Optional, cast
 from utils.dom_utils import xpath
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
@@ -73,3 +73,6 @@ class AtomArranger(FeedArranger):
             item.append(media)
 
         media.attrib["url"] = img_url
+
+    def arrange_channel_links(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str]):
+        pass
