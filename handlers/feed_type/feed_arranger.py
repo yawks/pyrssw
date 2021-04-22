@@ -31,13 +31,14 @@ class FeedArranger(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def arrange_channel_links(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str]):
-        """Arrange links in channel node
+    def arrange_feed_top_level_element(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str], favicon_url: str):
+        """Arrange links in channel or feed node
 
         Args:
             dom (etree._Element): root node of the feed xml
             rss_url_prefix (str): url prefix of /rss handler
             parameters (Dict[str,str]): url parameters
+            favicon_url (str): favicon url
         """
 
     @abstractmethod
@@ -122,7 +123,7 @@ class FeedArranger(metaclass=ABCMeta):
             img_url (str): new thumbnail url
         """
 
-    def arrange(self, parameters: Dict[str, str], contents: str, rss_url_prefix: str) -> str:
+    def arrange(self, parameters: Dict[str, str], contents: str, rss_url_prefix: str, favicon_url: str) -> str:
         result: str = contents
 
         try:
@@ -136,7 +137,8 @@ class FeedArranger(metaclass=ABCMeta):
 
                 dom = etree.fromstring(result)
 
-                self.arrange_channel_links(dom, rss_url_prefix, parameters)
+                self.arrange_feed_top_level_element(
+                    dom, rss_url_prefix, parameters, favicon_url)
 
                 for item in self.get_items(dom):
                     self._arrange_item(item, parameters)

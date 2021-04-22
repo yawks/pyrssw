@@ -71,7 +71,20 @@ class RSS2Arranger(FeedArranger):
         enclosure.attrib["url"] = img_url
         enclosure.attrib["type"] = "image/jpeg"
 
-    def arrange_channel_links(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str]):
+    def arrange_feed_top_level_element(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str], favicon_url: str):
+        # update or create icon tag element in channel
+        urls = xpath(dom, "./channel/image/url")
+        url_node: etree._Element
+        if len(urls) == 0:
+            image_node: etree._Element = etree.Element("image")
+            url_node = etree.Element("url")
+            image_node.append(url_node)
+            xpath(dom, "./channel")[0].insert(0, image_node)
+        else:
+            url_node = urls[0]
+        url_node.text = favicon_url
+
+        # arrange links in channel
         other_link_nodes = xpath(
             dom, "./channel/*[local-name()='link' and @href] | ./channel/link")
         for link_node in other_link_nodes:
