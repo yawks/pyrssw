@@ -74,5 +74,16 @@ class AtomArranger(FeedArranger):
 
         media.attrib["url"] = img_url
 
-    def arrange_channel_links(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str]):
-        pass
+    def arrange_feed_top_level_element(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str], favicon_url:str):
+        icons = xpath(dom, "./icon")
+        icon_node: etree._Element
+        if len(icons) == 0:
+            icon_node = etree.Element("icon")
+            dom.insert(0, icon_node)
+        else:
+            icon_node = icons[0]
+        icon_node.text = favicon_url
+        icon = etree.Element("{%s}icon" %
+                                  NAMESPACES["atom"], nsmap=NAMESPACES)
+        icon.text = favicon_url
+        dom.insert(0, icon)
