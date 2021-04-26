@@ -218,9 +218,9 @@ class EurosportHandler(PyRSSWRequestHandler):
         if "EmbedUrl" in j:
             embed: str = ""
             if "VideoUrl" in j:
-                embed = """<video width="100%%" controls="" preload="auto">
+                embed = """<video width="100%%" controls="" preload="auto" poster="%s">
                                     <source src="%s" />
-                                </video>""" % j["VideoUrl"]
+                                </video>""" % (j["PictureUrl"] if "PictureUrl" in j else "", j["VideoUrl"])
 
             video_content = """
                     <div>
