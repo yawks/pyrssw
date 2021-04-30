@@ -12,7 +12,6 @@ class RequestHandler():
         self.contents: str = ""
         self.content_type: str = ""
         self.session_id: str = ""
-        self.additional_css: str = ""
         self.logger = logging.getLogger()
         self.status: int = 200  # by default
         self.source_ip: Optional[str] = source_ip

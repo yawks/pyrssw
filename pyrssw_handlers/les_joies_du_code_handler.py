@@ -19,7 +19,7 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name() -> str:
-        return "lesjoiesducode"
+        return "Les joies du code"
 
     def get_original_website(self) -> str:
         return "https://lesjoiesducode.fr/"

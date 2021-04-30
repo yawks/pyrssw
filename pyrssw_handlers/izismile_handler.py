@@ -16,7 +16,7 @@ class IzismileHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name() -> str:
-        return "izismile"
+        return "Izismile"
 
     def get_original_website(self) -> str:
         return "https://izismile.com/"

@@ -30,7 +30,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name() -> str:
-        return "futurasciences"
+        return "Futura sciences"
 
     def get_original_website(self) -> str:
         return "https://www.futura-sciences.com/"

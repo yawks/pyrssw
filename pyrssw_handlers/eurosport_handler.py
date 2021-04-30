@@ -39,7 +39,7 @@ class EurosportHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name() -> str:
-        return "eurosport"
+        return "Eurosport"
 
     def get_original_website(self) -> str:
         return "https://www.eurosport.fr/"

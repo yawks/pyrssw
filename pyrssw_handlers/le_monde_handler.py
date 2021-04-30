@@ -36,7 +36,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name():
-        return "lemonde"
+        return "Le Monde"
 
     def get_original_website(self) -> str:
         return "https://www.lemonde.fr/"

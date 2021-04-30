@@ -1,9 +1,8 @@
-from typing import Dict, List, Optional, Tuple, Type
-import re
+from handlers.content.content_processor import ContentProcessor
+from typing import Dict, List, Optional, Tuple, Type, cast
 import traceback
 import requests
 import urllib.parse as urlparse
-from lxml import etree
 from urllib.parse import parse_qs, unquote_plus
 from cryptography.fernet import Fernet, InvalidToken
 from handlers.feed_type.atom_arranger import AtomArranger
@@ -11,7 +10,6 @@ from handlers.feed_type.rss2_arranger import RSS2Arranger
 from handlers.request_handler import RequestHandler
 from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)
-from utils.dom_utils import to_string, translate_dom, xpath
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
@@ -19,9 +17,6 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
-TWEETS_REGEX = re.compile(
-    r'(?:(?:https:)?//twitter.com/)(?:.*)/status/([^\?]*)')
-PERCENTAGE_REGEX = re.compile(r'\d+(?:\.\d+)?%')
 
 
 class LauncherHandler(RequestHandler):
@@ -82,6 +77,7 @@ class LauncherHandler(RequestHandler):
         self.content_type = HTML_CONTENT_TYPE
         session: requests.Session = requests.Session()
         session.headers.update({"User-Agent": USER_AGENT})
+        additional_css: str = ""
 
         if "url" in parameters:
             requested_url = parameters["url"]
@@ -95,11 +91,12 @@ class LauncherHandler(RequestHandler):
             pyrssw_content = self.handler.get_content(
                 requested_url, parameters, session)
 
-            self.contents = pyrssw_content.content
-            self.additional_css = pyrssw_content.css
-
-        self._post_processing(parameters, url)
-        self._wrapped_html_content(parameters)
+            self.contents = ContentProcessor(
+                handler=cast(PyRSSWRequestHandler, self.handler),
+                url=url,
+                contents=pyrssw_content.content,
+                additional_css=additional_css,
+                parameters=parameters).process()
 
     def _process_rss(self, parameters: Dict[str, str]):
         self._log("/rss requested for module '%s' (%s)" %
@@ -154,234 +151,3 @@ class LauncherHandler(RequestHandler):
                 self._log("Error decrypting : %s" % str(e))
 
         return value
-
-    def _wrapped_html_content(self, parameters: dict):
-        """wrap the html content with header, body and some predefined styles"""
-
-        style: str = """
-                @import url(https://fonts.googleapis.com/css?family=Roboto:100,100italic,300,300italic,400,400italic,500,500italic,700,700italic,900,900italic&subset=latin,latin-ext,cyrillic,cyrillic-ext,greek-ext,greek,vietnamese);
-
-                body {
-                    color: #TEXT_COLOR#;
-                    background-color:#BACKGROUND_COLOR#;
-                    font-family: Roboto;
-                    font-weight: 300;
-                    line-height: 150%;
-                    font-size: #GLOBAL_FONT_SIZE#;
-                }
-
-                @media screen and (max-width : 640px) {
-                    body {
-                        font-size:#SMARTPHONE_GLOBAL_FONT_SIZE#;
-                    }
-                }
-
-                #pyrssw_wrapper {
-                    max-width:800px;
-                    margin:auto;
-                }
-                #pyrssw_wrapper * {max-width: 100%; word-break: break-word}
-                #pyrssw_wrapper h1, #pyrssw_wrapper h2 {font-weight: 300; line-height: 130%}
-                #pyrssw_wrapper h1 {font-size: 170%; margin-bottom: 0.1em}
-                #pyrssw_wrapper h2 {font-size: 140%}
-                #pyrssw_wrapper a {color: #0099CC}
-                #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
-                #pyrssw_wrapper img {height: auto; margin-right:15px}
-                #pyrssw_wrapper pre {white-space: pre-wrap; direction: ltr;}
-                #pyrssw_wrapper blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
-                #pyrssw_wrapper p {margin: 0.8em 0 0.8em 0}
-                #pyrssw_wrapper p.subtitle {color: #SUBTITLE_COLOR#; border-top:1px #SUBTITLE_BORDER_COLOR#; border-bottom:1px #SUBTITLE_BORDER_COLOR#; padding-top:2px; padding-bottom:2px; font-weight:600 }
-                #pyrssw_wrapper ul, #pyrssw_wrapper ol {margin: 0 0 0.8em 0.6em; padding: 0 0 0 1em}
-                #pyrssw_wrapper ul li, #pyrssw_wrapper ol li {margin: 0 0 0.8em 0; padding: 0}
-                #pyrssw_wrapper hr {border : 1px solid #HR_COLOR#;  background-color: #HR_COLOR#}
-                #pyrssw_wrapper strong {font-weight:400}
-                #pyrssw_wrapper figure {margin:0}
-                #pyrssw_wrapper figure img {width:100%!important;float:none}
-                #pyrssw_wrapper iframe {width:100%;min-height:30vw;height:auto}
-                #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
-                #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
-                #pyrssw_wrapper .twitter-tweet {margin: 0 auto}
-
-                .pyrssw_youtube, #pyrssw_wrapper video {
-                    max-width:100%!important;
-                    width: auto;
-                    height: auto;
-                    margin: 0 auto;
-                    display:block;
-                }
-
-                .pyrssw_centered {
-                    text-align:center;
-                }
-
-                .pyrssw-source {
-                    text-align: right;
-                    font-style: italic;
-                }
-
-                #pyrssw_wrapper img {
-                    max-width:100%!important;
-                    width: auto;
-                    height: auto;
-                }
-        """
-        source: str = ""
-        domain: str = ""
-        if "url" in parameters:
-            source = "<p class='pyrssw-source'><a href='%s'>Source</a></p>" % parameters["url"]
-            domain = urlparse.urlparse(parameters["url"]).netloc
-
-        text_color = "#000000"
-        bg_color = "#f6f6f6"
-        quote_left_color = "#a6a6a6"
-        quote_bg_color = "#e6e6e6"
-        subtitle_color = "#666666"
-        subtitle_border_color = "#ddd"
-        hr_color = "#a6a6a6"
-        if "dark" in parameters and parameters["dark"] == "true":
-            text_color = "#8c8c8c"
-            bg_color = "#222222"
-            quote_left_color = "#686b6f"
-            quote_bg_color = "#383b3f"
-            subtitle_color = "#8c8c8c"
-            subtitle_border_color = "#303030"
-            hr_color = "#686b6f"
-            style += """
-                body {
-                    background-color: #1e1e1e;
-                    color: #d4d4d4;
-                }
-                a {
-                    color:#0080ff
-                }
-            """
-        global_font_size = "100%"
-        smartphone_global_font_size = "120%"
-        if "fontsize" in parameters and re.match(PERCENTAGE_REGEX, parameters["fontsize"]):
-            global_font_size = parameters["fontsize"]
-            smartphone_global_font_size = str(
-                int(int(global_font_size.split("%")[0])) * 1.2) + "%"
-
-        style = style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)\
-                     .replace("#BG_BLOCKQUOTE#", quote_bg_color)\
-                     .replace("#SUBTITLE_COLOR#", subtitle_color)\
-                     .replace("#SUBTITLE_BORDER_COLOR#", subtitle_border_color)\
-                     .replace("#TEXT_COLOR#", text_color)\
-                     .replace("#BACKGROUND_COLOR#", bg_color)\
-                     .replace("#HR_COLOR#", hr_color)\
-                     .replace("#GLOBAL_FONT_SIZE#", global_font_size)\
-                     .replace("#SMARTPHONE_GLOBAL_FONT_SIZE#", smartphone_global_font_size)
-
-        self.contents = """<!DOCTYPE html>
-                    <html>
-                        <head>
-                            <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-                            <meta name='viewport' content='width=device-width'/>
-                            <link rel="icon" href="https://icons.duckduckgo.com/ip3/%s.ico"/>
-                            <style>
-                            %s
-
-                            %s
-                            </style>
-                        </head>
-                        <body>
-                            <div id="pyrssw_wrapper">
-                                <div id="%s_handler">
-                                    %s
-                                </div>
-                                <br/>
-                                <hr/>
-                                %s
-                            </div>
-                        </body>
-                    </html>""" % (domain, style, self.additional_css, self.handler.get_handler_name(), self.contents, source)
-
-    def _manage_title(self, dom: etree._Element, parameters: dict):
-        if "hidetitle" in parameters and parameters["hidetitle"] == "true":
-            h1s = xpath(dom, "//h1")
-            if len(h1s) > 0:
-                h1s[0].getparent().remove(h1s[0])
-
-    def _replace_prefix_urls(self, parameters: dict, dom: etree._Element):
-        """Replace relative urls by absolute urls using handler prefix url"""
-
-        def _replace_urls_process_links(dom: etree, attribute: str):
-            for o in dom.xpath("//*[@%s]" % attribute):
-                if o.attrib[attribute].startswith("//"):
-                    protocol: str = "http:"
-                    if self.handler.get_original_website().find("https") > -1:
-                        protocol = "https:"
-                    o.attrib[attribute] = protocol + o.attrib[attribute]
-                elif o.attrib[attribute].startswith("/"):
-                    o.attrib[attribute] = self.handler.get_original_website(
-                    ) + o.attrib[attribute][1:]
-
-        if self.handler.get_original_website() != '' and dom is not None:
-            _replace_urls_process_links(dom, "href")
-            _replace_urls_process_links(dom, "src")
-            self._manage_title(dom, parameters)
-
-    def _post_processing(self, parameters: dict, url: str):
-        if len(self.contents.strip()) > 0:
-            dom = etree.HTML(self.contents)
-            self._post_process_tweets(parameters, dom)
-            self._replace_prefix_urls(parameters, dom)
-            self._manage_translation(parameters, dom, url)
-            self.contents = to_string(dom)\
-                .replace("<html>", "")\
-                .replace("</html>", "")\
-                .replace("<body>", "")\
-                .replace("</body>", "")\
-                .replace("<video", "<video preload=\"none\"")
-
-            self.contents = self.contents.replace("data-src-lazyload", "src")
-            self.contents = self.contents.replace("</br>", "")
-
-    def _post_process_tweets(self, parameters: dict, dom: etree._Element):
-        """
-            Process tweets, to replace twitter url by tweets' content
-        """
-
-        has_tweets: bool = False
-        for a in xpath(dom, "//a[contains(@href,'https://twitter.com/')]|//a[contains(@href,'//twitter.com/')]"):
-            m = re.match(TWEETS_REGEX, a.attrib["href"])
-            if m is not None:
-                tweet_id: str = m.group(1)
-                has_tweets = True
-                script = etree.Element("script")
-                script.text = """
-                    window.addEventListener("DOMContentLoaded", function() {
-                        var tweet_%s = document.getElementById("tweet_%s");
-                        twttr.widgets.createTweet(
-                        '%s', tweet_%s,
-                        {
-                            conversation : 'none',    // or all
-                            cards        : 'visible',
-                            theme        : '%s'
-                        });
-                    });
-                    document.getElementById("parent-%s").style.display = "none";
-                """ % (
-                    tweet_id,
-                    tweet_id,
-                    tweet_id,
-                    tweet_id,
-                    "dark" if "dark" in parameters and parameters["dark"] == "true" else "light",
-                    tweet_id
-                )
-                tweet_div = etree.Element("div")
-                tweet_div.set("id", "tweet_%s" % tweet_id)
-                a.getparent().addnext(script)
-                a.getparent().addnext(tweet_div)
-                a.getparent().set("id", "parent-%s" % tweet_id)
-                a.getparent().remove(a)
-
-        if has_tweets:
-            script = etree.Element("script")
-            script.set("src", "https://platform.twitter.com/widgets.js")
-            script.set("sync", "")
-            dom.append(script)
-
-    def _manage_translation(self, parameters: dict, dom: etree._Element, url: str):
-        if "translateto" in parameters:
-            translate_dom(dom, parameters["translateto"], url)

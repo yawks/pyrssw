@@ -257,7 +257,7 @@ class FeedArranger(metaclass=ABCMeta):
             item, self.serving_url_prefix + "/thumbnails?url=%s&blur=true")
 
     def _arrange_feed_link(self, item: etree._Element, parameters: Dict[str, str]):
-        """arrange feed link, by adding dark and userid parameters if required
+        """arrange feed link, by adding  parameters if required
 
         Arguments:
             item {etree._Element} -- rss item
@@ -265,7 +265,7 @@ class FeedArranger(metaclass=ABCMeta):
         """
         suffix_url: str = ""
         for parameter in parameters:
-            if parameter in ["dark", "debug", "userid", "plain", "hidetitle", "translateto", "fontsize"]:
+            if parameter in ["dark", "debug", "plain", "hidetitle", "translateto", "fontsize", "header"]:
                 suffix_url += "&%s=%s" % (parameter, parameters[parameter])
 
         if suffix_url != "":

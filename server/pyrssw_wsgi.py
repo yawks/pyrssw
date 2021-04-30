@@ -1,10 +1,11 @@
-from handlers.favicon_handler import FaviconHandler
+import random
 import logging
 import os
 import sys
+from urllib.parse import unquote_plus
 from http.cookies import SimpleCookie
-from typing import Optional
-import random
+from typing import Optional, Tuple
+from handlers.favicon_handler import FaviconHandler
 from config.config import Config
 from handlers.bad_request_handler import BadRequestHandler
 from handlers.help_handler import HelpHandler
@@ -73,9 +74,9 @@ class WSGILauncherHandler:
 
     def get_handler(self, cookies: SimpleCookie, referer: str) -> RequestHandler:
         try:
-            module_name = self._parse_module_name()
+            module_name, nonquote_module_name = self._parse_module_name()
             handler: Optional[RequestHandler] = None
-            suffix_url: str = self.path[len(module_name)+1:]
+            suffix_url: str = self.path[len(nonquote_module_name)+1:]
             if module_name == "":  # root page
                 handler = HelpHandler(
                     HandlersManager.instance().get_handlers(), self.serving_url_prefix, self.source_ip)
@@ -95,7 +96,7 @@ class WSGILauncherHandler:
 
         return handler
 
-    def _parse_module_name(self):
+    def _parse_module_name(self) -> Tuple[str, str]:
         module_name = ""
         split_path = self.path.split('/')
         if len(split_path) > 1:
@@ -103,7 +104,7 @@ class WSGILauncherHandler:
             if module_name.find('?') > -1:
                 module_name = module_name.split('?')[0]
 
-        return module_name
+        return unquote_plus(module_name), module_name
 
     def _get_sessionid(self, cookies: SimpleCookie) -> str:
         """Return the session id from cookie if exists, other generates a random one

@@ -31,7 +31,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name() -> str:
-        return "franceinfo"
+        return "France Info"
 
     def get_original_website(self) -> str:
         return "http://www.franceinfo.fr/"

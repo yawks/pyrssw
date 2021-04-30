@@ -17,7 +17,7 @@ class Sport24Handler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name() -> str:
-        return "sport24"
+        return "Sport24"
 
     def get_original_website(self) -> str:
         return "https://sport24.lefigaro.fr/"

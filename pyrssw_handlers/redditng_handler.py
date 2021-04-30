@@ -43,7 +43,7 @@ class RedditHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_handler_name() -> str:
-        return "redditng"
+        return "Reddit"
 
     def get_original_website(self) -> str:
         return "https://www.reddit.com/"
