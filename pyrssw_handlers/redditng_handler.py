@@ -1,7 +1,7 @@
 import json
 import html
 from request.pyrssw_content import PyRSSWContent
-from utils.url_utils import is_a_picture_url, is_url_valid
+from utils.url_utils import is_a_picture_url, is_a_video_url, is_url_valid
 from handlers.feed_type.atom_arranger import NAMESPACES
 import re
 from typing import Dict, List, Optional, cast
@@ -16,6 +16,17 @@ NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
 
 IMGUR_GIFV = re.compile(r'(?:https?://.*imgur.com)(?:.*)/([^/]*).gifv')
 IMG_PREVIEW_REDDIT = 'src="(https?://preview.redd.it/([^\?]*)[^"]*)"'
+
+HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+    "Content-Type": "text/html; charset=utf-8",
+    "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
+    "Cache-Control": "no-cache",
+    "Upgrade-Insecure-Requests": "1",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
+    "Pragma": "no-cache",
+    "Referer": "https://www.reddit.com/"
+}
 
 
 class RedditHandler(PyRSSWRequestHandler):
@@ -207,9 +218,7 @@ class RedditHandler(PyRSSWRequestHandler):
         elif url.find("imgur.com/") > -1:
             external_content = self._manage_imgur(session, url)
         elif url.find("gifs.com/") > -1:
-            page = session.get(url)
-            dom = etree.HTML(page.text)
-            external_content = get_content(dom, ["//video"])
+            external_content = self._manage_external_content_gifs(session, url)
         elif (url.find("://v.redd.it/") > -1 or url.find("://www.reddit.com/") > -1) and post_hint in ["link", ""]:
             r = session.get(url)
             external_content = self.get_reddit_content(
@@ -224,6 +233,20 @@ class RedditHandler(PyRSSWRequestHandler):
 
         return external_content
 
+    def _manage_external_content_gifs(self, session: Session, url: str) -> str:
+        managed_content: str = ""
+        page = session.get(url, headers=self._get_headers())
+        dom = etree.HTML(page.text)
+        managed_content = get_content(dom, ["//video"])
+        if managed_content == "":
+            url = get_content(dom, ["//meta[@property='og:video']/@content"])
+            if is_a_video_url(url):
+                managed_content = """<p><video muted="muted" >
+                        <source src="%s">
+                    </video></p>""" % (url)
+
+        return managed_content
+
     def _get_content_by_post_hint(self, session: Session, url: str, post_hint: str, preview_image: Optional[str], domain: str, data: dict) -> Optional[str]:
         external_content: Optional[str] = None
         if post_hint == "rich:video":
@@ -232,24 +255,14 @@ class RedditHandler(PyRSSWRequestHandler):
         elif post_hint == "hosted:video":
             video_url = get_node(
                 data, "media", "reddit_video", "hls_url")
-            external_content = """<p><video poster="%s" preload="auto" autoplay="autoplay" muted="muted" loop="loop" webkit-playsinline="" >
+            external_content = """<p><video poster="%s" muted="muted" >
                         <source src="%s" type="application/vnd.apple.mpegURL">
                     </video></p>""" % (preview_image, video_url)
         elif post_hint == "image" or is_a_picture_url(url):
             external_content = "<p><img src=\"%s\"/></p>" % url
         elif post_hint in ["", "link"]:
-            headers = {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-                "Content-Type": "text/html; charset=utf-8",
-                "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
-                "Cache-Control": "no-cache",
-                "Upgrade-Insecure-Requests": "1",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
-                "Pragma": "no-cache",
-                "Referer": "https://www.reddit.com/"
-            }
             external_content = super().get_readable_content(
-                session, url, headers=headers,  add_source_link=True)
+                session, url, headers=HEADERS,  add_source_link=True)
 
         return external_content
 

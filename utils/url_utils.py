@@ -37,3 +37,21 @@ def is_a_picture_url(href: str) -> bool:
                 break
 
         return _is_a_picture_link
+
+def is_a_video_url(href: str) -> bool:
+        """Returns True if the href is a link to a video
+
+        Args:
+            href (str): url
+
+        Returns:
+            bool: True if the href leads to real content
+        """
+        _is_a_video_link: bool = False
+        parsed_url = urlparse(href)
+        for extension in [".mp4", ".avi"]:
+            if parsed_url.path.lower().endswith(extension):
+                _is_a_video_link = True
+                break
+
+        return _is_a_video_link

@@ -15,7 +15,10 @@ def get_content(dom: etree, xpaths: list) -> str:
     content: str = ""
     node: Optional[etree._Element] = get_first_node(dom, xpaths)
     if node is not None:
-        content = to_string(node)
+        if isinstance(node, str):
+            content = node
+        else:
+            content = to_string(node)
 
     return content
 
@@ -114,7 +117,7 @@ def get_text(dom: etree, xpaths: list) -> str:
     return content
 
 
-def get_first_node(dom: etree, xpaths: list) -> Optional[etree._Element]:
+def get_first_node(dom: etree, xpaths: list):
     """get first node found in the list of xpath expressions"""
     node: Optional[etree._Element] = None
     for xpath in xpaths:
