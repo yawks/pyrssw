@@ -102,7 +102,61 @@ class ContentProcessor():
     def _get_header(self) -> str:
         header: str = ""
         if "header" in self.parameters and self.parameters["header"].lower() == "true":
-            header = """<div class="content_header"><a href="%s" target="_blank">%s</a></div>""" % (
+            header: str = """<script>
+	/*
+		By Osvaldas Valutis, www.osvaldas.info
+		Available for use under the MIT License
+	*/
+
+	window.addEventListener("DOMContentLoaded", function() {
+        ;( function ( document, window, index )
+        {
+            'use strict';
+
+            var elSelector	= '.pyrssw_content_header',
+                element		= document.querySelector( elSelector );
+
+            if( !element ) return true;
+
+            var elHeight		= 0,
+                elTop			= 0,
+                dHeight			= 0,
+                wHeight			= 0,
+                wScrollCurrent	= 0,
+                wScrollBefore	= 0,
+                wScrollDiff		= 0;
+
+            window.addEventListener( 'scroll', function()
+            {
+                elHeight		= element.offsetHeight;
+                dHeight			= document.body.offsetHeight;
+                wHeight			= window.innerHeight;
+                wScrollCurrent	= window.pageYOffset;
+                wScrollDiff		= wScrollBefore - wScrollCurrent;
+                elTop			= parseInt( window.getComputedStyle( element ).getPropertyValue( 'top' ) ) + wScrollDiff;
+
+                if( wScrollCurrent <= 0 ) // scrolled to the very top; element sticks to the top
+                    element.style.top = '0px';
+
+                else if( wScrollDiff > 0 ) // scrolled up; element slides in
+                    element.style.top = ( elTop > 0 ? 0 : elTop ) + 'px';
+
+                else if( wScrollDiff < 0 ) // scrolled down
+                {
+                    if( wScrollCurrent + wHeight >= dHeight - elHeight )  // scrolled to the very bottom; element slides in
+                        element.style.top = ( ( elTop = wScrollCurrent + wHeight - dHeight ) < 0 ? elTop : 0 ) + 'px';
+
+                    else // scrolled down; element slides out
+                        element.style.top = ( Math.abs( elTop ) > elHeight ? -elHeight : elTop ) + 'px';
+                }
+
+                wScrollBefore = wScrollCurrent;
+            });
+
+        }( document, window, 0 ));
+    });
+</script>
+            <header class="pyrssw_content_header"><div class="container"><a href="%s" target="_blank">%s</a></div></header>""" % (
                 self.parameters["url"], self.handler.get_handler_name())
 
         return header
@@ -120,6 +174,8 @@ class ContentProcessor():
                     font-weight: 300;
                     line-height: 150%;
                     font-size: #GLOBAL_FONT_SIZE#;
+                    margin:0;
+                    #BODY_PADDING_FOR_HEADER#
                 }
 
                 @media screen and (max-width : 640px) {
@@ -131,6 +187,7 @@ class ContentProcessor():
                 #pyrssw_wrapper {
                     max-width:800px;
                     margin:auto;
+                    padding:8px;
                 }
                 #pyrssw_wrapper * {max-width: 100%; word-break: break-word}
                 #pyrssw_wrapper h1, #pyrssw_wrapper h2 {font-weight: 300; line-height: 130%}
@@ -153,7 +210,9 @@ class ContentProcessor():
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
                 #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
                 #pyrssw_wrapper .twitter-tweet {margin: 0 auto}
-                #HEADER_CSS#
+                .pyrssw_content_header .container {height: 100%;overflow: hidden;}
+                .pyrssw_content_header {position: fixed;z-index: 1;top: 0;left: 0;width:100%;height:25px;padding: 10px;background-color:#HEADER_CSS_BG_COLOR#;text-align: center;border-bottom: 2px solid #HEADER_CSS_BORDER_COLOR#}
+                .pyrssw_content_header a {color:#HEADER_CSS_A_COLOR#;text-decoration:none;font-weight:500;font-size:20px;}
 
                 .pyrssw_youtube, #pyrssw_wrapper video {
                     max-width:100%!important;
@@ -178,6 +237,7 @@ class ContentProcessor():
                     height: auto;
                 }
         """
+
         source: str = ""
         domain: str = ""
         if "url" in self.parameters:
@@ -191,9 +251,11 @@ class ContentProcessor():
         subtitle_color = "#666666"
         subtitle_border_color = "#ddd"
         hr_color = "#a6a6a6"
-        header_css = """
-                #pyrssw_wrapper .content_header {padding: 10px;background-color: #ccc;text-align: center;border: 1px solid #888;margin-bottom: 5px;}
-                #pyrssw_wrapper .content_header a {color:#000;text-decoration:none;font-weight:500;}"""
+        header_css_bg_color = "#ccc"
+        header_css_border_color = "#888"
+        header_css_a_color = "#000"
+        body_padding_for_header = ""
+        
         if "dark" in self.parameters and self.parameters["dark"] == "true":
             text_color = "#8c8c8c"
             bg_color = "#222222"
@@ -202,6 +264,9 @@ class ContentProcessor():
             subtitle_color = "#8c8c8c"
             subtitle_border_color = "#303030"
             hr_color = "#686b6f"
+            header_css_bg_color = "#353535"
+            header_css_border_color = "#555"
+            header_css_a_color = "#adadad"
             style += """
                 body {
                     background-color: #1e1e1e;
@@ -211,9 +276,10 @@ class ContentProcessor():
                     color:#0080ff
                 }
             """
-            header_css = """
-                #pyrssw_wrapper .content_header {padding: 10px;background-color: #353535;text-align: center;border: 1px solid #adadad;margin-bottom: 5px;}
-                #pyrssw_wrapper .content_header a {color:#adadad;text-decoration:none;font-weight:500;}"""
+        
+        if "header" in self.parameters and self.parameters["header"] == "true":
+            body_padding_for_header = "padding-top:30px;"
+            
         global_font_size = "100%"
         smartphone_global_font_size = "120%"
         if "fontsize" in self.parameters and re.match(PERCENTAGE_REGEX, self.parameters["fontsize"]):
@@ -230,7 +296,10 @@ class ContentProcessor():
                      .replace("#HR_COLOR#", hr_color)\
                      .replace("#GLOBAL_FONT_SIZE#", global_font_size)\
                      .replace("#SMARTPHONE_GLOBAL_FONT_SIZE#", smartphone_global_font_size)\
-                     .replace("#HEADER_CSS#", header_css)
+                     .replace("#HEADER_CSS_BG_COLOR#", header_css_bg_color)\
+                     .replace("#HEADER_CSS_BORDER_COLOR#", header_css_border_color)\
+                     .replace("#HEADER_CSS_A_COLOR#", header_css_a_color)\
+                     .replace("#BODY_PADDING_FOR_HEADER#", body_padding_for_header)
 
         self.contents = """<!DOCTYPE html>
                     <html>
@@ -245,8 +314,8 @@ class ContentProcessor():
                             </style>
                         </head>
                         <body>
+                            %s
                             <div id="pyrssw_wrapper">
-                                %s
                                 <div id="%s_handler">
                                     %s
                                 </div>
