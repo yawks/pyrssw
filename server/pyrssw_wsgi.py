@@ -26,17 +26,23 @@ def application(environ, start_response):
     elif "UWSGI_ROUTER" in environ:
         http = environ["UWSGI_ROUTER"]
 
+    path: str = environ["REQUEST_URI"]
     suffix: str = ""
     if "HTTP_X_ORIGINAL_URI" in environ:
         original_uri: str = environ["HTTP_X_ORIGINAL_URI"]
-        suffix = original_uri[:len(original_uri)-len(environ["REQUEST_URI"])]
+        split = original_uri.split("/")
+        nb = -1
+        if original_uri.find("/rss?") > -1 or original_uri.endswith("/rss"):
+            nb = -2
+        path = "/" + "/".join(split[nb:])
+        suffix = original_uri[:len(original_uri)-len(path)]
 
     url_prefix: str = "%s://%s%s" % (http,
                                      environ["HTTP_HOST"],
                                      suffix)
 
     launcher: WSGILauncherHandler = WSGILauncherHandler(
-        environ["REQUEST_URI"], url_prefix, get_client_address(environ))
+        path, url_prefix, get_client_address(environ))
 
     cookie: SimpleCookie = SimpleCookie()
     if "HTTP_COOKIE" in environ:
