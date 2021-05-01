@@ -87,3 +87,14 @@ class AtomArranger(FeedArranger):
                                   NAMESPACES["atom"], nsmap=NAMESPACES)
         icon.text = favicon_url
         dom.insert(0, icon)
+
+        # arrange links in channel
+        other_link_nodes = xpath(
+            dom, "./*[local-name()='link' and @type='application/atom+xml']")
+        for link_node in other_link_nodes:
+            if "href" in link_node.attrib:
+                link_node.attrib["href"] = self._generated_complete_url(
+                    rss_url_prefix, parameters)
+            else:
+                link_node.text = self._generated_complete_url(
+                    rss_url_prefix, parameters)
