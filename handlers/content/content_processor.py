@@ -143,10 +143,10 @@ class ContentProcessor():
 
                 else if( wScrollDiff < 0 ) // scrolled down
                 {
-                    if( wScrollCurrent + wHeight >= dHeight - elHeight )  // scrolled to the very bottom; element slides in
-                        element.style.top = ( ( elTop = wScrollCurrent + wHeight - dHeight ) < 0 ? elTop : 0 ) + 'px';
+                    //if( wScrollCurrent + wHeight >= dHeight - elHeight )  // scrolled to the very bottom; element slides in
+                    //    element.style.top = ( ( elTop = wScrollCurrent + wHeight - dHeight ) < 0 ? elTop : 0 ) + 'px';
 
-                    else // scrolled down; element slides out
+                    //else // scrolled down; element slides out
                         element.style.top = ( Math.abs( elTop ) > elHeight ? -elHeight : elTop ) + 'px';
                 }
 
@@ -213,7 +213,7 @@ class ContentProcessor():
                 .pyrssw_content_header .container {height: 100%;overflow: hidden;}
                 .pyrssw_content_header {position: fixed;z-index: 1;top: 0;left: 0;width:100%;height:32px;padding: 5px;background-color:#HEADER_CSS_BG_COLOR#;text-align: center;border-bottom: 2px solid #HEADER_CSS_BORDER_COLOR#}
                 .pyrssw_content_header a {color:#HEADER_CSS_A_COLOR#;text-decoration:none;font-weight:500;font-size:20px;}
-                .pyrssw_content_header img {margin-right:10px}
+                .pyrssw_content_header img {margin-right:10px;vertical-align:middle;height:32px}
 
                 .pyrssw_youtube, #pyrssw_wrapper video {
                     max-width:100%!important;
