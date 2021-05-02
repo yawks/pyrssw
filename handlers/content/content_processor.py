@@ -195,7 +195,7 @@ class ContentProcessor():
                 #pyrssw_wrapper h2 {font-size: 140%}
                 #pyrssw_wrapper a {color: #0099CC}
                 #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
-                #pyrssw_wrapper img {height: auto; margin-right:15px}
+                #pyrssw_wrapper img {height: auto; margin-right:15px;vertical-align:middle;}
                 #pyrssw_wrapper pre {white-space: pre-wrap; direction: ltr;}
                 #pyrssw_wrapper blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
                 #pyrssw_wrapper p {margin: 0.8em 0 0.8em 0}
@@ -211,7 +211,7 @@ class ContentProcessor():
                 #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
                 #pyrssw_wrapper .twitter-tweet {margin: 0 auto}
                 .pyrssw_content_header .container {height: 100%;overflow: hidden;}
-                .pyrssw_content_header {position: fixed;z-index: 1;top: 0;left: 0;width:100%;height:25px;padding: 10px;background-color:#HEADER_CSS_BG_COLOR#;text-align: center;border-bottom: 2px solid #HEADER_CSS_BORDER_COLOR#}
+                .pyrssw_content_header {position: fixed;z-index: 1;top: 0;left: 0;width:100%;height:32px;padding: 5px;background-color:#HEADER_CSS_BG_COLOR#;text-align: center;border-bottom: 2px solid #HEADER_CSS_BORDER_COLOR#}
                 .pyrssw_content_header a {color:#HEADER_CSS_A_COLOR#;text-decoration:none;font-weight:500;font-size:20px;}
                 .pyrssw_content_header img {margin-right:10px}
 
