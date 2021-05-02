@@ -1,9 +1,10 @@
+from abc import ABCMeta, abstractmethod
 import datetime
 import logging
+import re
+import itertools
 from utils.url_utils import is_url_valid
 from request.pyrssw_content import PyRSSWContent
-import re
-from abc import ABCMeta, abstractmethod
 from typing import Dict, Optional, cast
 from urllib.parse import quote_plus
 from readability import Document
@@ -62,14 +63,12 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
                 callable(subclass.get_feed) and
                 hasattr(subclass, "get_content") and
                 callable(subclass.get_content) and
-                hasattr(subclass, "get_handler_name") and
-                callable(subclass.get_handler_name) and
                 hasattr(subclass, "get_rss_url") and
                 callable(subclass.get_rss_url) and
                 hasattr(subclass, "get_favicon_url") and
                 callable(subclass.get_favicon_url)
                 or NotImplemented)
-    
+
     @abstractmethod
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         """Takes a dictionary of parameters and must return the xml of the rss feed
@@ -111,15 +110,17 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             str -- url of the rss feed
         """
 
-    @staticmethod
-    @abstractmethod
-    def get_handler_name() -> str:
+    def get_handler_name_for_url(self) -> str:
+        return type(self).__name__.replace("Handler", "").lower()
+
+    def get_handler_name(self) -> str:
         """Returns the handler name
 
         Returns:
             str -- handler name
         """
-    
+        return re.sub(r"([A-Z])", r" \1", type(self).__name__.replace("Handler", "")).strip()
+
     @staticmethod
     @abstractmethod
     def get_favicon_url() -> str:
@@ -128,8 +129,8 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
         Returns:
             str: favicon url
         """
-        
-    def get_readable_content(self, session: requests.Session, url: Optional[str], headers:Dict[str,str]={}, add_source_link=False) -> str:
+
+    def get_readable_content(self, session: requests.Session, url: Optional[str], headers: Dict[str, str] = {}, add_source_link=False) -> str:
         """Return the readable content of the given url
 
         Args:
@@ -143,19 +144,27 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
         if is_url_valid(url):
             r = session.get(cast(str, url), headers=headers)
             doc = Document(r.text)
-            url_prefix = url[:len("https://")+len(url[len("https://"):].split("/")[0])+1]
+            url_prefix = url[:len("https://") +
+                             len(url[len("https://"):].split("/")[0])+1]
 
             if add_source_link:
-                readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (url, url_prefix)
+                readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (
+                    url, url_prefix)
             readable_content += fix_text(doc.summary())
-            readable_content = readable_content.replace("<html>","").replace("</html>","").replace("<body>","").replace("</body>","")
-            
-            #replace relative links
-            readable_content = readable_content.replace('href="/', 'href="' + url_prefix)
-            readable_content = readable_content.replace('src="/', 'src="' + url_prefix)
-            readable_content = readable_content.replace('href=\'/', 'href=\'' + url_prefix)
-            readable_content = readable_content.replace('src=\'/', 'src=\'' + url_prefix)
-            readable_content = readable_content.replace("<noscript>", "").replace("</noscript>", "")
+            readable_content = readable_content.replace("<html>", "").replace(
+                "</html>", "").replace("<body>", "").replace("</body>", "")
+
+            # replace relative links
+            readable_content = readable_content.replace(
+                'href="/', 'href="' + url_prefix)
+            readable_content = readable_content.replace(
+                'src="/', 'src="' + url_prefix)
+            readable_content = readable_content.replace(
+                'href=\'/', 'href=\'' + url_prefix)
+            readable_content = readable_content.replace(
+                'src=\'/', 'src=\'' + url_prefix)
+            readable_content = readable_content.replace(
+                "<noscript>", "").replace("</noscript>", "")
 
             """
             Not sure still useful with fix_text
@@ -166,5 +175,5 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
                 except UnicodeEncodeError:
                     pass
             """
-                
+
         return readable_content

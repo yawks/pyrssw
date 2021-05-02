@@ -156,8 +156,8 @@ class ContentProcessor():
         }( document, window, 0 ));
     });
 </script>
-            <header class="pyrssw_content_header"><div class="container"><a href="%s" target="_blank">%s</a></div></header>""" % (
-                self.parameters["url"], self.handler.get_handler_name())
+            <header class="pyrssw_content_header"><div class="container"><a href="%s" target="_blank"><img src="%s"/>%s</a></div></header>""" % (
+                self.parameters["url"], self.handler.get_favicon_url(), self.handler.get_handler_name())
 
         return header
 
@@ -213,6 +213,7 @@ class ContentProcessor():
                 .pyrssw_content_header .container {height: 100%;overflow: hidden;}
                 .pyrssw_content_header {position: fixed;z-index: 1;top: 0;left: 0;width:100%;height:25px;padding: 10px;background-color:#HEADER_CSS_BG_COLOR#;text-align: center;border-bottom: 2px solid #HEADER_CSS_BORDER_COLOR#}
                 .pyrssw_content_header a {color:#HEADER_CSS_A_COLOR#;text-decoration:none;font-weight:500;font-size:20px;}
+                .pyrssw_content_header img {margin-right:10px}
 
                 .pyrssw_youtube, #pyrssw_wrapper video {
                     max-width:100%!important;
@@ -255,7 +256,7 @@ class ContentProcessor():
         header_css_border_color = "#888"
         header_css_a_color = "#000"
         body_padding_for_header = ""
-        
+
         if "dark" in self.parameters and self.parameters["dark"] == "true":
             text_color = "#8c8c8c"
             bg_color = "#222222"
@@ -276,10 +277,10 @@ class ContentProcessor():
                     color:#0080ff
                 }
             """
-        
+
         if "header" in self.parameters and self.parameters["header"] == "true":
             body_padding_for_header = "padding-top:30px;"
-            
+
         global_font_size = "100%"
         smartphone_global_font_size = "120%"
         if "fontsize" in self.parameters and re.match(PERCENTAGE_REGEX, self.parameters["fontsize"]):
@@ -324,7 +325,7 @@ class ContentProcessor():
                                 %s
                             </div>
                         </body>
-                    </html>""" % (domain, style, self.additional_css, self._get_header(),  self.handler.get_handler_name(), self.contents, source)
+                    </html>""" % (domain, style, self.additional_css, self._get_header(),  self.handler.get_handler_name_for_url(), self.contents, source)
 
     def _replace_prefix_urls(self, dom: etree._Element):
         """Replace relative urls by absolute urls using handler prefix url"""

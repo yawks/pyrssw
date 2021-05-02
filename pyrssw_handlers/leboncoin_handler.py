@@ -25,10 +25,6 @@ class LeBonCoinHandler(PyRSSWRequestHandler):
           criteria=recherche%2F%3Fcategory%3D68%26locations%3DBordeaux__44.85097037673542_-0.5759878158908474_10000%26date%3D20200617-20200619
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "leboncoin"
-
     def get_original_website(self) -> str:
         return "https://www.leboncoin.fr/"
 

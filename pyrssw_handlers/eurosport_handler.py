@@ -37,16 +37,12 @@ class EurosportHandler(PyRSSWRequestHandler):
         Video pages in the eurosport website are dynamically built using some javascript, the handler provide a simple page with a HTML5 video object embedding the video.
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "Eurosport"
-
     def get_original_website(self) -> str:
         return "https://www.eurosport.fr/"
 
     def get_rss_url(self) -> str:
         return "https://www.eurosport.fr/rss.xml"
-    
+
     @staticmethod
     def get_favicon_url() -> str:
         return "https://layout.eurosport.com/i/v8/favicon/favicon.ico"
@@ -255,7 +251,7 @@ class EurosportHandler(PyRSSWRequestHandler):
                     for size in data_img_interchange_json["f"]:
                         if "src" in data_img_interchange_json["f"][size]:
                             n.attrib["src"] = data_img_interchange_json["f"][size]["src"]
-            except:
+            except Exception as _:
                 logging.getLogger().info("Unable to parse 'data-img-interchange'")
 
 

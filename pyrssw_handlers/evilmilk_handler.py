@@ -9,10 +9,6 @@ from request.pyrssw_content import PyRSSWContent
 
 class EvilmilkHandler(PyRSSWRequestHandler):
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "Evilmilk"
-
     def get_original_website(self) -> str:
         return "https://www.evilmilk.com/"
 

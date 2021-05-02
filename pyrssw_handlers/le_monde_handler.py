@@ -34,10 +34,6 @@ class LeMondeHandler(PyRSSWRequestHandler):
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
     """
 
-    @staticmethod
-    def get_handler_name():
-        return "Le Monde"
-
     def get_original_website(self) -> str:
         return "https://www.lemonde.fr/"
 

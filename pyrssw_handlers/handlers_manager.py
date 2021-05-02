@@ -3,7 +3,7 @@ import inspect
 import logging
 import os
 from glob import glob
-from typing import List
+from typing import Dict, List, cast
 
 from typing_extensions import Type
 
@@ -17,9 +17,9 @@ from utils.singleton import Singleton
 class HandlersManager:
     """Singleton class which provides handlers list"""
 
-    _handlers: List[Type[PyRSSWRequestHandler]] = []
+    _handlers: Dict[str, Type[PyRSSWRequestHandler]] = {}
 
-    def get_handlers(self):
+    def get_handlers(self) -> Dict[str, Type[PyRSSWRequestHandler]]:
         if len(self._handlers) == 0:
             self._load_handlers()
 
@@ -38,9 +38,9 @@ class HandlersManager:
 
     def _load_handler(self, member):
         try:
-            member[1]()  # just try to instanciate to check if everything is ok
+            handler_instance = cast(PyRSSWRequestHandler, member[1]())
+            self._handlers[handler_instance.get_handler_name_for_url()
+                           ] = member[1]
         except Exception as e:
             logging.getLogger().error("Error instanciating the class '%s' : %s" %
                                       (member[0], str(e)))
-
-        self._handlers.append(member[1])

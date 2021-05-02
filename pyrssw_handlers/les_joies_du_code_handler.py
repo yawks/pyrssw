@@ -17,10 +17,6 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
     RSS parameters: None
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "Les joies du code"
-
     def get_original_website(self) -> str:
         return "https://lesjoiesducode.fr/"
 

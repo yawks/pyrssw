@@ -31,10 +31,6 @@ class SeLogerHandler(PyRSSWRequestHandler):
     To provide a RSS feed, the website is webscraped.
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "seloger"
-
     def get_original_website(self) -> str:
         return "https://www.seloger.com/"
 

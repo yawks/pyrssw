@@ -9,11 +9,12 @@ from server.pyrssw_wsgi import HandlersManager
 
 def test_handlers():
 
-    for handler in HandlersManager.instance().get_handlers():
+    for _, handler in HandlersManager.instance().get_handlers().items():
         print("Process: module : %s" % handler.__module__)
 
         py_rssw_request_handler: PyRSSWRequestHandler = handler()
-        feed = py_rssw_request_handler.get_feed({}, Session()).encode().decode('utf-8')
+        feed = py_rssw_request_handler.get_feed(
+            {}, Session()).encode().decode('utf-8')
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
         dom = etree.fromstring(feed)

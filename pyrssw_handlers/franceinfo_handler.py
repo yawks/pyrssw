@@ -29,10 +29,6 @@ class FranceInfoHandler(PyRSSWRequestHandler):
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "France Info"
-
     def get_original_website(self) -> str:
         return "http://www.franceinfo.fr/"
 

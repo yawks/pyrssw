@@ -41,10 +41,6 @@ class RedditHandler(PyRSSWRequestHandler):
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "Reddit"
-
     def get_original_website(self) -> str:
         return "https://www.reddit.com/"
 

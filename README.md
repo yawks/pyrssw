@@ -126,19 +126,20 @@ Each handler can define its own parameters, but PyRSSW also provides a bunch of 
 
 - `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
 - `fontsize` (percent): percentage of global font size. By default 100%. fontsize=120% will increase font size of 20%
-  ie: `/dummy/rss?dark=true`
+  ie: `/mywebsitewithnews/rss?dark=true`
 - `hidetitle` (boolean): if set to true, the first h1 of the article will be hidden
-  ie: `/dummy/rss?hidetitle=true`
-- `header` (boolean): if set to true, a header will be added at the beginning of the article content with the handler name with a link to the original source
-  ie: `/dummy/rss?header=true`
+  ie: `/mywebsitewithnews/rss?hidetitle=true`
+- `header` (boolean): if set to true, a header will be added at the beginning of the article content with the handler name with a link to the original source. The handler name displayed comes from the handler class name separating words starting with a capital with a space. (eg: MyWebsiteWithNewsHandler will become 'My Website With News')
+  ie: `/mywebsitewithnews/rss?header=true`
 - `translateto` (string): if set (and valid), the content will be translated using google translate (ie: "en", "fr", "fi")
+  ie: `/mywebsitewithnews/rss?translateto=fr`
 - `nsfw` (boolean): if set to true, the feed thumbnail is blurred
-  ie: `/dummy/rss?debug=true`
+  ie: `/mywebsitewithnews/rss?debug=true`
 - the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto*key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by **!e:**
-  ie: `/dummy/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==`
+  ie: `/mywebsitewithnews/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==`
 - `debug` (boolean): if set to true, will display some debug information after the content
 
-All the parameters can be combined, ie: `/dummy/rss?debug=true&dark=true&translateto=fr`
+All the parameters can be combined, ie: `/mywebsitewithnews/rss?debug=true&dark=true&translateto=fr`
 
 ## Adding new handlers
 
@@ -148,23 +149,19 @@ Sample handler:
 
 ```Python
 
-class DummyHandler(PyRSSWRequestHandler):
-    """Handler for Dummy, dummy website
+class MyWebsiteWithNewsHandler(PyRSSWRequestHandler):
+    """Handler for 'My Website with news'
 
-    Handler name: dummy
+    Handler name: mywebsitewithnews <= automatically generated from MyWebsiteWithNewsHandler
 
     RSS parameters:
      - filter: flowers, sports, geek
        eg :
-         - /dummy/rss?filter=flowers             #only feeds about flowers
-         - /dummy/rss?filter=flowers,sports      #only feeds about flowers and sports
+         - /mywebsitewithnews/rss?filter=flowers             #only feeds about flowers
+         - /mywebsitewithnews/rss?filter=flowers,sports      #only feeds about flowers and sports
 
     To provide a RSS feed, the website is webscraped.
     """
-
-    @staticmethod
-    def get_handler_name() -> str:
-        return "My Website With News"
 
     def get_original_website(self) -> str:
         return "https://www.mywebsitewithnews.com/"

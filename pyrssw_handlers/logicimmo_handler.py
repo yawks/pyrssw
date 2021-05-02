@@ -24,10 +24,6 @@ class LogicImmoHandler(PyRSSWRequestHandler):
           criteria=vente-immobilier-paris-75%2C100_1%2Foptions%2Fgroupprptypesids%3D1%2C2%2C6%2C7%2C12%2C15%2Fpricemin%3D200000%2Fpricemax%3D400000
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "logicimmo"
-
     def get_original_website(self) -> str:
         return "https://www.logic-immo.com/"
 

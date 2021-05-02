@@ -28,10 +28,6 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "Futura sciences"
-
     def get_original_website(self) -> str:
         return "https://www.futura-sciences.com/"
 

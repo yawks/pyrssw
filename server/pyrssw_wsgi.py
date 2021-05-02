@@ -26,23 +26,17 @@ def application(environ, start_response):
     elif "UWSGI_ROUTER" in environ:
         http = environ["UWSGI_ROUTER"]
 
-    path: str = environ["REQUEST_URI"]
     suffix: str = ""
     if "HTTP_X_ORIGINAL_URI" in environ:
         original_uri: str = environ["HTTP_X_ORIGINAL_URI"]
-        split = original_uri.split("/")
-        nb = -1
-        if original_uri.find("/rss?") > -1 or original_uri.endswith("/rss"):
-            nb = -2
-        path = "/" + "/".join(split[nb:])
-        suffix = original_uri[:len(original_uri)-len(path)]
+        suffix = original_uri[:len(original_uri)-len(environ["REQUEST_URI"])]
 
     url_prefix: str = "%s://%s%s" % (http,
                                      environ["HTTP_HOST"],
                                      suffix)
 
     launcher: WSGILauncherHandler = WSGILauncherHandler(
-        path, url_prefix, get_client_address(environ))
+        environ["REQUEST_URI"], url_prefix, get_client_address(environ))
 
     cookie: SimpleCookie = SimpleCookie()
     if "HTTP_COOKIE" in environ:
@@ -80,9 +74,9 @@ class WSGILauncherHandler:
 
     def get_handler(self, cookies: SimpleCookie, referer: str) -> RequestHandler:
         try:
-            module_name, nonquote_module_name = self._parse_module_name()
+            module_name = self._parse_module_name()
             handler: Optional[RequestHandler] = None
-            suffix_url: str = self.path[len(nonquote_module_name)+1:]
+            suffix_url: str = self.path[len(module_name)+1:]
             if module_name == "":  # root page
                 handler = HelpHandler(
                     HandlersManager.instance().get_handlers(), self.serving_url_prefix, self.source_ip)
@@ -102,7 +96,7 @@ class WSGILauncherHandler:
 
         return handler
 
-    def _parse_module_name(self) -> Tuple[str, str]:
+    def _parse_module_name(self):
         module_name = ""
         split_path = self.path.split('/')
         if len(split_path) > 1:
@@ -110,7 +104,7 @@ class WSGILauncherHandler:
             if module_name.find('?') > -1:
                 module_name = module_name.split('?')[0]
 
-        return unquote_plus(module_name), module_name
+        return module_name
 
     def _get_sessionid(self, cookies: SimpleCookie) -> str:
         """Return the session id from cookie if exists, other generates a random one

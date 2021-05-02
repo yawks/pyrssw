@@ -1,5 +1,5 @@
 from handlers.content.content_processor import ContentProcessor
-from typing import Dict, List, Optional, Tuple, Type, cast
+from typing import Dict, Optional, Tuple, Type, cast
 import traceback
 import requests
 import urllib.parse as urlparse
@@ -23,7 +23,7 @@ class LauncherHandler(RequestHandler):
     """Handler which launches custom PyRSSWRequestHandler"""
 
     def __init__(self, module_name: str,
-                 handlers: List[Type[PyRSSWRequestHandler]],
+                 handlers: Dict[str, Type[PyRSSWRequestHandler]],
                  serving_url_prefix: Optional[str],
                  url: str,
                  crypto_key: bytes,
@@ -37,12 +37,9 @@ class LauncherHandler(RequestHandler):
         self.module_name: str = module_name
         self.fernet: Fernet = Fernet(crypto_key)
         self.session_id: str = session_id
-        for h in handlers:  # find handler from module_name
-            if h.get_handler_name() == module_name:
-                self.handler = h(self.fernet, self.handler_url_prefix)
-                break
-
-        if self.handler is not None:
+        if module_name in handlers:
+            self.handler = handlers[module_name](
+                self.fernet, self.handler_url_prefix)
             self.process()
         else:
             raise Exception("No handler found for name '%s'" % module_name)

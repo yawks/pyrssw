@@ -25,16 +25,12 @@ class BellesDemeuresHandler(PyRSSWRequestHandler):
           criteria=recherche%3Fci%3D330063%26pxmax%3D5000000%26idtt%3D2%26tri%3DSelection
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "bellesdemeures"
-
     def get_original_website(self) -> str:
         return "https://www.bellesdemeures.com/"
 
     def get_rss_url(self) -> str:
         return ""
-    
+
     @staticmethod
     def get_favicon_url() -> str:
         return "https://www.bellesdemeures.com/Content/static/img/favicon/favicon-32x32.png?v=3"

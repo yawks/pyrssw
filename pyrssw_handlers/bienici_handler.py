@@ -25,16 +25,12 @@ class BienIciHandler(PyRSSWRequestHandler):
           criteria=realEstateAds.json?filters=%7B%22size%22%3A24%2C%22from%22%3A0%2C%22filterType%22%3A%22buy%22%2C%22propertyType%22%3A%5B%22house%22%2C%22flat%22%5D%2C%22maxPrice%22%3A1250000%2C%22minRooms%22%3A3%2C%22page%22%3A1%2C%22resultsPerPage%22%3A24%2C%22maxAuthorizedResults%22%3A2400%2C%22sortBy%22%3A%22relevance%22%2C%22sortOrder%22%3A%22desc%22%2C%22onTheMarket%22%3A%5Btrue%5D%2C%22limit%22%3A%22iqwiHognJ%3Fi%7BsDpoWhB%3FttsD%22%2C%22propertyType.base%22%3A%5B%22programme%22%5D%2C%22programmeWith3dFirst%22%3Atrue%2C%22showAllModels%22%3Afalse%2C%22blurInfoType%22%3A%5B%22disk%22%2C%22exact%22%5D%2C%22zoneIdsByTypes%22%3A%7B%22zoneIds%22%3A%5B%22-91775%22%2C%22-91641%22%2C%22-91768%22%2C%22-108346%22%5D%7D%7D&extensionType=extendedIfNoResult
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "bienici"
-
     def get_original_website(self) -> str:
         return "https://www.bienici.com/"
 
     def get_rss_url(self) -> str:
         return ""
-    
+
     @staticmethod
     def get_favicon_url() -> str:
         return "https://res.bienici.com/cacheForever/ca36cf95984b75fd4620b9dd4ca0b24bc82a2116/favicon.ico"

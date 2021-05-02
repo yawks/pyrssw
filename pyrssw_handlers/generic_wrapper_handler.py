@@ -29,10 +29,6 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
         Get readable content of the target article content
     """
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "genericwrapper"
-
     def get_original_website(self) -> str:
         return ""
 

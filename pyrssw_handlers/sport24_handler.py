@@ -15,10 +15,6 @@ DUGOUT_VIDEO = re.compile(r'(?:https?://embed.dugout.com/v2/\?p=)([^/]*)')
 
 class Sport24Handler(PyRSSWRequestHandler):
 
-    @staticmethod
-    def get_handler_name() -> str:
-        return "Sport24"
-
     def get_original_website(self) -> str:
         return "https://sport24.lefigaro.fr/"
 
