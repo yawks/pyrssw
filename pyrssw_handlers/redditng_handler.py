@@ -1,5 +1,6 @@
 import json
 import html
+from json.decoder import JSONDecodeError
 from request.pyrssw_content import PyRSSWContent
 from utils.url_utils import is_a_picture_url, is_a_video_url, is_url_valid
 from handlers.feed_type.atom_arranger import NAMESPACES
@@ -97,9 +98,17 @@ class RedditHandler(PyRSSWRequestHandler):
 
     def get_reddit_content(self, url: str, session: Session, with_comments: bool) -> PyRSSWContent:
         content: str = ""
-        json_content = session.get(url="%s/.json" %
-                                   url, headers=self._get_headers()).content
-        root = json.loads(json_content)
+        page = session.get(url="%s/.json" %
+                           url, headers=self._get_headers())
+        json_content = page.content
+
+        try:
+            root = json.loads(json_content)
+        except JSONDecodeError as _:
+            content = "<strong>Status code: %d<br/></strong>" % page.status_code
+            content += to_string(etree.HTML(page.content,
+                                            parser=None))
+            root = {}
         datatypes = self._get_datatypes_json(root, "t3")  # t3 : content
         for data in datatypes:
             content += "<h1>%s</h1>" % get_node_value_if_exists(
@@ -109,29 +118,8 @@ class RedditHandler(PyRSSWRequestHandler):
             removed_by: str = get_node_value_if_exists(
                 data, "removed_by") + get_node_value_if_exists(data, "removed_by_category")
             if removed_by == "":
-                url_overridden_by_dest: str = get_node_value_if_exists(
-                    data, "url_overridden_by_dest")
-                if len(url_overridden_by_dest) > 0 and url_overridden_by_dest[:1] == '/':
-                    url_overridden_by_dest = "https://www.reddit.com" + url_overridden_by_dest
-                preview_image: Optional[str] = cast(
-                    Optional[str], get_node(data, "preview", "images", 0, "source", "url"))
-                is_gallery: str = str(
-                    get_node_value_if_exists(data, "is_gallery"))
-                domain: Optional[str] = cast(str, get_node(data, "domain"))
-
-                if self_html != "":
-                    content += html.unescape(self_html)
-
-                if is_gallery == "True":
-                    content += self._manage_gallery(data)
-
-                c: Optional[str] = self._manage_external_content(session,
-                                                                 url_overridden_by_dest, post_hint, preview_image, domain, data)
-                if c is not None:
-                    content += c
-
-                content = self._manage_reddit_preview_images(content)
-                content = content.replace("<video ", "<video controls ")
+                content = self._get_content_from_data(data=data, session=session,
+                                                      self_html=self_html, post_hint=post_hint)
             else:
                 content = "Content removed"
 
@@ -147,6 +135,34 @@ class RedditHandler(PyRSSWRequestHandler):
             content, comments)
 
         return PyRSSWContent(content)
+
+    def _get_content_from_data(self, data, session: Session, self_html: str, post_hint: str) -> str:
+        content: str = ""
+        url_overridden_by_dest: str = get_node_value_if_exists(
+            data, "url_overridden_by_dest")
+        if len(url_overridden_by_dest) > 0 and url_overridden_by_dest[:1] == '/':
+            url_overridden_by_dest = "https://www.reddit.com" + url_overridden_by_dest
+        preview_image: Optional[str] = cast(
+            Optional[str], get_node(data, "preview", "images", 0, "source", "url"))
+        is_gallery: str = str(
+            get_node_value_if_exists(data, "is_gallery"))
+        domain: Optional[str] = cast(str, get_node(data, "domain"))
+
+        if self_html != "":
+            content += html.unescape(self_html)
+
+        if is_gallery == "True":
+            content += self._manage_gallery(data)
+
+        c: Optional[str] = self._manage_external_content(session,
+                                                         url_overridden_by_dest, post_hint, preview_image, domain, data)
+        if c is not None:
+            content += c
+
+        content = self._manage_reddit_preview_images(content)
+        content = content.replace("<video ", "<video controls ")
+
+        return content
 
     def _manage_reddit_preview_images(self, content) -> str:
         """Use directly the image instead of the preview
