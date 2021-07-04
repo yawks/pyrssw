@@ -45,7 +45,7 @@ class EurosportHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_favicon_url() -> str:
-        return "https://layout.eurosport.com/i/v8/favicon/favicon.ico"
+        return "https://layout.eurosport.com/i/sd/logo.jpg"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text
@@ -481,10 +481,37 @@ class QLArticleBuilder():
         elif type_name in ["TeamSportsMatch", "Article"]:
             node_format = self._build(
                 cast(str, json_utils.get_node(node, "link", "__ref")))
+        elif type_name == "Table":
+            node_format = self._format_table(node)
+        elif type_name == "TableLine":
+            node_format = self._format_table_line(node)
+        elif type_name == "TableColumn":
+            node_format = self._format_table_column(node)
         elif type_name == "Embed":
             node_format = self._format_embed(node)
 
         return node_format
+
+    def _format_table_column(self, node: dict) -> str:
+        tds = ""
+        for td in cast(List[str], json_utils.get_node(node, "contents", "__refs")):
+            tds = "\n\t<td>%s</td>" % self._build(td)
+
+        return tds
+
+    def _format_table_line(self, node: dict) -> str:
+        tds = ""
+        if "tableColumns" in node and "__refs" in node["tableColumns"]:
+            for td in node["tableColumns"]["__refs"]:
+                tds += cast(str, self._build(td))
+        return "<tr>%s</tr>" % tds
+
+    def _format_table(self, node: dict) -> str:
+        trs = ""
+        if "tableLines" in node and "__refs" in node["tableLines"]:
+            for tr in node["tableLines"]["__refs"]:
+                trs += cast(str, self._build(tr))
+        return "<table>%s</table>" % trs
 
     def _format_embed(self, node: dict) -> str:
         content: str
@@ -494,8 +521,11 @@ class QLArticleBuilder():
         elif type_node == "TWITTER":
             content = "<p><a href=\"%s\">%s</a></p>" % (
                 node["url"], node["label"])
-        elif type_node in ["YOUTUBE", "DAILYMOTION", "INSTAGRAM"]:
+        elif type_node in ["YOUTUBE", "DAILYMOTION"]:
             content = "<iframe width=\"560\" height=\"315\" src=\"%s\"></iframe>" % node["url"]
+        elif type_node == "INSTAGRAM":
+            content = "<iframe width=\"560\" height=\"315\" src=\"%sembed\"></iframe>" % node["url"].split("?")[
+                0]
         else:
             content = "<p><i><small>Unknown embed type name: '%s'%s</small></i></p>" % (
                 type_node, CONTENT_MARKER)

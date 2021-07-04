@@ -1,10 +1,10 @@
+from handlers.custom_media_handler import CustomMediaHandler
 import random
 import logging
 import os
 import sys
-from urllib.parse import unquote_plus
 from http.cookies import SimpleCookie
-from typing import Optional, Tuple
+from typing import Optional
 from handlers.favicon_handler import FaviconHandler
 from config.config import Config
 from handlers.bad_request_handler import BadRequestHandler

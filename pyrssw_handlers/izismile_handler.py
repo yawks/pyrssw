@@ -78,7 +78,7 @@ class IzismileHandler(PyRSSWRequestHandler):
             #pyrssw_wrapper #izismile_handler div img {float:none; max-height: 90vh;margin: 0 auto; display: block;}
         """)
 
-    def _get_content(self, url, session: requests.Session, with_title: bool = False):
+    def _get_content(self, url: str, session: requests.Session, with_title: bool = False):
         url_next_page = ""
         page = self._get_page_from_url(url, session)
         dom = etree.HTML(page.text)
@@ -155,7 +155,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         content = content.replace('<div class="tools" style="display: none;"/>',
                                   '<div class="tools" style="display: block;"/>')
         content = re.sub(r'src="data:image/[^"]*"', '', content)
-        content = content.replace("data-src=", "src=")
+        #content = content.replace("data-src=", "src=")
         content = content.replace("data-poster=", "poster=")
         content = content.replace("class=\"lazyload\"", "")
         content = content.replace("Advertisement", "")

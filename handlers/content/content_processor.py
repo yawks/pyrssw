@@ -100,9 +100,30 @@ class ContentProcessor():
             translate_dom(dom, self.parameters["translateto"], url)
 
     def _get_header(self) -> str:
-        header: str = ""
+        header: str = """
+        <script>
+            var observer = new IntersectionObserver(
+                (entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.intersectionRatio > 0.0) {
+                            img = entry.target;
+                            if (!img.hasAttribute('src')) {
+                                img.setAttribute('src', img.dataset.src);
+                            }
+                        }
+                    });
+                },
+                {}
+            )
+            window.addEventListener("DOMContentLoaded", function() {
+                for (let img of document.querySelectorAll("img[data-src]")) {
+                    observer.observe(img);
+                }
+            });
+        </script>
+"""
         if "header" in self.parameters and self.parameters["header"].lower() == "true":
-            header: str = """<script>
+            header += """<script>
 	/*
 		By Osvaldas Valutis, www.osvaldas.info
 		Available for use under the MIT License
@@ -206,7 +227,8 @@ class ContentProcessor():
                 #pyrssw_wrapper strong {font-weight:400}
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%!important;float:none}
-                #pyrssw_wrapper iframe {width:100%;min-height:30vw;height:auto}
+                #pyrssw_wrapper iframe {width:100%;min-height:800px;height:60vh}
+                #pyrssw_wrapper table, th, td {border: 1px solid;border-collapse: collapse;padding: 5px;}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
                 #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
                 #pyrssw_wrapper .twitter-tweet {margin: 0 auto}

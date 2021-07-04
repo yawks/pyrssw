@@ -20,10 +20,10 @@ class Sport24Handler(PyRSSWRequestHandler):
 
     def get_rss_url(self) -> str:
         return "https://sport24.lefigaro.fr/rssfeeds/sport24-%s.xml"
-    
+
     @staticmethod
     def get_favicon_url() -> str:
-        return "https://sport24.lefigaro.fr/bundles/sport24site/img/favicons/favicon-32x32.png?v=Lefigaro"
+        return "https://static.lefigaro.fr/f1/lefigaro/metas/og-image.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         if "filter" in parameters and parameters["filter"] == ("tennis" or "football" or "rugby" or "cyclisme" or "golf"):
@@ -70,19 +70,22 @@ class Sport24Handler(PyRSSWRequestHandler):
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         page = session.get(url=url, headers={})
-        content = page.text
-
+        
         dom = etree.HTML(page.text)
         title = utils.dom_utils.get_content(dom, ["//h1"])
+        h1s = xpath(dom, "//h1")
+        if len(h1s) > 0:
+            #sometimes there is 2 h1 for the same title in the page
+            h1s[0].getparent().remove(h1s[0])
         imgsrc = ""
         imgs = dom.xpath("//img[@srcset]")
         if len(imgs) > 0:
             imgsrc = imgs[0].get("srcset")
 
-        utils.dom_utils.delete_nodes(
-            dom.xpath('//*[@class="s24-art-cross-linking"]'))
-        utils.dom_utils.delete_nodes(
-            dom.xpath('//*[@class="s24-art-pub-top"]'))
+        utils.dom_utils.delete_xpaths(dom, [
+            '//*[@class="s24-art-cross-linking"]',
+            '//*[@class="fig-media__button"]',
+            '//*[@class="s24-art-pub-top"]'])
 
         self._process_dugout(session, dom)
 
@@ -101,8 +104,10 @@ class Sport24Handler(PyRSSWRequestHandler):
             content = to_string(contents[0])
         else:
             content = utils.dom_utils.get_content(dom, [
-                '//article[contains(@class,"fig-content")]', #handles golf.lefigaro structure
-                '//article[contains(@class,"fig-main")]' #handles lefigaro.fr/sports
+                # handles golf.lefigaro structure
+                '//article[contains(@class,"fig-content")]',
+                # handles lefigaro.fr/sports
+                '//article[contains(@class,"fig-main")]'
             ])
 
         content = "%s%s" % (title, content)
