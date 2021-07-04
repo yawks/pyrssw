@@ -1,4 +1,3 @@
-from handlers.custom_media_handler import CustomMediaHandler
 import random
 import logging
 import os
