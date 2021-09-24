@@ -101,7 +101,8 @@ class IzismileHandler(PyRSSWRequestHandler):
             '//*[contains(@class,"like-list")]',
             '//*[contains(@class,"left_stat")]',
             '//*[contains(@class,"ajax-")]',
-            '//*[contains(@class, "sordering")]'])
+            '//*[contains(@class, "sordering")]',
+            '//*[@id="img_id_isolate"]'])
 
         for script in dom.xpath('//script'):
             script.getparent().remove(script)
