@@ -74,7 +74,6 @@ class LauncherHandler(RequestHandler):
         self.content_type = HTML_CONTENT_TYPE
         session: requests.Session = requests.Session()
         session.headers.update({"User-Agent": USER_AGENT})
-        additional_css: str = ""
 
         if "url" in parameters:
             requested_url = parameters["url"]
@@ -92,7 +91,7 @@ class LauncherHandler(RequestHandler):
                 handler=cast(PyRSSWRequestHandler, self.handler),
                 url=url,
                 contents=pyrssw_content.content,
-                additional_css=additional_css,
+                additional_css=pyrssw_content.css,
                 parameters=parameters).process()
 
     def _process_rss(self, parameters: Dict[str, str]):

@@ -229,7 +229,7 @@ class ContentProcessor():
                 #pyrssw_wrapper strong {font-weight:400}
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%!important;float:none}
-                #pyrssw_wrapper iframe {width:100%;min-height:800px;height:60vh}
+                #pyrssw_wrapper iframe {width:100%;}
                 #pyrssw_wrapper table, th, td {border: 1px solid;border-collapse: collapse;padding: 5px;}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
                 #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
