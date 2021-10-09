@@ -133,6 +133,36 @@ class Sport24Handler(PyRSSWRequestHandler):
             #sport24_handler div.object-right {
                 text-align:center;
             }
+
+            #pyrssw_wrapper .fig-page-match-card__row-list {
+                font-weight: bold;
+            }
+
+            #pyrssw_wrapper span.fig-page-match-card__row-list-content {
+                font-weight: 300;
+                margin-left: 5px;
+            }
+
+            #pyrssw_wrapper .fig-page-match-card__title {
+                margin-top: 50px;
+            }
+
+            #pyrssw_wrapper .fig-page-match-card svg, #pyrssw_wrapper .fig-page-match-card__row svg {
+                width:24px;
+            }
+
+            #pyrssw_wrapper .fig-page-match-card__action {
+                display:inline;
+            }
+            #pyrssw_wrapper .fig-page-match-card__name {
+                display:inline;
+                margin-left:5px;
+            }
+
+            #pyrssw_wrapper .fig-page-match-card__row-header {
+                text-align: center;
+                border: 1px solid;
+            }
         """)
 
     def _process_dugout(self, session: requests.Session, dom: etree._Element):

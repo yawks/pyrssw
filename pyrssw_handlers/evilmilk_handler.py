@@ -43,7 +43,8 @@ class EvilmilkHandler(PyRSSWRequestHandler):
             '//*[@class="row heading bottomnav"]',
             '//*[@id="picdumpnav"]',
             '//*[@class="container-fluid"]',
-            '//*[@id="myModal"]'])
+            '//*[@id="myModal"]',
+            '//*[contains(@class, "evilright")]'])
 
         main_bodies = dom.xpath('//*[@id="mainbody"]')
         if len(main_bodies) > 0:

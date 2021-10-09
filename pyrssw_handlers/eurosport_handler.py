@@ -130,29 +130,30 @@ class EurosportHandler(PyRSSWRequestHandler):
         content = content.replace("width=\"100%\"", "style=\"width:100%\"")
 
         return PyRSSWContent(content, """
-            # eurosport_handler .storyfull__ng-picture img {width:100%}
-            # eurosport_handler .live-summary__seo-picture img {width:100%}
-            # eurosport_handler .img-link img {
+            #eurosport_handler .storyfull__ng-picture img {width:100%}
+            #eurosport_handler .live-summary__seo-picture img {width:100%}
+            #eurosport_handler .img-link img {
                 float: none;
                 display: block;
                 margin: 0 auto;
             }
 
-            # eurosport_handler .storyfull__publisher-time span::before {
+            #eurosport_handler .storyfull__publisher-time span::before {
                 content: ' | ';
             }
 
-            # eurosport_handler .heromatch__status {
+            #eurosport_handler .heromatch__status {
                 display: block;
             }
 
-            # eurosport_handler .heromatch__col heromatch__col--center, #eurosport_handler .heromatch__score, #eurosport_handler  .heromatch__score-dash, #eurosport_handler .heromatch__score {
+            #eurosport_handler .heromatch__col heromatch__col--center, #eurosport_handler .heromatch__score, #eurosport_handler  .heromatch__score-dash, #eurosport_handler .heromatch__score {
                 display: inline-block;
             }
 
-            # eurosport_handler img.livecomments-icon, #eurosport_handler img.isg-interchange {
+            #eurosport_handler img.livecomments-icon, #eurosport_handler img.isg-interchange {
                 float:none;
             }
+
         """)
 
     def _get_content(self, url: str, session: requests.Session) -> str:
@@ -489,6 +490,8 @@ class QLArticleBuilder():
             node_format = self._format_table_column(node)
         elif type_name == "Embed":
             node_format = self._format_embed(node)
+        elif type_name == "WidgetBeOp":
+            node_format = ""
 
         return node_format
 
