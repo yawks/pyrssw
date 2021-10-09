@@ -2,7 +2,7 @@ import re
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 import utils.dom_utils
-from typing import List
+from typing import List, Tuple, cast
 import requests
 from lxml import etree
 import datetime
@@ -60,34 +60,54 @@ class IzismileHandler(PyRSSWRequestHandler):
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
-        content, url_next_page_2 = self._get_content(url, session, True)
+        content, url_next_page_2, comments = self._get_content(
+            url, session, with_title=True)
 
         if url_next_page_2 != "":
             # add a page 2
-            next_content, url_next_page_3 = self._get_content(
+            next_content, url_next_page_3, _ = self._get_content(
                 url_next_page_2, session)
             content += next_content
 
             if url_next_page_3 != "" and url_next_page_2 != url_next_page_3 and url_next_page_3.find("page,1,") == -1:
                 # add a page 3 (sometimes there is a redirection with an ongoing page)
-                next_content, url_next_page_3 = self._get_content(
+                next_content, url_next_page_3, _ = self._get_content(
                     url_next_page_3, session)
                 content += next_content
 
+        content += comments  # so far comments are the same on every page
+
         return PyRSSWContent(content, """
-            #pyrssw_wrapper #izismile_handler div img {float:none; max-height: 90vh;margin: 0 auto; display: block;}
+            #pyrssw_wrapper #izismile_handler div img {float:none; max-height: 90vh;margin: 0 auto; display: block; min-height:80px}
+            #pyrssw_wrapper #izismile_handler img.avatar {
+                float: left;
+                margin-right: 15px;
+                margin-bottom: 5px;
+                display: block;
+                max-width: 80px!important;
+            }
+            #pyrssw_wrapper #izismile_handler div .comm-inner img {
+                min-height: auto;
+                max-width: none;
+                display: initial;
+            }
+            #pyrssw_wrapper #izismile_handler .comment-div {
+                min-height: 90px;
+            }
         """)
 
-    def _get_content(self, url: str, session: requests.Session, with_title: bool = False):
+    def _get_content(self, url: str, session: requests.Session, with_title: bool = False) -> Tuple[str, str, str]:
         url_next_page = ""
         page = self._get_page_from_url(url, session)
         dom = etree.HTML(page.text)
         title = "" if not with_title else utils.dom_utils.get_content(dom, [
                                                                       "//h1"])
+        comments = ""
+
         for a in dom.xpath("//a[contains(@href, \"https://izismile.com/outgoing.php\")]"):
             parsed = urlparse.urlparse(a.attrib["href"])
             if "url" in parse_qs(parsed.query):
-                return "", parse_qs(parsed.query)["url"][0]
+                return "", parse_qs(parsed.query)["url"][0], ""
 
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class, "banners_btw_pics")]',
@@ -102,15 +122,19 @@ class IzismileHandler(PyRSSWRequestHandler):
             '//*[contains(@class,"left_stat")]',
             '//*[contains(@class,"ajax-")]',
             '//*[contains(@class, "sordering")]',
-            '//*[@id="dle-comments-form"]'])
+            '//*[@id="dle-comments-form"]',
+            '//*[@class="com_rate"]',
+            '//*[@class="com_id"]',
+            '//*[contains(@class,"com_buttons")]',
+            '//*[contains(@class,"com_bots")]'])
 
         for script in dom.xpath('//script'):
             script.getparent().remove(script)
 
         pagers = dom.xpath('//*[@class="postpages"]')
         if len(pagers) > 2:
-            url_next_page = dom.xpath(
-                '//*[@class="postpages"]//a')[0].values()[0]
+            url_next_page = cast(str, dom.xpath(
+                '//*[@class="postpages"]//a')[0].values()[0])
         for pager in list(pagers):
             pager.getparent().remove(pager)
 
@@ -124,6 +148,14 @@ class IzismileHandler(PyRSSWRequestHandler):
             imgbox.tag = "p"
             del imgbox.attrib["class"]
 
+        comments_nodes = dom.xpath('//*[@id="dlemasscomments"]')
+        if len(comments_nodes) > 0:
+            # isolate comments and then remove them from content
+            comments = cast(str, etree.tostring(
+                comments_nodes[0], encoding='unicode'))
+            comments = comments.replace("src=\"data:", "_src=\"data:").replace("data-src", "src") #ugly hack
+            utils.dom_utils.delete_xpaths(dom, ['//*[@id="dlemasscomments"]'])
+
         post_lists = dom.xpath('//*[@id="post-list"]')
         if len(post_lists) > 0:
             content = etree.tostring(
@@ -133,7 +165,7 @@ class IzismileHandler(PyRSSWRequestHandler):
 
         content = "%s%s" % (title, self._clean_content(content))
 
-        return content, url_next_page
+        return content, url_next_page, comments
 
     def _get_page_from_url(self, url, session: requests.Session):
         page = session.get(url=url)
