@@ -46,7 +46,7 @@ class EvilmilkHandler(PyRSSWRequestHandler):
             '//*[@id="myModal"]',
             '//*[contains(@class, "evilright")]',
             '//footer[contains(@class, "page-footer")]',
-            '//*[@id="emlogogo]'])
+            '//*[@id="emlogogo"]'])
 
         main_bodies = dom.xpath('//*[@id="mainbody"]')
         if len(main_bodies) > 0:

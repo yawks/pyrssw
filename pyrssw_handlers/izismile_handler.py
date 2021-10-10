@@ -60,19 +60,19 @@ class IzismileHandler(PyRSSWRequestHandler):
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
-        content, url_next_page_2, comments = self._get_content(
-            url, session, with_title=True)
+        content, url_next_page_2, comments, cpt_comments = self._get_content(
+            url, session, with_title=True, cpt_comments=1)
 
         if url_next_page_2 != "":
             # add a page 2
-            next_content, url_next_page_3, _ = self._get_content(
-                url_next_page_2, session)
+            next_content, url_next_page_3, _, cpt_comments = self._get_content(
+                url_next_page_2, session, cpt_comments=cpt_comments)
             content += next_content
 
             if url_next_page_3 != "" and url_next_page_2 != url_next_page_3 and url_next_page_3.find("page,1,") == -1:
                 # add a page 3 (sometimes there is a redirection with an ongoing page)
-                next_content, url_next_page_3, _ = self._get_content(
-                    url_next_page_3, session)
+                next_content, url_next_page_3, _, _ = self._get_content(
+                    url_next_page_3, session, cpt_comments=cpt_comments)
                 content += next_content
 
         content += comments  # so far comments are the same on every page
@@ -96,7 +96,7 @@ class IzismileHandler(PyRSSWRequestHandler):
             }
         """)
 
-    def _get_content(self, url: str, session: requests.Session, with_title: bool = False) -> Tuple[str, str, str]:
+    def _get_content(self, url: str, session: requests.Session, with_title: bool = False, cpt_comments: int = 0) -> Tuple[str, str, str, int]:
         url_next_page = ""
         page = self._get_page_from_url(url, session)
         dom = etree.HTML(page.text)
@@ -107,7 +107,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         for a in dom.xpath("//a[contains(@href, \"https://izismile.com/outgoing.php\")]"):
             parsed = urlparse.urlparse(a.attrib["href"])
             if "url" in parse_qs(parsed.query):
-                return "", parse_qs(parsed.query)["url"][0], ""
+                return "", parse_qs(parsed.query)["url"][0], "", cpt_comments
 
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class, "banners_btw_pics")]',
@@ -144,8 +144,11 @@ class IzismileHandler(PyRSSWRequestHandler):
 
         imgboxs = dom.xpath('//div[@class="imgbox"]')
         # replace <div class="imgbox"> by <p> tags
+        cpt = cpt_comments
         for imgbox in imgboxs:
             imgbox.tag = "p"
+            imgbox.attrib["id"] = str(cpt)
+            cpt += 1
             del imgbox.attrib["class"]
 
         comments_nodes = dom.xpath('//*[@id="dlemasscomments"]')
@@ -153,7 +156,9 @@ class IzismileHandler(PyRSSWRequestHandler):
             # isolate comments and then remove them from content
             comments = cast(str, etree.tostring(
                 comments_nodes[0], encoding='unicode'))
-            comments = comments.replace("src=\"data:", "_src=\"data:").replace("data-src", "src") #ugly hack
+            comments = comments.replace("src=\"data:", "_src=\"data:").replace(
+                "data-src", "src")  # ugly hack
+            comments = re.sub(r'(#\d+)', '<a href="\\1">\\1</a>', comments)
             utils.dom_utils.delete_xpaths(dom, ['//*[@id="dlemasscomments"]'])
 
         post_lists = dom.xpath('//*[@id="post-list"]')
@@ -165,7 +170,7 @@ class IzismileHandler(PyRSSWRequestHandler):
 
         content = "%s%s" % (title, self._clean_content(content))
 
-        return content, url_next_page, comments
+        return content, url_next_page, comments, cpt
 
     def _get_page_from_url(self, url, session: requests.Session):
         page = session.get(url=url)
