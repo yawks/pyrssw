@@ -60,20 +60,17 @@ class IzismileHandler(PyRSSWRequestHandler):
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
-        content, url_next_page_2, comments, cpt_comments = self._get_content(
+        urls: List[str] = [url]
+        nb_pages = 1
+        content, url_next_page, comments, cpt_comments = self._get_content(
             url, session, with_title=True, cpt_comments=1)
 
-        if url_next_page_2 != "":
-            # add a page 2
-            next_content, url_next_page_3, _, cpt_comments = self._get_content(
-                url_next_page_2, session, cpt_comments=cpt_comments)
+        while url_next_page != "" and nb_pages <= 6 and url_next_page not in urls:
+            urls.append(url_next_page)
+            next_content, url_next_page, _, cpt_comments = self._get_content(
+                url_next_page, session, with_title=False, cpt_comments=cpt_comments)
             content += next_content
-
-            if url_next_page_3 != "" and url_next_page_2 != url_next_page_3 and url_next_page_3.find("page,1,") == -1:
-                # add a page 3 (sometimes there is a redirection with an ongoing page)
-                next_content, url_next_page_3, _, _ = self._get_content(
-                    url_next_page_3, session, cpt_comments=cpt_comments)
-                content += next_content
+            nb_pages += 1
 
         content += comments  # so far comments are the same on every page
 
@@ -126,7 +123,8 @@ class IzismileHandler(PyRSSWRequestHandler):
             '//*[@class="com_rate"]',
             '//*[@class="com_id"]',
             '//*[contains(@class,"com_buttons")]',
-            '//*[contains(@class,"com_bots")]'])
+            '//*[contains(@class,"com_bots")]',
+            '//div/center'])
 
         for script in dom.xpath('//script'):
             script.getparent().remove(script)
@@ -134,7 +132,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         pagers = dom.xpath('//*[@class="postpages"]')
         if len(pagers) > 2:
             url_next_page = cast(str, dom.xpath(
-                '//*[@class="postpages"]//a')[0].values()[0])
+                '//*[@class="postpages"]//a')[-1].values()[0])
         for pager in list(pagers):
             pager.getparent().remove(pager)
 
