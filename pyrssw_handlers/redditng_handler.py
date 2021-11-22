@@ -118,10 +118,10 @@ class RedditHandler(PyRSSWRequestHandler):
             removed_by: str = get_node_value_if_exists(
                 data, "removed_by") + get_node_value_if_exists(data, "removed_by_category")
             if removed_by == "":
-                content = self._get_content_from_data(data=data, session=session,
+                content += self._get_content_from_data(data=data, session=session,
                                                       self_html=self_html, post_hint=post_hint)
             else:
-                content = "Content removed"
+                content += "Content removed"
 
         comments: str = ""
         if with_comments:
@@ -307,7 +307,7 @@ class RedditHandler(PyRSSWRequestHandler):
         """
 
         comments_html: str = ""
-        if deep < 3:  # not to deep
+        if deep < 50:  # not to deep
             if "body_html" in comments:
                 comments_html += "<li>%s</li>" % html.unescape(
                     comments["body_html"])
