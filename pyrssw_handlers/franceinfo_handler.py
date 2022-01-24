@@ -111,6 +111,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
                   '//article[contains(@class,"page-content")]',
                   '//article[contains(@id,"node")]',  # france3 regions
                   '//main[contains(@class,"article")]',  # france3 regions
+                  '//div[contains(@class,"article")]',  # france3 regions
                   '//article[contains(@class,"content-live")]',  # live
                   '//*[contains(@class, "article__column--left")]',  # la1ere
                   '//div[contains(@class, "content")]',
@@ -125,6 +126,17 @@ class FranceInfoHandler(PyRSSWRequestHandler):
         content = content.replace(
             "id=\"topCallImage\"", "id=\"topCallImage--\"")
 
+        article_intro_start_idx = content.find("<p class=\"article__intro\">")
+        if article_intro_start_idx > -1:
+            article_intro_end_idx = content[article_intro_start_idx:].find(
+                "</p>")
+            content = content.replace("%s</p>" %
+                                      content[article_intro_start_idx:article_intro_start_idx +
+                                              article_intro_end_idx],
+                                      "<h1>%s</h1>" % content[len("<p class=\"article__intro\">")+article_intro_start_idx:article_intro_start_idx+article_intro_end_idx])
+
         return PyRSSWContent(content, """
             #franceinfo_handler img.also-link__content__img {float:left;margin:0 10px 10px 0;}
+            #franceinfo_handler ul li.localities__locality+li.localities__locality:before {padding: 8px;content: "/";}
+            #franceinfo_handler ul li.localities__locality  {display: inline;font-size: 18px;}
         """)
