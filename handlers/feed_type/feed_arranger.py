@@ -298,8 +298,9 @@ class FeedArranger(metaclass=ABCMeta):
         complete_url: str = handler_url_prefix
         first = True
         for parameter in parameters:
-            complete_url += "?" if first else "&"
-            complete_url += "%s=%s" % (parameter, parameters[parameter])
-            first = False
+            if parameters.get("%s_crypted" % parameter, "") == "": #do not put parameters having a crypted version
+                complete_url += "?" if first else "&"
+                complete_url += "%s=%s" % (parameter.replace("_crypted", ""), parameters[parameter])
+                first = False
 
         return complete_url

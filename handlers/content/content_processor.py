@@ -303,7 +303,7 @@ class ContentProcessor():
             """
 
         if "header" in self.parameters and self.parameters["header"] == "true":
-            body_padding_for_header = "padding-top:30px;"
+            body_padding_for_header = "padding-top:40px;"
 
         global_font_size = "100%"
         smartphone_global_font_size = "120%"

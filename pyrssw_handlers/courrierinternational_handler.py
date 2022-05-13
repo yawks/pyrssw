@@ -1,7 +1,8 @@
+from pyrssw_handlers.le_monde_handler import URL_CONNECTION, URL_DECONNECTION
 from request.pyrssw_content import PyRSSWContent
 import re
 from typing import cast
-
+import urllib.parse
 import requests
 from lxml import etree
 
@@ -10,6 +11,10 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 from utils.dom_utils import to_string, xpath
 
+URL_CONNECTION = "https://www.courrierinternational.com/login?destination=%3Cfront%3E"
+URL_DECONNECTION = "https://www.courrierinternational.com/user/logout"
+
+#http://127.0.0.1:8001/courrierinternational/rss?dark=true&header=true&login=!e:gAAAAABifik181hybNagrygFLj9jyprTFzxsb0yYcfMmncyQiXQhnKbGVGIzYQ13m3NcFXYCWnaEcVaVWzUOW3e4omWaPVraNoS5w0bkQMy_7uJGH9251Ps=&password=!e:gAAAAABifil6TNOR8aWmcVpqrT2DEelz0em8dvEIlZ-pbCXyCQNy7oH0-lk9dgu_w4PZRJXDijVx_5rL9hesiM0rURr2Y-K-AA==
 
 class CourrierInternationalHandler(PyRSSWRequestHandler):
     """Handler for french <a href="http://www.courrierinternational.fr">Courrier International</a> website.
@@ -33,48 +38,53 @@ class CourrierInternationalHandler(PyRSSWRequestHandler):
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text
 
-        feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
+        feed = re.sub(r'<link>[^<]*</link>', '', feed)
+        link = '<link>'
+        feed = feed.replace('<guid isPermaLink="false">', link)
+        feed = feed.replace('<guid isPermaLink="true">', link)
+        feed = feed.replace('</guid>', '</link>')
+        feed = feed.replace(link, '<link>%s?%surl=' % (
+            self.url_prefix, self._getAuthentificationSuffix(parameters)))
 
         # I probably do not use etree as I should
         feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
         dom = etree.fromstring(feed)
-
-        for link in xpath(dom, "//item/link"):
-            link.text = self.get_handler_url_with_parameters(
-                {"url": cast(str, link.text).strip()})
 
         feed = to_string(dom)
 
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
-        page = session.get(url=url)
-        content = page.text.replace(">", ">\n")
+        self._authent(parameters, session)
+        try:
+            page = session.get(url=url)
+            content = page.text.replace(">", ">\n")
 
-        content = re.sub(r'src="data:image[^"]*', '', content)
-        content = content.replace(
-            "data-src", "style='height:100%;width:100%' src")
-        dom = etree.HTML(content)
+            content = re.sub(r'src="data:image[^"]*', '', content)
+            content = content.replace(
+                "data-src", "style='height:100%;width:100%' src")
+            dom = etree.HTML(content)
 
-        utils.dom_utils.delete_xpaths(dom, [
-            '//div[contains(@class, "article-metas")]',
-            '//div[contains(@class,"article-secondary")]',
-            '//aside[contains(@class,"article-tools")]'
-        ])
+            utils.dom_utils.delete_xpaths(dom, [
+                '//div[contains(@class, "article-metas")]',
+                '//div[contains(@class,"article-secondary")]',
+                '//aside[contains(@class,"article-tools")]'
+            ])
 
-        header = utils.dom_utils.get_content(
-            dom, ['//header[@class="article-header"]'])
-        
-        body = utils.dom_utils.get_content(
-            dom, ['//div[@class="article-content"]'])
+            header = utils.dom_utils.get_content(
+                dom, ['//header[@class="article-header"]'])
 
-        content = header + body
+            body = utils.dom_utils.get_content(
+                dom, ['//div[@class="article-content"]'])
 
-        if len(content.replace("\n", "").strip()) < 150:
-            # less than 150 chars, we did not manage to get the content, use readability facility
-            content = super().get_readable_content(session, url)
+            content = header + body
 
-        
+            if len(content.replace("\n", "").strip()) < 150:
+                # less than 150 chars, we did not manage to get the content, use readability facility
+                content = super().get_readable_content(session, url)
+        finally:
+            self._unauthent(session)
+
         return PyRSSWContent(content, """
             #courrierinternational_handler h1 {display:inline}
             #courrierinternational_handler span.strapline {color: #ff7d24;font-weight: 500;}
@@ -85,3 +95,33 @@ class CourrierInternationalHandler(PyRSSWRequestHandler):
             #courrierinternational_handler a, a:any-link {--siteText: var(--siteText);text-decoration: none;color: inherit;outline: 0;}
             #courrierinternational_handler a:hover {text-decoration: underline;}
         """)
+
+    def _authent(self, parameters: dict, session: requests.Session):
+        page = session.get(url=URL_CONNECTION)
+        if "login" in parameters and "password" in parameters:
+            idx = page.text.find('name="form_build_id" value="')
+            if idx > -1:
+                start = page.text[idx+len('name="form_build_id" value="'):]
+                token = start[0:start.find('"')]
+
+                data = {
+                    "name": parameters["login"],
+                    "pass": parameters["password"],
+                    "form_build_id": token,
+                    "form_id": "user_login_block",
+                    "ci_promo_code_code": "",
+                    "op": "Se connecter"}
+                session.post(
+                    url=URL_CONNECTION, data=data, headers={})
+
+    def _getAuthentificationSuffix(self, parameters: dict):
+        suffix = ""
+        if "login" in parameters and "password" in parameters:
+            suffix = "login=%s&amp;password=%s&amp;" % (
+                urllib.parse.quote_plus(parameters["login_crypted"]),
+                urllib.parse.quote_plus(parameters["password_crypted"]))
+
+        return suffix
+    
+    def _unauthent(self, session: requests.Session):
+        session.get(url=URL_DECONNECTION, headers={})
