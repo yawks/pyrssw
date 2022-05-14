@@ -87,13 +87,11 @@ class CourrierInternationalHandler(PyRSSWRequestHandler):
 
         return PyRSSWContent(content, """
             #courrierinternational_handler h1 {display:inline}
-            #courrierinternational_handler span.strapline {color: #ff7d24;font-weight: 500;}
-            #courrierinternational_handler .article-heading span.strapline {font-size: 170%;}
+            #courrierinternational_handler span.strapline {font-weight: 500;}
+            #courrierinternational_handler .article-heading span.strapline {font-size: 170%;color: #ff7d24;}
             #courrierinternational_handler .article-header ul {list-style:none;padding:0;margin:0}
             #courrierinternational_handler li {display: inline-block;text-transform: uppercase;font-size: 14px;letter-spacing: 2px;}
             #courrierinternational_handler .article-header .item:not(:last-child):after {content: "\\A0\\2022\\A0";font-weight: 600;}
-            #courrierinternational_handler a, a:any-link {--siteText: var(--siteText);text-decoration: none;color: inherit;outline: 0;}
-            #courrierinternational_handler a:hover {text-decoration: underline;}
         """)
 
     def _authent(self, parameters: dict, session: requests.Session):
