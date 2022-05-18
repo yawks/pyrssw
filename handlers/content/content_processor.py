@@ -364,6 +364,9 @@ class ContentProcessor():
                 elif o.attrib[attribute].startswith("/"):
                     o.attrib[attribute] = self.handler.get_original_website(
                     ) + o.attrib[attribute][1:]
+                elif not o.attrib[attribute].startswith("http"):
+                    o.attrib[attribute] = self.handler.get_original_website(
+                    ) + o.attrib[attribute]
 
         if self.handler.get_original_website() != '' and dom is not None:
             _replace_urls_process_links(dom, "href")
