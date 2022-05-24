@@ -1,3 +1,4 @@
+from typing import Dict, Optional
 from request.pyrssw_content import PyRSSWContent
 import re
 
@@ -24,7 +25,7 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
         return "http://lesjoiesducode.fr/rss"
     
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://lesjoiesducode.fr/wp-content/uploads/2020/03/cropped-59760110_2118870124856761_2769282087964901376_n-32x32.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:

@@ -123,7 +123,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         """Return the favicon url
 
         Returns:

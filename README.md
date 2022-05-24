@@ -170,7 +170,7 @@ class MyWebsiteWithNewsHandler(PyRSSWRequestHandler):
         return "https://www.mywebsitewithnews.com/rss.xml"
 
     @staticmethod
-    def get_favicon_url(self) -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.mywebsitewithnews.com/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:

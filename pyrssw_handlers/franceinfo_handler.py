@@ -1,6 +1,6 @@
 from request.pyrssw_content import PyRSSWContent
 import re
-from typing import cast
+from typing import Dict, Optional, cast
 
 import requests
 from lxml import etree
@@ -36,7 +36,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
         return "http://www.franceinfo.fr/rss.xml"
 
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.francetvinfo.fr/skin/www/img/favicon/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:

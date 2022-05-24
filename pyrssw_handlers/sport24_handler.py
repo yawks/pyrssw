@@ -1,7 +1,7 @@
 from request.pyrssw_content import PyRSSWContent
 import string
 import re
-from typing import List
+from typing import Dict, List, Optional
 import requests
 from lxml import etree
 import json
@@ -14,19 +14,55 @@ DUGOUT_VIDEO = re.compile(r'(?:https?://embed.dugout.com/v2/\?p=)([^/]*)')
 
 
 class Sport24Handler(PyRSSWRequestHandler):
+    """Handler for french <a href="https://www.lefigaro.fr/sports/">Le Figaro (ex sport24)</a> website.
+
+    Handler name: sport24
+
+    RSS parameters:
+     - filter : tennis, football, rugby, basket, cyclisme, football-transfert, jeux-olympiques, voile, handball, golf
+       to invert filtering, prefix it with: ^
+       eg :
+         - /sport24/rss?filter=tennis             #only feeds about tennis
+         #only feeds about football and tennis
+         - /sport24/rss?filter=football,tennis
+         - /sport24/rss?filter=^football,tennis   #all feeds but football and tennis
+
+    Content:
+        Content without menus, ads, ...
+    """
 
     def get_original_website(self) -> str:
-        return "https://sport24.lefigaro.fr/"
+        return "https://www.lefigaro.fr/sports/"
 
     def get_rss_url(self) -> str:
-        return "https://sport24.lefigaro.fr/rssfeeds/sport24-%s.xml"
+        return "https://www.lefigaro.fr/rss/figaro_%s.xml"
 
     @staticmethod
-    def get_favicon_url() -> str:
-        return "https://static.lefigaro.fr/f1/lefigaro/metas/og-image.png"
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
+        favicon_url = "https://static-s.aa-cdn.net/img/ios/378095281/153e14a0a7986d4fe3e1802129113c66"
+        if parameters.get("filter", "").find("football") > -1:
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500044.png"
+        elif parameters.get("filter") == "tennis":
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500072.png"
+        elif parameters.get("filter") == "rugby":
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500073.png"
+        elif parameters.get("filter") == "cyclisme":
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500050.png"
+        elif parameters.get("filter") == "basket":
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500060.png"
+        elif parameters.get("filter") == "voile":
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500050.png"
+        elif parameters.get("filter") == "handball":
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500078.png"
+        elif parameters.get("filter") == "golf":
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500087.png"
+        elif parameters.get("filter") == "jeux-olympiques":
+            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500049.png"
+
+        return favicon_url
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
-        if "filter" in parameters and parameters["filter"] == ("tennis" or "football" or "rugby" or "cyclisme" or "golf"):
+        if parameters.get("filter") == ("tennis" or "football" or "rugby" or "cyclisme" or "golf" or "basket" or "jeux-olympiques" or "voile" or "handball" or "formule-1" or "football-transfert"):
             # filter only on passed category, eg /sport24/rss/tennis
             feed = session.get(url=self.get_rss_url() %
                                parameters["filter"], headers={}).text

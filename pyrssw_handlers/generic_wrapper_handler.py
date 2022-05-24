@@ -1,6 +1,6 @@
 from request.pyrssw_content import PyRSSWContent
 import re
-from typing import cast
+from typing import Dict, cast
 
 import requests
 from lxml import etree
@@ -36,8 +36,17 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
         return ""
 
     @staticmethod
-    def get_favicon_url() -> str:
-        return ""
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
+        favicon = ""
+        if "rssurl" in parameters:
+            feed = requests.get(url=parameters["rssurl"], headers={}).text
+            feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
+            dom = etree.fromstring(feed)
+            images = xpath(dom, "//channel/image/url")
+            if len(images) > 0:
+                favicon = images[0].text
+
+        return favicon
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = ""

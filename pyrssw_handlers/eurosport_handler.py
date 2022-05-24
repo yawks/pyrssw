@@ -2,6 +2,7 @@ import html
 import json
 import logging
 from base64 import b64decode
+from time import time, sleep
 from request.pyrssw_content import PyRSSWContent
 from typing import Dict, List, Optional, cast
 
@@ -44,7 +45,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         return "https://www.eurosport.fr/rss.xml"
 
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://layout.eurosport.com/i/sd/logo.jpg"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
@@ -91,7 +92,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         if url.find("/video.shtml") > -1 and url.find("_vid") > -1:
             content = self._get_video_content(url, session)
         elif url.find("www.rugbyrama.fr") > -1:
-            page = session.get(url=url)
+            page = session.get(url=url, headers=self._get_headers())
             dom = etree.HTML(page.text)
             self._process_lazy_img(dom)
             utils.dom_utils.delete_xpaths(dom, [
@@ -103,7 +104,7 @@ class EurosportHandler(PyRSSWRequestHandler):
             content = utils.dom_utils.get_content(dom, [
                 '//div[contains(@class, "storyfull")]'])
         elif url.find("/live.shtml") > -1 or url.find("/liveevent.shtml") > -1:
-            page = session.get(url=url)
+            page = session.get(url=url, headers=self._get_headers())
             dom = etree.HTML(page.text)
             utils.dom_utils.delete_xpaths(dom, [
                 '//*[@class="nav-tab"]',
@@ -156,8 +157,8 @@ class EurosportHandler(PyRSSWRequestHandler):
 
         """)
 
-    def _get_content(self, url: str, session: requests.Session) -> str:
-        content = session.get(url).text
+    def _get_content(self, url: str, session: requests.Session, deep: int = 0) -> str:
+        content = session.get(url, headers=self._get_headers()).text
         content = content.replace(">", ">\n")
         # in the majority of eurosport pages a json object contains all the content in tag with id __NEXT_DATA__
         idx = content.find("__NEXT_DATA__")
@@ -165,11 +166,16 @@ class EurosportHandler(PyRSSWRequestHandler):
             offset = content[idx:].find(">")
             end = content[idx+offset:].find("</script>")
 
-            data = json.loads(content[idx+offset+1:idx+offset+end])
+            next_data = content[idx+offset+1:idx+offset+end]
+            data = json.loads(next_data)
 
             ql_ref = self._get_ql_ref(data)
             if ql_ref is not None:
                 content = QLArticleBuilder(data, ql_ref).build_article()
+                if content == "" and deep < 2:
+                    content = QLArticleBuilder(data, ql_ref).build_article()
+                    sleep(2)
+                    content = self._get_content(url, session, deep+1)
             else:
                 articles = json_utils.get_nodes_by_name(data, "article")
                 for article in articles:
@@ -255,6 +261,14 @@ class EurosportHandler(PyRSSWRequestHandler):
             except Exception as _:
                 logging.getLogger().info("Unable to parse 'data-img-interchange'")
 
+    def _get_headers(self):
+        return {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
+            "Cache-Control": "no-cache",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
+        }
 
 class ArticleBuilder():
     """Uses the json produced by eurosport pages and build a simple html page parsing it.
@@ -294,6 +308,8 @@ class ArticleBuilder():
                     else:
                         logging.getLogger().debug(
                             "Tag '%s' not handled", entry["node"])
+        else:
+            print("###################################")
 
         return content
 

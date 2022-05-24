@@ -103,10 +103,10 @@ class LauncherHandler(RequestHandler):
         self.contents = self.handler.get_feed(parameters, session)
         if self.contents.find("<rss ") > -1:
             self.contents = RSS2Arranger(
-                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url())
+                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url(parameters))
         elif self.contents.find("<feed ") > -1:
             self.contents = AtomArranger(
-                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url())
+                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url(parameters))
 
     def _extract_path_and_parameters(self, url: str) -> Tuple[str, dict]:
         """Extract url path and parameters (and decrypt them if they were crypted)

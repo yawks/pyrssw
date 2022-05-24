@@ -180,7 +180,7 @@ class ContentProcessor():
     });
 </script>
             <header class="pyrssw_content_header"><div class="container"><a href="%s" target="_blank"><img src="%s"/>%s</a></div></header>""" % (
-                self.parameters["url"], self.handler.get_favicon_url(), self.handler.get_handler_name())
+                self.parameters["url"], self.handler.get_favicon_url(self.parameters), self.handler.get_handler_name())
 
         return header
 
