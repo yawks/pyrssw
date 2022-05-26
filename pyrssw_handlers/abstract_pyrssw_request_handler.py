@@ -8,7 +8,7 @@ from utils.url_utils import is_url_valid
 from request.pyrssw_content import PyRSSWContent
 from typing import Dict, List, Optional, cast
 from urllib.parse import quote_plus
-from readability import Document
+from utils.readability import Document
 from ftfy import fix_text
 
 import requests
@@ -114,9 +114,11 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
     def get_handler_name_for_url(self) -> str:
         return type(self).__name__.replace("Handler", "").lower()
 
-    def get_handler_name(self) -> str:
+    def get_handler_name(self, parameters: Dict[str, str]) -> str:
         """Returns the handler name
 
+        Args:
+            parameters (Dict[str, str]): feed parameters
         Returns:
             str -- handler name
         """
@@ -142,34 +144,35 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             str: [description]
         """
         readable_content: str = ""
-        if is_url_valid(url):
+        if url is not None and is_url_valid(url):
             r = session.get(cast(str, url), headers=headers)
-            html = fix_text(r.text)
 
-            doc = Document(html)
+            html = fix_text(r.text)
+            doc = Document(html.replace("width", "_width_").replace(
+                "height", "_height_"))
+
             url_prefix = url[:len("https://") +
                              len(url[len("https://"):].split("/")[0])+1]
 
             if add_source_link:
                 readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (
                     url, url_prefix)
-            summary = doc.summary()
-            dom = etree.HTML(html)
+
+            summary = doc.summary(html_partial=True).replace("_width_", "width").replace("_height_", "height")
+            dom = etree.HTML(html, parser=None)
             h1 = get_first_node(dom, ["//h1"])
-            if h1.text not in summary:
+            if h1 is not None and h1.text not in summary:
                 readable_content += "<h1>%s</h1>" % h1.text
-            
+
             noticeable_imgs = _get_noticeable_imgs(dom)
             for img in noticeable_imgs:
-                if img not in readable_content:
-                    readable_content += "<img src=\"%s\"></img>" % img
-            
+                if img not in summary:
+                    readable_content += "<img style=\"min-width:100%%\" src=\"%s\"></img>" % img
+
             readable_content += summary
-            
-            readable_content = readable_content.replace("<html>", "").replace(
-                "</html>", "").replace("<body>", "").replace("</body>", "")
 
             # replace relative links
+            
             readable_content = readable_content.replace(
                 'href="/', 'href="' + url_prefix)
             readable_content = readable_content.replace(
@@ -181,19 +184,11 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             readable_content = readable_content.replace(
                 "<noscript>", "").replace("</noscript>", "")
 
-            """
-            Not sure still useful with fix_text
-            if readable_content.find("\x92") > -1 or readable_content.find("\x96") > -1 or readable_content.find("\xa0") > -1:
-                #fix enconding stuffs
-                try:
-                    readable_content = readable_content.encode("latin1").decode("cp1252")
-                except UnicodeEncodeError:
-                    pass
-            """
 
         return readable_content
 
-def _get_noticeable_imgs(dom:etree.HTML) -> List[str]:
+
+def _get_noticeable_imgs(dom: etree.HTML) -> List[str]:
     """find in html all 'noticeable' images, which means quite big enough to be considered useful.
 
     Args:
@@ -202,8 +197,8 @@ def _get_noticeable_imgs(dom:etree.HTML) -> List[str]:
     Returns:
         List[str]: list of images urls found as noticeable
     """
-    noticeable_imgs : List[str] = []
-    
+    noticeable_imgs: List[str] = []
+
     for node in xpath(dom, "//img"):
         if str.isdigit(node.attrib.get("width", "")) and int(node.attrib.get("width", "")) > 500:
             for attr in node.attrib:

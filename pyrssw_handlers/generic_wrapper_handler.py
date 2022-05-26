@@ -1,10 +1,12 @@
+from urllib.parse import urlparse
 from request.pyrssw_content import PyRSSWContent
-import re
 from typing import Dict
-from lxml import etree
 import requests
+from lxml import etree
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
+import favicon
+
 from utils.dom_utils import xpath
 
 
@@ -19,7 +21,7 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
     Handler name: genericwrapper
 
     RSS parameters:
-     - rssurl : url of the target RSS
+     - rssurl: url of the target RSS
 
 
     Content:
@@ -34,16 +36,29 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
-        favicon = ""
-        if "rssurl" in parameters:
-            feed = requests.get(url=parameters["rssurl"], headers={}).text
-            feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-            dom = etree.fromstring(feed)
-            images = xpath(dom, "//channel/image/url")
-            if len(images) > 0:
-                favicon = images[0].text
+        urlp = urlparse(parameters.get("rssurl", parameters.get("url", "")))
+        larger_favicon_url = ""
+        larger_favicon_width = 0
+        if urlp.hostname is not None:
+            for fav in favicon.get("%s://%s" % (urlp.scheme, urlp.hostname)):
+                if requests.head(fav.url).status_code == 200 and fav.width > larger_favicon_width:
+                    larger_favicon_url = fav.url
+                    larger_favicon_width = fav.width
 
-        return favicon
+        return larger_favicon_url
+
+    def get_handler_name(self, parameters: Dict[str, str]):
+        site_name = ""
+        urlp = urlparse(parameters.get("rssurl", parameters.get("url", "")))
+        if urlp.hostname is not None:
+            site_name = urlp.hostname
+            html = requests.get("%s://%s" % (urlp.scheme, urlp.hostname)).text
+            dom = etree.HTML(html, parser=None)
+            site_names = xpath(dom, '//meta[@property="og:site_name"]')
+            if len(site_names) > 0:
+                site_name = site_names[0].attrib.get("content", urlp.hostname)
+        
+        return site_name
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = ""
@@ -68,4 +83,4 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
             "Connection": "keep-alive",
             "Pragma": "no-cache"
-        }), "")
+        }).replace("data-src-lazyload", "").replace("data-lazy-src", ""), "")

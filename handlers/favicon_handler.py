@@ -23,7 +23,7 @@ class FaviconHandler(RequestHandler):
                 #handler_instance = handler_type()
                 if handler_name in parsed.path:
                     self.contents = requests.get(
-                        handler_type.get_favicon_url([])).content
+                        handler_type.get_favicon_url({})).content
                     break
 
             except Exception as e:
