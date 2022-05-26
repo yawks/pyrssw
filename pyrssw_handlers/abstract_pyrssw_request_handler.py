@@ -2,10 +2,11 @@ from abc import ABCMeta, abstractmethod
 import datetime
 import logging
 import re
-import itertools
+from lxml import etree
+from utils.dom_utils import get_first_node, xpath
 from utils.url_utils import is_url_valid
 from request.pyrssw_content import PyRSSWContent
-from typing import Dict, Optional, cast
+from typing import Dict, List, Optional, cast
 from urllib.parse import quote_plus
 from readability import Document
 from ftfy import fix_text
@@ -143,14 +144,28 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
         readable_content: str = ""
         if is_url_valid(url):
             r = session.get(cast(str, url), headers=headers)
-            doc = Document(r.text)
+            html = fix_text(r.text)
+
+            doc = Document(html)
             url_prefix = url[:len("https://") +
                              len(url[len("https://"):].split("/")[0])+1]
 
             if add_source_link:
                 readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (
                     url, url_prefix)
-            readable_content += fix_text(doc.summary())
+            summary = doc.summary()
+            dom = etree.HTML(html)
+            h1 = get_first_node(dom, ["//h1"])
+            if h1.text not in summary:
+                readable_content += "<h1>%s</h1>" % h1.text
+            
+            noticeable_imgs = _get_noticeable_imgs(dom)
+            for img in noticeable_imgs:
+                if img not in readable_content:
+                    readable_content += "<img src=\"%s\"></img>" % img
+            
+            readable_content += summary
+            
             readable_content = readable_content.replace("<html>", "").replace(
                 "</html>", "").replace("<body>", "").replace("</body>", "")
 
@@ -177,3 +192,22 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             """
 
         return readable_content
+
+def _get_noticeable_imgs(dom:etree.HTML) -> List[str]:
+    """find in html all 'noticeable' images, which means quite big enough to be considered useful.
+
+    Args:
+        dom (etree): html dom
+
+    Returns:
+        List[str]: list of images urls found as noticeable
+    """
+    noticeable_imgs : List[str] = []
+    
+    for node in xpath(dom, "//img"):
+        if str.isdigit(node.attrib.get("width", "")) and int(node.attrib.get("width", "")) > 500:
+            for attr in node.attrib:
+                if attr.find("src") > -1 and is_url_valid(node.attrib[attr]) and node.attrib[attr] not in noticeable_imgs:
+                    noticeable_imgs.append(node.attrib[attr])
+
+    return noticeable_imgs

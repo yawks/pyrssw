@@ -1,14 +1,11 @@
 from request.pyrssw_content import PyRSSWContent
 import re
-from typing import Dict, cast
-
-import requests
+from typing import Dict
 from lxml import etree
-
-import utils.dom_utils
+import requests
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
-from utils.dom_utils import to_string, xpath
+from utils.dom_utils import xpath
 
 
 class GenericWrapperHandler(PyRSSWRequestHandler):
