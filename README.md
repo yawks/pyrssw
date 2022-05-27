@@ -137,6 +137,7 @@ Each handler can define its own parameters, but PyRSSW also provides a bunch of 
   ie: `/mywebsitewithnews/rss?debug=true`
 - the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto*key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by **!e:**
   ie: `/mywebsitewithnews/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==`
+- `internallinksinpyrssw` (boolean): true by default. All internal links of the displayed content will use the content processing of pyrssw. If set to False, links will lead to original website.
 - `debug` (boolean): if set to true, will display some debug information after the content
 
 All the parameters can be combined, ie: `/mywebsitewithnews/rss?debug=true&dark=true&translateto=fr`

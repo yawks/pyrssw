@@ -1,6 +1,7 @@
 import re
 from lxml import etree
 import urllib.parse as urlparse
+from handlers.constants import GENERIC_PARAMETERS
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 from utils.dom_utils import to_string, translate_dom, xpath
 
@@ -21,12 +22,13 @@ class ContentProcessor():
         - add a header with the handler name + link of the source article
     """
 
-    def __init__(self, handler: PyRSSWRequestHandler, url: str, contents: str, additional_css: str, parameters: dict) -> None:
+    def __init__(self, handler: PyRSSWRequestHandler, url: str, contents: str, additional_css: str, parameters: dict, handler_url_prefix: str) -> None:
         self.handler: PyRSSWRequestHandler = handler
         self.url: str = url
         self.contents: str = contents
         self.additional_css: str = additional_css
         self.parameters: dict = parameters
+        self.handler_url_prefix: str = handler_url_prefix
 
     def process(self) -> str:
         self._post_processing(self.url)
@@ -35,9 +37,8 @@ class ContentProcessor():
 
     def _post_processing(self, url: str):
         if len(self.contents.strip()) > 0:
-            self.contents = self.contents.replace("data-src-lazyload", "src")
-            self.contents = self.contents.replace("data-lazy-src", "src")
             dom = etree.HTML(self.contents, parser=None)
+            self._process_lazyload_imgs(dom)
             self._post_process_tweets(dom)
             self._replace_prefix_urls(dom)
             self._manage_translation(dom, url)
@@ -50,6 +51,13 @@ class ContentProcessor():
                 .replace("<video", "<video preload=\"none\"")
 
             self.contents = self.contents.replace("</br>", "")
+
+    def _process_lazyload_imgs(self, dom: etree._Element):
+        for img in xpath(dom, "//img"):
+            for attr in img.attrib:
+                if attr.endswith("-src") or attr.find("-src-") > -1:
+                    img.attrib["src"] = img.attrib[attr]
+                    break
 
     def _remove_imgs_without_src(self, dom: etree._Element):
         for img in xpath(dom, "//img"):
@@ -380,6 +388,16 @@ class ContentProcessor():
             _replace_urls_process_links(dom, "src")
             self._manage_title(dom)
 
+        if self.parameters.get("internallinksinpyrssw", "true") == "true":
+            suffix_url: str = ""
+            for parameter in self.parameters:
+                if parameter in GENERIC_PARAMETERS:
+                    suffix_url += "&%s=%s" % (parameter, self.parameters[parameter])
+
+            for o in dom.xpath("//a[@href]"):
+                o.attrib["href"] = "%s?url=%s%s" % (self.handler_url_prefix, o.attrib["href"], suffix_url)
+
+ 
     def _manage_title(self, dom: etree._Element):
         if "hidetitle" in self.parameters and self.parameters["hidetitle"] == "true":
             h1s = xpath(dom, "//h1")
