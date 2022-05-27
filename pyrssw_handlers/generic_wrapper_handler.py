@@ -41,7 +41,7 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
         larger_favicon_width = 0
         if urlp.hostname is not None:
             for fav in favicon.get("%s://%s" % (urlp.scheme, urlp.hostname)):
-                if requests.head(fav.url).status_code == 200 and fav.width > larger_favicon_width:
+                if requests.head(fav.url).status_code == 200 and fav.width >= larger_favicon_width:
                     larger_favicon_url = fav.url
                     larger_favicon_width = fav.width
 
@@ -67,6 +67,7 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
             feed = feed.replace(
                 '<guid isPermaLink="false">', '<link>')  # NOSONAR
             feed = feed.replace('<guid isPermaLink="true">', '<link>')
+            feed = feed.replace('<guid>',' <link>')
             feed = feed.replace('</guid>', '</link>')
             feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
 

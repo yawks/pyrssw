@@ -164,7 +164,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             if h1 is not None and h1.text not in summary:
                 readable_content += "<h1>%s</h1>" % h1.text
 
-            noticeable_imgs = _get_noticeable_imgs(dom)
+            noticeable_imgs = _get_noticeable_imgs(dom, url_prefix)
             for img in noticeable_imgs:
                 if img not in summary:
                     readable_content += "<img style=\"min-width:100%%\" src=\"%s\"></img>" % img
@@ -188,21 +188,35 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
         return readable_content
 
 
-def _get_noticeable_imgs(dom: etree.HTML) -> List[str]:
+def _get_noticeable_imgs(dom: etree.HTML, url_prefix:str) -> List[str]:
     """find in html all 'noticeable' images, which means quite big enough to be considered useful.
 
     Args:
         dom (etree): html dom
+        url_prefix (str): url prefix
 
     Returns:
         List[str]: list of images urls found as noticeable
     """
     noticeable_imgs: List[str] = []
 
+    def _get_width(node:etree.Element):
+        width = 0
+        if str.isdigit(node.attrib.get("width", "")):
+            width = int(node.attrib.get("width", ""))
+        elif "width:" in node.attrib.get("style", ""):
+            styles = node.attrib.get("style", "").split(";")
+            for style in styles:
+                if style.find("width:") == 0:
+                    width = int(re.sub("[^0-9]", "", style.split(":")[1]))
+                    break
+
+        return width
+
     for node in xpath(dom, "//img"):
-        if str.isdigit(node.attrib.get("width", "")) and int(node.attrib.get("width", "")) > 500:
+        if _get_width(node) > 500:
             for attr in node.attrib:
-                if attr.find("src") > -1 and is_url_valid(node.attrib[attr]) and node.attrib[attr] not in noticeable_imgs:
+                if attr.find("src") > -1 and (is_url_valid(node.attrib[attr]) or node.attrib[attr][:1]== "/") and node.attrib[attr] not in noticeable_imgs:
                     noticeable_imgs.append(node.attrib[attr])
 
     return noticeable_imgs

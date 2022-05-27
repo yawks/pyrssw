@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import logging
+from handlers.constants import GENERIC_PARAMETERS
 from utils.dom_utils import to_string, translate_dom, xpath
 from typing import Dict, Optional, cast
 import datetime
@@ -265,7 +266,7 @@ class FeedArranger(metaclass=ABCMeta):
         """
         suffix_url: str = ""
         for parameter in parameters:
-            if parameter in ["dark", "debug", "plain", "hidetitle", "translateto", "fontsize", "header"]:
+            if parameter in GENERIC_PARAMETERS:
                 suffix_url += "&%s=%s" % (parameter, parameters[parameter])
 
         if suffix_url != "":

@@ -92,6 +92,7 @@ class LauncherHandler(RequestHandler):
                 url=url,
                 contents=pyrssw_content.content,
                 additional_css=pyrssw_content.css,
+                handler_url_prefix=self.handler_url_prefix,
                 parameters=parameters).process()
 
     def _process_rss(self, parameters: Dict[str, str]):
