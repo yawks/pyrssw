@@ -1,6 +1,6 @@
 from request.pyrssw_content import PyRSSWContent
 import re
-from typing import cast
+from typing import Dict, Optional, cast
 
 import requests
 from lxml import etree
@@ -27,7 +27,7 @@ class NovethicHandler(PyRSSWRequestHandler):
         return "https://www.novethic.fr/flux-rss/flux/rssall/tous-les-articles.xml"
 
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.novethic.fr/fileadmin/templates/novethic/img/unsprited/icons/favicon-novethic.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:

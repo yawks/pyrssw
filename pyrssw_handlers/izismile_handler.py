@@ -2,7 +2,7 @@ import re
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 import utils.dom_utils
-from typing import List, Tuple, cast
+from typing import Dict, List, Optional, Tuple, cast
 import requests
 from lxml import etree
 import datetime
@@ -21,7 +21,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         return "https://feeds2.feedburner.com/izismile"
 
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://izismile.com/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:

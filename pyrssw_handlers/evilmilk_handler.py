@@ -1,5 +1,5 @@
 import re
-from typing import cast
+from typing import Dict, Optional, cast
 import requests
 from lxml import etree
 import utils.dom_utils
@@ -16,7 +16,7 @@ class EvilmilkHandler(PyRSSWRequestHandler):
         return "https://www.evilmilk.com/rss.xml"
     
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.evilmilk.com/icons/em-icon-32.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:

@@ -1,5 +1,5 @@
 import re
-from typing import cast
+from typing import Dict, Optional, cast
 from request.pyrssw_content import PyRSSWContent
 import requests
 from lxml import etree
@@ -35,7 +35,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         return "https://www.futura-sciences.com/rss/actualites.xml"
 
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.futura-sciences.com/favicon-32x32.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:

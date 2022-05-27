@@ -35,10 +35,13 @@ class ContentProcessor():
 
     def _post_processing(self, url: str):
         if len(self.contents.strip()) > 0:
-            dom = etree.HTML(self.contents)
+            self.contents = self.contents.replace("data-src-lazyload", "src")
+            self.contents = self.contents.replace("data-lazy-src", "src")
+            dom = etree.HTML(self.contents, parser=None)
             self._post_process_tweets(dom)
             self._replace_prefix_urls(dom)
             self._manage_translation(dom, url)
+            self._remove_imgs_without_src(dom)
             self.contents = to_string(dom)\
                 .replace("<html>", "")\
                 .replace("</html>", "")\
@@ -46,8 +49,12 @@ class ContentProcessor():
                 .replace("</body>", "")\
                 .replace("<video", "<video preload=\"none\"")
 
-            self.contents = self.contents.replace("data-src-lazyload", "src")
             self.contents = self.contents.replace("</br>", "")
+
+    def _remove_imgs_without_src(self, dom: etree._Element):
+        for img in xpath(dom, "//img"):
+            if "src" not in img.attrib or img.attrib["src"].strip() == "":
+                img.getparent().remove(img)
 
     def _post_process_tweets(self, dom: etree._Element):
         """
@@ -180,7 +187,7 @@ class ContentProcessor():
     });
 </script>
             <header class="pyrssw_content_header"><div class="container"><a href="%s" target="_blank"><img src="%s"/>%s</a></div></header>""" % (
-                self.parameters["url"], self.handler.get_favicon_url(), self.handler.get_handler_name())
+                self.parameters["url"], self.handler.get_favicon_url(self.parameters), self.handler.get_handler_name(self.parameters))
 
         return header
 

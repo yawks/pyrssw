@@ -49,7 +49,7 @@ class RedditHandler(PyRSSWRequestHandler):
         return "https://www.reddit.com/.rss"
 
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.redditstatic.com/desktop2x/img/favicon/favicon-32x32.png"
 
     def get_feed(self, parameters: dict, session: Session) -> str:

@@ -1,7 +1,7 @@
 from pyrssw_handlers.le_monde_handler import URL_CONNECTION, URL_DECONNECTION
 from request.pyrssw_content import PyRSSWContent
 import re
-from typing import cast
+from typing import Dict, Optional, cast
 import urllib.parse
 import requests
 from lxml import etree
@@ -32,7 +32,7 @@ class CourrierInternationalHandler(PyRSSWRequestHandler):
         return "https://www.courrierinternational.com/feed/all/rss.xml"
 
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.courrierinternational.com/bucket/90bfeb04e74422b89ea0427235fa82404b2ab1b0/img/logos/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:

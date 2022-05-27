@@ -1,3 +1,4 @@
+from typing import Dict, Optional
 from request.pyrssw_content import PyRSSWContent
 import re
 import urllib.parse
@@ -41,7 +42,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
         return "https://www.lemonde.fr/rss/une.xml"
 
     @staticmethod
-    def get_favicon_url() -> str:
+    def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.lemonde.fr/dist/assets/img/logos/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
