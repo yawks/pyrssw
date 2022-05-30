@@ -369,37 +369,46 @@ class ContentProcessor():
     def _replace_prefix_urls(self, dom: etree._Element):
         """Replace relative urls by absolute urls using handler prefix url"""
 
-        def _replace_urls_process_links(dom: etree, attribute: str):
-            for o in dom.xpath("//*[@%s]" % attribute):
-                if o.attrib[attribute].startswith("//"):
-                    protocol: str = "http:"
-                    if self.handler.get_original_website().find("https") > -1:
-                        protocol = "https:"
-                    o.attrib[attribute] = protocol + o.attrib[attribute]
-                elif o.attrib[attribute].startswith("/"):
-                    o.attrib[attribute] = self.handler.get_original_website(
-                    ) + o.attrib[attribute][1:]
-                elif not o.attrib[attribute].startswith("http"):
-                    o.attrib[attribute] = self.handler.get_original_website(
-                    ) + o.attrib[attribute]
-
         if self.handler.get_original_website() != '' and dom is not None:
-            _replace_urls_process_links(dom, "href")
-            _replace_urls_process_links(dom, "src")
+            self._replace_urls_process_links(dom, "href")
+            self._replace_urls_process_links(dom, "src")
             self._manage_title(dom)
 
         if self.parameters.get("internallinksinpyrssw", "true") == "true":
+            #replace internal links using pyrssw prefix to display linked articles using filtering process
             suffix_url: str = ""
             for parameter in self.parameters:
-                if parameter in GENERIC_PARAMETERS:
-                    suffix_url += "&%s=%s" % (parameter, self.parameters[parameter])
+                if not parameter.endswith("_crypted") and parameter != "url":
+                    if "%s_crypted" % parameter not in self.parameters:
+                        suffix_url += "&%s=%s" % (parameter,
+                                                self.parameters[parameter])
+                    else:
+                        suffix_url += "&%s=%s" % (parameter,
+                                                self.parameters["%s_crypted" % parameter])
 
+            urlp = urlparse.urlparse(self.parameters.get(
+                "rssurl", self.parameters.get("url", "")))
             for o in dom.xpath("//a[@href]"):
-                o.attrib["href"] = "%s?url=%s%s" % (self.handler_url_prefix, o.attrib["href"], suffix_url)
+                if o.attrib.get("href", "").startswith("%s://%s" % (urlp.scheme, urlp.hostname)):
+                    o.attrib["href"] = "%s?url=%s%s" % (
+                        self.handler_url_prefix, o.attrib["href"], suffix_url)
 
- 
     def _manage_title(self, dom: etree._Element):
         if "hidetitle" in self.parameters and self.parameters["hidetitle"] == "true":
             h1s = xpath(dom, "//h1")
             if len(h1s) > 0:
                 h1s[0].getparent().remove(h1s[0])
+
+    def _replace_urls_process_links(self, dom: etree, attribute: str):
+        for o in dom.xpath("//*[@%s]" % attribute):
+            if o.attrib[attribute].startswith("//"):
+                protocol: str = "http:"
+                if self.handler.get_original_website().find("https") > -1:
+                    protocol = "https:"
+                o.attrib[attribute] = protocol + o.attrib[attribute]
+            elif o.attrib[attribute].startswith("/"):
+                o.attrib[attribute] = self.handler.get_original_website(
+                ) + o.attrib[attribute][1:]
+            elif not o.attrib[attribute].startswith("http"):
+                o.attrib[attribute] = self.handler.get_original_website(
+                ) + o.attrib[attribute]

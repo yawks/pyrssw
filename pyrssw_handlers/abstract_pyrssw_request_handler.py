@@ -3,7 +3,7 @@ import datetime
 import logging
 import re
 from lxml import etree
-from utils.dom_utils import get_first_node, xpath
+from utils.dom_utils import get_first_node, text, to_string, xpath
 from utils.url_utils import is_url_valid
 from request.pyrssw_content import PyRSSWContent
 from typing import Dict, List, Optional, cast
@@ -158,11 +158,10 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
                 readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (
                     url, url_prefix)
 
-            summary = doc.summary(html_partial=True).replace("_width_", "width").replace("_height_", "height")
+            summary = doc.summary(html_partial=True).replace(
+                "_width_", "width").replace("_height_", "height")
             dom = etree.HTML(html, parser=None)
-            h1 = get_first_node(dom, ["//h1"])
-            if h1 is not None and h1.text not in summary:
-                readable_content += "<h1>%s</h1>" % h1.text
+            readable_content = _complete_with_h1(dom, summary)
 
             noticeable_imgs = _get_noticeable_imgs(dom, url_prefix)
             for img in noticeable_imgs:
@@ -172,7 +171,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             readable_content += summary
 
             # replace relative links
-            
+
             readable_content = readable_content.replace(
                 'href="/', 'href="' + url_prefix)
             readable_content = readable_content.replace(
@@ -184,11 +183,10 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             readable_content = readable_content.replace(
                 "<noscript>", "").replace("</noscript>", "")
 
-
         return readable_content
 
 
-def _get_noticeable_imgs(dom: etree.HTML, url_prefix:str) -> List[str]:
+def _get_noticeable_imgs(dom: etree.HTML, url_prefix: str) -> List[str]:
     """find in html all 'noticeable' images, which means quite big enough to be considered useful.
 
     Args:
@@ -200,7 +198,7 @@ def _get_noticeable_imgs(dom: etree.HTML, url_prefix:str) -> List[str]:
     """
     noticeable_imgs: List[str] = []
 
-    def _get_width(node:etree.Element):
+    def _get_width(node: etree.Element):
         width = 0
         if str.isdigit(node.attrib.get("width", "")):
             width = int(node.attrib.get("width", ""))
@@ -216,7 +214,26 @@ def _get_noticeable_imgs(dom: etree.HTML, url_prefix:str) -> List[str]:
     for node in xpath(dom, "//img"):
         if _get_width(node) > 500:
             for attr in node.attrib:
-                if attr.find("src") > -1 and (is_url_valid(node.attrib[attr]) or node.attrib[attr][:1]== "/") and node.attrib[attr] not in noticeable_imgs:
+                if attr.find("src") > -1 and (is_url_valid(node.attrib[attr]) or node.attrib[attr][:1] == "/") and node.attrib[attr] not in noticeable_imgs:
                     noticeable_imgs.append(node.attrib[attr])
 
     return noticeable_imgs
+
+
+def _complete_with_h1(dom: etree.HTML, summary: str) -> str:
+    h1_content = ""
+    h1 = get_first_node(dom, ["//article//h1"])
+    if h1 is None:
+        h1 = get_first_node(dom, ["//h1"])
+    if h1 is not None:
+        h1_str = to_string(h1)
+        if h1_str.strip() != "" and h1_str not in summary:
+            h1_content = h1_str
+    
+    if h1_content == "":
+        #if nothing found in h1, take a look in the title of the page
+        title = get_first_node(dom, ["//head//title"])
+        if title is not None and text(title) != "":
+            h1_content = "<h1>%s</h1>" % text(title)
+
+    return h1_content

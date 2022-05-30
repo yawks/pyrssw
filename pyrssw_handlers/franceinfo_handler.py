@@ -8,7 +8,7 @@ from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
-from utils.dom_utils import to_string, xpath
+from utils.dom_utils import text, to_string, xpath
 
 
 class FranceInfoHandler(PyRSSWRequestHandler):
@@ -57,7 +57,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
         for link in xpath(dom, "//item/link"):
             link.text = self.get_handler_url_with_parameters(
-                {"url": cast(str, link.text).strip()})
+                {"url": text(link).strip()})
 
         feed = to_string(dom)
 

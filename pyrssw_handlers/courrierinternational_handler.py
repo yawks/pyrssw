@@ -26,7 +26,7 @@ class CourrierInternationalHandler(PyRSSWRequestHandler):
     """
 
     def get_original_website(self) -> str:
-        return "http://www.courrierinternational.fr/"
+        return "https://www.courrierinternational.com/"
 
     def get_rss_url(self) -> str:
         return "https://www.courrierinternational.com/feed/all/rss.xml"
