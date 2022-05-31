@@ -37,7 +37,7 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
 
     def _get_formatted_msg(self, msg):
         return "[" + datetime.datetime.now().strftime("%Y-%m-%d - %H:%M") + "] [%s] - %s - %s" % (
-            self.get_handler_name(),
+            self.get_handler_name({}),
             self.source_ip,
             re.sub("%s[^\\s&]*" % ENCRYPTED_PREFIX, "XXXX", msg)
         )  # anonymize crypted params in logs
@@ -171,7 +171,6 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             readable_content += summary
 
             # replace relative links
-
             readable_content = readable_content.replace(
                 'href="/', 'href="' + url_prefix)
             readable_content = readable_content.replace(
@@ -213,9 +212,15 @@ def _get_noticeable_imgs(dom: etree.HTML, url_prefix: str) -> List[str]:
 
     for node in xpath(dom, "//img"):
         if _get_width(node) > 500:
-            for attr in node.attrib:
-                if attr.find("src") > -1 and (is_url_valid(node.attrib[attr]) or node.attrib[attr][:1] == "/") and node.attrib[attr] not in noticeable_imgs:
-                    noticeable_imgs.append(node.attrib[attr])
+            attr_name = "src"
+            for attr in node.attrib: #handle lazyload img attributes
+                if attr.endswith("-src") or attr.find("-src-") > -1:
+                    attr_name = attr
+                    break
+            src = node.attrib.get(attr_name, "")
+            
+            if (is_url_valid(src) or node.attrib[attr_name][:1] == "/") and src not in noticeable_imgs:
+                noticeable_imgs.append(src)
 
     return noticeable_imgs
 
