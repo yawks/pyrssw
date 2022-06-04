@@ -103,7 +103,11 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[contains(@class, "c-signature__images")]',
             '//*[contains(@class, "article__share")]',
             '//*[contains(@class, "audio-player-container")]',
-            '//*[contains(@class, "kamino-banner")]'
+            '//*[contains(@class, "kamino-banner")]',
+            '//*[@id="share-fallback"]', #francetvinfo
+            '//*[contains(@class,"p-article__column--sidebar")]', #francetvinfo
+            '//*[contains(@class,"o-related-cards")]', #francetvinfo
+            '//*[contains(@class,"p-article__tags")]'  #francetvinfo
         ])
 
         content = utils.dom_utils.get_content(
@@ -141,4 +145,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             #franceinfo_handler img.also-link__content__img {float:left;margin:0 10px 10px 0;}
             #franceinfo_handler ul li.localities__locality+li.localities__locality:before {padding: 8px;content: "/";}
             #franceinfo_handler ul li.localities__locality  {display: inline;font-size: 18px;}
+            #franceinfo_handler .a-article__rubric {color: var(--blue-om,#007a99);font-size: 12px;line-height: 14px;text-decoration: none;font-size:16px; font-weight:500;}
+
+
         """)
