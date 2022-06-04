@@ -29,7 +29,7 @@ class LauncherHandler(RequestHandler):
                  crypto_key: bytes,
                  session_id: str, source_ip: Optional[str]):
         super().__init__(source_ip)
-        self.handler: Optional[PyRSSWRequestHandler] = None
+        self.handler: PyRSSWRequestHandler
         self.serving_url_prefix: Optional[str] = serving_url_prefix
         self.handler_url_prefix: str = "%s/%s" % (
             serving_url_prefix, module_name)
@@ -68,7 +68,7 @@ class LauncherHandler(RequestHandler):
             self.content_type = "text/html; utf-8"
             self.set_status(500)
 
-    def _process_content(self, url, parameters):
+    def _process_content(self, url, parameters: dict):
         self._log("content page requested: %s" % unquote_plus(url))
         requested_url = url
         self.content_type = HTML_CONTENT_TYPE

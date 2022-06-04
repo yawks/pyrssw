@@ -26,8 +26,9 @@ DEFAULT_CONFIG_FILE = "resources/config.ini"
 class Config:
     """handle the optional config file"""
 
-    configuration: Optional[Dict[str, str]] = None
-    config_file: str = ""
+    def __init__(self) -> None:
+        self.configuration: Dict[str, str]
+        self.config_file: str = ""
 
     def load_config_file(self, config_file: str):
         if os.path.isfile(config_file):

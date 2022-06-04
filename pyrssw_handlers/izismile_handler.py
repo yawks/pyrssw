@@ -60,7 +60,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
-        urls: List[str] = [url]
+        urls: List[str] = [url, "%s/page,1,%s" % ("/".join(url.split("/")[:-1]), url.split("/")[-1])]
         nb_pages = 1
         content, url_next_page, comments, cpt_comments = self._get_content(
             url, session, with_title=True, cpt_comments=1)

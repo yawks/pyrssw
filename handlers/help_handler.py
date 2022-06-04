@@ -28,7 +28,7 @@ class HelpHandler(RequestHandler):
                 content += "<hr/><br/><a style='text-align:center;' href='%s/rss'><img style='height:24px;margin-right:5px' src='%s'/>%s</a>\n\n" % (
                     handler_instance.get_handler_name_for_url(),
                     handler_type.get_favicon_url({}),
-                    handler_instance.get_handler_name())
+                    handler_instance.get_handler_name({}))
                 if handler_type.__doc__ is not None:
                     content += handler_type.__doc__ + "\n\n"
             except Exception as e:

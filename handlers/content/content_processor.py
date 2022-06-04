@@ -1,6 +1,7 @@
 import re
 from lxml import etree
 import urllib.parse as urlparse
+from urllib.parse import unquote
 from handlers.constants import GENERIC_PARAMETERS
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 from utils.dom_utils import to_string, translate_dom, xpath
@@ -31,17 +32,17 @@ class ContentProcessor():
         self.handler_url_prefix: str = handler_url_prefix
 
     def process(self) -> str:
-        self._post_processing(self.url)
+        self._post_processing()
         self._wrapped_html_content()
         return self.contents
 
-    def _post_processing(self, url: str):
+    def _post_processing(self):
         if len(self.contents.strip()) > 0:
             dom = etree.HTML(self.contents, parser=None)
             self._process_lazyload_imgs(dom)
             self._post_process_tweets(dom)
             self._replace_prefix_urls(dom)
-            self._manage_translation(dom, url)
+            self._manage_translation(dom)
             self._remove_imgs_without_src(dom)
             self.contents = to_string(dom)\
                 .replace("<html>", "")\
@@ -110,9 +111,9 @@ class ContentProcessor():
             script.set("sync", "")
             dom.append(script)
 
-    def _manage_translation(self, dom: etree._Element, url: str):
+    def _manage_translation(self, dom: etree._Element):
         if "translateto" in self.parameters:
-            translate_dom(dom, self.parameters["translateto"], url)
+            translate_dom(dom, self.parameters["translateto"], self.url)
 
     def _get_header(self) -> str:
         header: str = """
@@ -245,6 +246,7 @@ class ContentProcessor():
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%!important;float:none}
                 #pyrssw_wrapper iframe {width:100%;}
+                #pyrssw_wrapper iframe.instagram-media {margin:auto!important;}
                 #pyrssw_wrapper table, th, td {border: 1px solid;border-collapse: collapse;padding: 5px;}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
                 #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
@@ -375,16 +377,16 @@ class ContentProcessor():
             self._manage_title(dom)
 
         if self.parameters.get("internallinksinpyrssw", "true") == "true":
-            #replace internal links using pyrssw prefix to display linked articles using filtering process
+            # replace internal links using pyrssw prefix to display linked articles using filtering process
             suffix_url: str = ""
             for parameter in self.parameters:
                 if not parameter.endswith("_crypted") and parameter != "url":
                     if "%s_crypted" % parameter not in self.parameters:
                         suffix_url += "&%s=%s" % (parameter,
-                                                self.parameters[parameter])
+                                                  self.parameters[parameter])
                     else:
                         suffix_url += "&%s=%s" % (parameter,
-                                                self.parameters["%s_crypted" % parameter])
+                                                  self.parameters["%s_crypted" % parameter])
 
             urlp = urlparse.urlparse(self.parameters.get(
                 "rssurl", self.parameters.get("url", "")))
@@ -400,15 +402,21 @@ class ContentProcessor():
                 h1s[0].getparent().remove(h1s[0])
 
     def _replace_urls_process_links(self, dom: etree, attribute: str):
+        # first find 'url' param to get the prefix website queried to display article content
+        prefix_url = self.handler.get_original_website()
+        for param in self.url[1:].split("&"):
+            if param.startswith("url="):
+                urlp = urlparse.urlparse(unquote(param.split("=")[1]))
+                prefix_url = "%s://%s/" % (urlp.scheme, urlp.hostname)
+                break
+
         for o in dom.xpath("//*[@%s]" % attribute):
             if o.attrib[attribute].startswith("//"):
                 protocol: str = "http:"
-                if self.handler.get_original_website().find("https") > -1:
+                if prefix_url.find("https") > -1:
                     protocol = "https:"
                 o.attrib[attribute] = protocol + o.attrib[attribute]
             elif o.attrib[attribute].startswith("/"):
-                o.attrib[attribute] = self.handler.get_original_website(
-                ) + o.attrib[attribute][1:]
-            elif not o.attrib[attribute].startswith("http"):
-                o.attrib[attribute] = self.handler.get_original_website(
-                ) + o.attrib[attribute]
+                o.attrib[attribute] = prefix_url + o.attrib[attribute][1:]
+            elif not o.attrib[attribute].startswith("http") and o.attrib["href"].find("#") == -1:
+                o.attrib[attribute] = prefix_url + o.attrib[attribute]

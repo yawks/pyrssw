@@ -102,7 +102,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[contains(@class, "social-zone")]',
             '//*[contains(@class, "c-signature__images")]',
             '//*[contains(@class, "article__share")]',
-            '//*[contains(@class, "audio-player-container")]'
+            '//*[contains(@class, "audio-player-container")]',
+            '//*[contains(@class, "kamino-banner")]'
         ])
 
         content = utils.dom_utils.get_content(
@@ -110,6 +111,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
                   # francetvinfos
                   '//article[contains(@class,"page-content")]',
                   '//article[contains(@id,"node")]',  # france3 regions
+                  '//main[contains(@role,"main")]', # france3 regions
                   '//main[contains(@class,"article")]',  # france3 regions
                   '//div[contains(@class,"article")]',  # france3 regions
                   '//article[contains(@class,"content-live")]',  # live

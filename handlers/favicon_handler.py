@@ -22,12 +22,12 @@ class FaviconHandler(RequestHandler):
             try:
                 #handler_instance = handler_type()
                 if handler_name in parsed.path:
-                    self.contents = requests.get(
-                        handler_type.get_favicon_url({})).content
+                    self.contents = str(requests.get(
+                        handler_type.get_favicon_url({})).content)
                     break
 
             except Exception as e:
                 self._log("<hr/><br/>Error with module : <i>%s</i>\n%s\n\n" %
-                          (module_name, str(e)))
+                          (handler_name, str(e)))
 
         self.content_type = "image/webp"
