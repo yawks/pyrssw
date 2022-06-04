@@ -199,6 +199,8 @@ class Sport24Handler(PyRSSWRequestHandler):
                 text-align: center;
                 border: 1px solid;
             }
+
+            #sport24_handler .fig-body-link__prefix {margin-right:5px;}
         """)
 
     def _process_dugout(self, session: requests.Session, dom: etree._Element):

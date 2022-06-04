@@ -254,7 +254,7 @@ class ContentProcessor():
                 #pyrssw_wrapper strong {font-weight:400}
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%!important;float:none}
-                #pyrssw_wrapper iframe {width:100%;position:unset!important}
+                #pyrssw_wrapper iframe {width:100%;position:unset!important;min-height: max(220px,20vw);}
                 #pyrssw_wrapper iframe.instagram-media {margin:auto!important;}
                 #pyrssw_wrapper table, th, td {border: 1px solid;border-collapse: collapse;padding: 5px;}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
@@ -427,5 +427,5 @@ class ContentProcessor():
                 o.attrib[attribute] = protocol + o.attrib[attribute]
             elif o.attrib[attribute].startswith("/"):
                 o.attrib[attribute] = prefix_url + o.attrib[attribute][1:]
-            elif not o.attrib[attribute].startswith("http") and o.attrib["href"].find("#") == -1:
+            elif not o.attrib[attribute].startswith("http") and o.attrib[attribute].find("#") == -1:
                 o.attrib[attribute] = prefix_url + o.attrib[attribute]
