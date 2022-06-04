@@ -6,7 +6,7 @@ from lxml import etree
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 import favicon
-
+from ftfy import fix_text
 from utils.dom_utils import xpath
 
 
@@ -63,7 +63,7 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = ""
         if "rssurl" in parameters:
-            feed = session.get(url=parameters["rssurl"], headers={}).text
+            feed = fix_text(session.get(url=parameters["rssurl"], headers={}).text)
             feed = feed.replace(
                 '<guid isPermaLink="false">', '<link>')  # NOSONAR
             feed = feed.replace('<guid isPermaLink="true">', '<link>')
@@ -84,4 +84,4 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
             "Connection": "keep-alive",
             "Pragma": "no-cache"
-        }).replace("data-src-lazyload", "").replace("data-lazy-src", ""), "")
+        }), "")
