@@ -82,14 +82,17 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         title = utils.dom_utils.get_content(dom, ["//h1"])
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class, "module-toretain")]',
-            '//*[contains(@class, "image-module")]',
+            '//*[contains(@class,"hubbottom2")]',
+            '//*[contains(@class, "image-module")]/img',
             '//*[contains(@class, "social-button")]',
             '//section[contains(@class, "breadcrumb")]',
             '//section[contains(@class, "author-box")]',
             '//*[contains(@class, "ICON-QUICKREAD")]/parent::*/parent::*'
         ])
 
-        content = "%s%s" % (title, utils.dom_utils.get_content(
-            dom, ['//div[contains(@class,"article-column")]']))
+        content = utils.dom_utils.get_content(
+            dom, ['//div[contains(@class,"article-column")]'])
+        if title not in content:
+            content = title + content
 
         return PyRSSWContent(content)
