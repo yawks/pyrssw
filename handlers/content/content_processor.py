@@ -44,6 +44,7 @@ class ContentProcessor():
             self._replace_prefix_urls(dom)
             self._manage_translation(dom)
             self._remove_imgs_without_src(dom)
+            self._remove_duplicate_imgs(dom)
             self.contents = to_string(dom)\
                 .replace("<html>", "")\
                 .replace("</html>", "")\
@@ -62,8 +63,16 @@ class ContentProcessor():
 
     def _remove_imgs_without_src(self, dom: etree._Element):
         for img in xpath(dom, "//img"):
-            if "src" not in img.attrib or img.attrib["src"].strip() == "":
+            if img.attrib.get("src", "").strip() == "":
                 img.getparent().remove(img)
+    
+    def _remove_duplicate_imgs(self, dom: etree._Element):
+        imgs = []
+        for img in xpath(dom, "//img"):
+            if img.attrib.get("src") in imgs:
+                img.getparent().remove(img)
+            else:
+                imgs.append(img.attrib.get("src"))
 
     def _post_process_tweets(self, dom: etree._Element):
         """
@@ -245,7 +254,7 @@ class ContentProcessor():
                 #pyrssw_wrapper strong {font-weight:400}
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%!important;float:none}
-                #pyrssw_wrapper iframe {width:100%;}
+                #pyrssw_wrapper iframe {width:100%;position:unset!important}
                 #pyrssw_wrapper iframe.instagram-media {margin:auto!important;}
                 #pyrssw_wrapper table, th, td {border: 1px solid;border-collapse: collapse;padding: 5px;}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
