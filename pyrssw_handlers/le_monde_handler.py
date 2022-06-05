@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict
 from request.pyrssw_content import PyRSSWContent
 import re
 import urllib.parse
@@ -10,7 +10,7 @@ from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
-from utils.dom_utils import getparent, to_string, xpath
+from utils.dom_utils import to_string, xpath
 
 URL_CONNECTION = "https://secure.lemonde.fr/sfuser/connexion"
 URL_DECONNECTION = "https://secure.lemonde.fr/sfuser/deconnexion"
