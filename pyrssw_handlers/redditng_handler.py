@@ -111,7 +111,7 @@ class RedditHandler(PyRSSWRequestHandler):
             root = {}
         datatypes = self._get_datatypes_json(root, "t3")  # t3 : content
         for data in datatypes:
-            content += "<h1>%s</h1>" % get_node_value_if_exists(
+            content  += "<h1>%s</h1>" % get_node_value_if_exists(
                 data, "title")
             self_html: str = get_node_value_if_exists(data, "selftext_html")
             post_hint: str = get_node_value_if_exists(data, "post_hint")
@@ -347,7 +347,7 @@ class RedditHandler(PyRSSWRequestHandler):
         if "media_metadata" in post:
             for node_name in post["media_metadata"]:
                 node = post["media_metadata"][node_name]
-                if "e" in node and node["e"] == "Image" and "p" in node and len(node["p"]) > 0:
+                if "e" in node and node["e"] in ["Image", "AnimatedImage"] and "p" in node and len(node["p"]) > 0:
                     images[node["id"]] = "<p><img src=\"%s\"/>" % node["p"][-1]["u"]
 
         return images
