@@ -1,13 +1,12 @@
 import re
-from typing import Dict, Optional, cast
+from typing import Dict, cast
 from request.pyrssw_content import PyRSSWContent
 import requests
 from lxml import etree
-
+from utils.dom_utils import to_string, xpath
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
-from utils.dom_utils import to_string, xpath
 
 
 class FuturaSciencesHandler(PyRSSWRequestHandler):
@@ -56,7 +55,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
         for node in xpath(dom, "//link|//guid"):
             node.text = "%s" % self.get_handler_url_with_parameters(
                 {"url": cast(str, node.text)})
-        
+
         feed = to_string(dom)
 
         return feed
@@ -87,12 +86,30 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
             '//*[contains(@class, "social-button")]',
             '//section[contains(@class, "breadcrumb")]',
             '//section[contains(@class, "author-box")]',
+            '//section[contains(@class, "connexelinks")]',
+            '//section[contains(@class, "sidebar-module")]',
             '//*[contains(@class, "ICON-QUICKREAD")]/parent::*/parent::*'
         ])
 
-        content = utils.dom_utils.get_content(
-            dom, ['//div[contains(@class,"article-column")]'])
+        _process_futura_video(dom)
+
+        content, _ = utils.dom_utils.get_all_contents(
+            dom, [
+                '//section[contains(@class,"article-hero")]',
+                '//div[contains(@class,"video-top")]',
+                '//div[contains(@class,"article-column")]'
+            ])
         if title not in content:
             content = title + content
 
         return PyRSSWContent(content)
+
+
+def _process_futura_video(dom: etree._Element):
+    # replace div with class vsly-player to iframe with url using data-iframe tag attribute value
+    for vid in xpath(dom, '//*[contains(@class,"vsly-player")]'):
+        if vid.attrib.get("data-iframe", "") != "":
+            vid.tag = "iframe"
+            vid.attrib["style"] = ""
+            vid.attrib["src"] = vid.attrib.get("data-iframe")
+            
