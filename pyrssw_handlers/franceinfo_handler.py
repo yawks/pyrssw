@@ -1,3 +1,4 @@
+import json
 from request.pyrssw_content import PyRSSWContent
 import re
 from typing import Dict, Optional, cast
@@ -110,6 +111,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[contains(@class,"p-article__tags")]'  #francetvinfo
         ])
 
+        _process_videos(dom)
+
         content = utils.dom_utils.get_content(
             dom, ['//div[contains(@class,"article-detail-block")]',
                   # francetvinfos
@@ -149,3 +152,18 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
 
         """)
+
+
+def _process_videos(dom: etree._Element):
+    json_contents = []
+    for json_content in xpath(dom, '//script[@type="application/ld+json"]'):
+        json_contents.append(json_content.text)
+    if len(json_contents) > 0:
+        for video in xpath(dom, '//figure[contains(@class,"francetv-player-wrapper")]'):
+            for json_content in json_contents:
+                if json_content.find('VideoObject'):
+                    js = json.loads(json_content)
+                    video.tag = "iframe"
+                    video.attrib["src"] = js.get("video", {}).get("embedUrl", "")
+                    break
+    
