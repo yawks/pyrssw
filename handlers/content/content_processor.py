@@ -38,7 +38,7 @@ class ContentProcessor():
 
     def _post_processing(self):
         if len(self.contents.strip()) > 0:
-            dom = etree.HTML(self.contents, parser=None)
+            dom = etree.HTML(self.contents.replace("\n", ""), parser=None)
             self._process_lazyload_imgs(dom)
             self._post_process_tweets(dom)
             self._replace_prefix_urls(dom)
