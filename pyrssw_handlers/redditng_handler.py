@@ -274,7 +274,7 @@ class RedditHandler(PyRSSWRequestHandler):
             external_content = "<p><img src=\"%s\"/></p>" % url
         elif post_hint in ["", "link"]:
             external_content = super().get_readable_content(
-                session, url, headers=HEADERS,  add_source_link=True)
+                session, url, headers=HEADERS,  add_source_link=True, add_title=False)
 
         return external_content
 

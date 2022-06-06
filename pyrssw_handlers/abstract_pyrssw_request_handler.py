@@ -133,12 +133,13 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             str: favicon url
         """
 
-    def get_readable_content(self, session: requests.Session, url: Optional[str], headers: Dict[str, str] = {}, add_source_link=False) -> str:
+    def get_readable_content(self, session: requests.Session, url: Optional[str], headers: Dict[str, str] = {}, add_source_link=False, add_title=True) -> str:
         """Return the readable content of the given url
 
         Args:
             url (str): The content to retrieve URL
             add_source_link (bool, optional): To add at the beginning of the content source and a link. Defaults to False.
+            add_title (bool, optional): True by default. Add the article title as h1. If False, no title.
 
         Returns:
             str: [description]
@@ -161,7 +162,8 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
             summary = doc.summary(html_partial=True).replace(
                 "_width_", "width").replace("_height_", "height")
             dom = etree.HTML(html, parser=None)
-            readable_content = _complete_with_h1(dom, summary)
+            if add_title:
+                readable_content = _complete_with_h1(dom, summary)
 
             noticeable_imgs = _get_noticeable_imgs(dom, url_prefix)
             for img in noticeable_imgs:
