@@ -111,7 +111,7 @@ class RedditHandler(PyRSSWRequestHandler):
             root = {}
         datatypes = self._get_datatypes_json(root, "t3")  # t3 : content
         for data in datatypes:
-            content  += "<h1>%s</h1>" % get_node_value_if_exists(
+            content += "<h1>%s</h1>" % get_node_value_if_exists(
                 data, "title")
             self_html: str = get_node_value_if_exists(data, "selftext_html")
             post_hint: str = get_node_value_if_exists(data, "post_hint")
@@ -119,7 +119,7 @@ class RedditHandler(PyRSSWRequestHandler):
                 data, "removed_by") + get_node_value_if_exists(data, "removed_by_category")
             if removed_by == "":
                 content += self._get_content_from_data(data=data, session=session,
-                                                      self_html=self_html, post_hint=post_hint)
+                                                       self_html=self_html, post_hint=post_hint)
             else:
                 content += "Content removed"
 
@@ -194,13 +194,20 @@ class RedditHandler(PyRSSWRequestHandler):
 
     def _get_datatypes_json(self, data: dict, ttype: str) -> List[dict]:
         datatype_json: List[dict] = []
-        if len(data) > 0:
+
+        def _append_datatype(nodes):
+            if nodes is not None:
+                for node in nodes:
+                    if "kind" in node and node["kind"] == ttype and "data" in node:
+                        datatype_json.append(node["data"])
+
+        if isinstance(data, dict) and "data" in data:
+            nodes = get_node(data["data"], "children")
+            _append_datatype(nodes)
+        elif len(data) > 0:
             for d in data:
                 nodes = get_node(d, "data", "children")
-                if nodes is not None:
-                    for node in nodes:
-                        if "kind" in node and node["kind"] == ttype and "data" in node:
-                            datatype_json.append(node["data"])
+                _append_datatype(nodes)
 
         return datatype_json
 
