@@ -1,3 +1,4 @@
+import base64
 import html
 import json
 import logging
@@ -157,7 +158,7 @@ class EurosportHandler(PyRSSWRequestHandler):
 
         """)
 
-    def _get_content(self, url: str, session: requests.Session, deep: int = 0) -> str:
+    def _get_content(self, url: str, session: requests.Session) -> str:
         content = session.get(url, headers=self._get_headers()).text
         content = content.replace(">", ">\n")
         # in the majority of eurosport pages a json object contains all the content in tag with id __NEXT_DATA__
@@ -168,14 +169,10 @@ class EurosportHandler(PyRSSWRequestHandler):
 
             next_data = content[idx+offset+1:idx+offset+end]
             data = json.loads(next_data)
-
-            ql_ref = self._get_ql_ref(data)
-            if ql_ref is not None:
-                content = QLArticleBuilder(data, ql_ref).build_article()
-                if content == "" and deep < 2:
-                    content = QLArticleBuilder(data, ql_ref).build_article()
-                    sleep(2)
-                    content = self._get_content(url, session, deep+1)
+            
+            article_node = self._get_article_node(data)
+            if article_node is not None:
+                content = QLArticleBuilder(data, article_node).build_article()
             else:
                 articles = json_utils.get_nodes_by_name(data, "article")
                 for article in articles:
@@ -184,28 +181,26 @@ class EurosportHandler(PyRSSWRequestHandler):
 
         return content
 
-    def _get_ql_ref(self, data: dict) -> Optional[str]:
-        """Returns ql article ref if found
+    def _get_article_node(self, data: dict) -> Optional[dict]:
+        """Returns article node if found
 
         Args:
             data (dict): data loaded in html page
 
         Returns:
-            Optional[str]: ref article or None if not found
+            Optional[dict]: article node or None if not found
         """
-        ql_ref: Optional[str] = None
+        article_node: Optional[dict] = None
         page_unique_ids = json_utils.get_nodes_by_name(
             data, "pageUniqueID")
         if len(page_unique_ids) == 1:
-            client_roots = json_utils.get_nodes_by_name(
-                data, "articleByDatabaseId(databaseId:%s)" % page_unique_ids[0])
-            if len(client_roots) == 1:
-                refs = json_utils.get_nodes_by_name(
-                    client_roots[0], "__ref")
-                if len(refs) > 0:
-                    ql_ref = cast(str, refs[0])
+            article_ids = base64.b64encode(
+                bytes('Article:%s' % page_unique_ids[0], 'utf-8')).decode('ascii')
+            client_articles = json_utils.get_nodes_by_name(data, article_ids)
+            if len(client_articles) > 0:
+                article_node = client_articles[0]
 
-        return ql_ref
+        return article_node
 
     def _get_video_content(self, url: str, session: requests.Session) -> str:
         """ video in eurosport website are loaded using some javascript
@@ -269,6 +264,7 @@ class EurosportHandler(PyRSSWRequestHandler):
             "Cache-Control": "no-cache",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
         }
+
 
 class ArticleBuilder():
     """Uses the json produced by eurosport pages and build a simple html page parsing it.
@@ -405,15 +401,13 @@ class QLArticleBuilder():
     """New way to defined articles with GraphQL
     """
 
-    def __init__(self, data: dict, ql_ref: str) -> None:
+    def __init__(self, data: dict, article_node: dict) -> None:
         self.data: dict = data
         self.root: Optional[dict] = json_utils.get_node(
             self.data, "props", "pageProps", "serverQueryRecords")
-        if self.root is not None:
-            #self.root = self.root[next(iter(self.root))]
-            self.ql_article: dict = self.root[ql_ref]
-            # self.ql_article: Optional[dict] = cast(Optional[dict], json_utils.get_first_node_in_subpath(
-            #    data, ql_ref))
+        
+        self.ql_article: dict = article_node
+
         self.graph_ql_body: Optional[str] = None
 
     def build_article(self) -> str:
