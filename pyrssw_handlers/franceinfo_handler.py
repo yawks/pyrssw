@@ -73,6 +73,14 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             "data-src", "style='height:100%;width:100%' src")
         dom = etree.HTML(content)
 
+        for picture in xpath(dom, "//picture"):
+            noscripts = xpath(picture, ".//noscript")
+            if len(noscripts) > 0:
+                img = etree.fromstring(to_string(noscripts[0]).replace("<noscript>", "").replace("</noscript>", "").strip())
+                picture.getparent().append(img)
+                noscripts[0].getparent().remove(noscripts[0])
+                picture.getparent().remove(picture)
+
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class, "block-share")]',
             '//*[@id="newsletter-onvousrepond"]',
