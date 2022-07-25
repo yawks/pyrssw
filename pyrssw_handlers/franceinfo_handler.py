@@ -170,7 +170,7 @@ def _process_videos(dom: etree._Element):
         for video in xpath(dom, '//figure[contains(@class,"francetv-player-wrapper")]'):
             for json_content in json_contents:
                 if json_content.find('VideoObject'):
-                    js = json.loads(json_content)
+                    js = json.loads(json_content, strict=False)
                     video.tag = "iframe"
                     video.attrib["src"] = js.get("video", {}).get("embedUrl", "")
                     break
