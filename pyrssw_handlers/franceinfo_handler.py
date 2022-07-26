@@ -73,14 +73,6 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             "data-src", "style='height:100%;width:100%' src")
         dom = etree.HTML(content)
 
-        for picture in xpath(dom, "//picture"):
-            noscripts = xpath(picture, ".//noscript")
-            if len(noscripts) > 0:
-                img = etree.fromstring(to_string(noscripts[0]).replace("<noscript>", "").replace("</noscript>", "").strip())
-                picture.getparent().append(img)
-                noscripts[0].getparent().remove(noscripts[0])
-                picture.getparent().remove(picture)
-
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class, "block-share")]',
             '//*[@id="newsletter-onvousrepond"]',
@@ -120,6 +112,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
         ])
 
         _process_videos(dom)
+        _process_pictures(dom)
 
         content = utils.dom_utils.get_content(
             dom, ['//div[contains(@class,"article-detail-block")]',
@@ -169,9 +162,19 @@ def _process_videos(dom: etree._Element):
     if len(json_contents) > 0:
         for video in xpath(dom, '//figure[contains(@class,"francetv-player-wrapper")]'):
             for json_content in json_contents:
-                if json_content.find('VideoObject'):
+                if json_content.find('VideoObject') > -1:
                     js = json.loads(json_content, strict=False)
-                    video.tag = "iframe"
-                    video.attrib["src"] = js.get("video", {}).get("embedUrl", "")
+                    url = js.get("video", {}).get("embedUrl", "")
+                    if url.strip() != "":
+                        video.tag = "iframe"
+                        video.attrib["src"] = url
                     break
     
+def _process_pictures(dom: etree._Element):
+    for picture in xpath(dom, "//picture"):
+        noscripts = xpath(picture, ".//noscript")
+        if len(noscripts) > 0:
+            img = etree.fromstring(to_string(noscripts[0]).replace("<noscript>", "").replace("</noscript>", "").strip())
+            picture.getparent().append(img)
+            noscripts[0].getparent().remove(noscripts[0])
+            picture.getparent().remove(picture)
