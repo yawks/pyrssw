@@ -13,7 +13,7 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
 
-HEADERS = {
+HEADERS2 = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Content-Type": "text/html; charset=utf-8",
     "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
@@ -22,6 +22,11 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
     "Pragma": "no-cache"
 }
+
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0',
+           'Connection': 'keep-alive'}
+
+
 class IzismileHandler(PyRSSWRequestHandler):
 
     def get_original_website(self) -> str:
@@ -70,8 +75,8 @@ class IzismileHandler(PyRSSWRequestHandler):
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
-        self.scraper = cloudscraper.create_scraper()
-        urls: List[str] = [url, "%s/page,1,%s" % ("/".join(url.split("/")[:-1]), url.split("/")[-1])]
+        urls: List[str] = [url, "%s/page,1,%s" %
+                           ("/".join(url.split("/")[:-1]), url.split("/")[-1])]
         nb_pages = 1
         content, url_next_page, comments, cpt_comments = self._get_content(
             url, session, with_title=True, cpt_comments=1)
@@ -182,7 +187,13 @@ class IzismileHandler(PyRSSWRequestHandler):
         return content, url_next_page, comments, cpt
 
     def _get_page_from_url(self, url, session: requests.Session) -> str:
-        text = self.scraper.get(url).text
+        scraper = cloudscraper.create_scraper(delay=10, browser={
+            'browser': 'firefox',
+            'platform': 'windows',
+            'mobile': False
+        })
+        text = scraper.get(url, verify=True).text
+        
         if text.find("You do not have access to the site.") > -1:
             time.sleep(0.1)
             text = session.get(url=url, headers=HEADERS).text
