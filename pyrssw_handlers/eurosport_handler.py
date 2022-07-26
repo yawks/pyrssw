@@ -502,7 +502,11 @@ class QLArticleBuilder():
             node_format = self._format_embed(node)
         elif type_name == "WidgetBeOp":
             node_format = ""
-
+        elif type_name == "Quickpoll":
+            node_format = self._format_quickpoll(node)
+        elif type_name == "Choice":
+            node_format = "<li>%s (%s votes)</li>" % (node.get("text", ""), node.get("voteCount", ""))
+        
         return node_format
 
     def _format_table_column(self, node: dict) -> str:
@@ -525,7 +529,16 @@ class QLArticleBuilder():
             for tr in node["tableLines"]["__refs"]:
                 trs += cast(str, self._build(tr))
         return "<table>%s</table>" % trs
+    
+    def _format_quickpoll(self, node: dict) -> str:
+        content: str = "<h4>%s</h4><ul>" % node.get("question", "")
+        for ref in cast(list, json_utils.get_node(node, "choices", "__refs")):
+            content += self._build(ref)
+        
+        content += "</ul>"
 
+        return content
+    
     def _format_embed(self, node: dict) -> str:
         content: str
         type_node: Optional[str] = node["type"]
