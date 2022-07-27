@@ -13,7 +13,7 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 
 
-HEADERS2 = {
+HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Content-Type": "text/html; charset=utf-8",
     "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
@@ -22,10 +22,6 @@ HEADERS2 = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
     "Pragma": "no-cache"
 }
-
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0',
-           'Connection': 'keep-alive'}
-
 
 class IzismileHandler(PyRSSWRequestHandler):
 
