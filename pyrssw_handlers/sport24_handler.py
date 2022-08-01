@@ -68,7 +68,7 @@ class Sport24Handler(PyRSSWRequestHandler):
                                parameters["filter"], headers={}).text
         else:
             feed = session.get(url=self.get_rss_url() %
-                               "accueil", headers={}).text
+                               "sport", headers={}).text
 
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
@@ -77,12 +77,13 @@ class Sport24Handler(PyRSSWRequestHandler):
         dom = etree.fromstring(myxml)
         description_img: str = ""
 
-        xpath_expression = "//item[not(enclosure)]"
+        """xpath_expression = "//item[not(enclosure)]"
         if "filter" in parameters and parameters["filter"] == "flash":
             xpath_expression = "//item[enclosure]"
             description_img = "<img src=\"https://pbs.twimg.com/profile_images/932616523285516294/sqt32oQY.jpg\"/>"
 
-        utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
+            utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
+        """
 
         for link in xpath(dom, "//item/link"):
             if link is not None and text(link) is not None:
