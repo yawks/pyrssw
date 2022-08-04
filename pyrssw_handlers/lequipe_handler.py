@@ -84,23 +84,29 @@ class LequipeHandler(PyRSSWRequestHandler):
                 link.text = self.get_handler_url_with_parameters(
                     {"url": href})
 
+
+                title = ""
                 images = xpath(
                     article, './/img[contains(@class,"Image__img")]')
                 if len(images) > 0:
                     enclosure.attrib["url"] = images[0].attrib.get("src", "")
+                    if len(images[0].attrib.get("alt", "")) > 0:
+                        title = images[0].attrib.get("alt", "")
 
                 titles = xpath(article, ".//h2")
                 if len(titles) > 0:
-                    description.text = text(titles[0]).strip()
+                    title = text(titles[0]).strip()
 
-                pub_date.text = datetime.now().strftime("%c")
+                if title != "":
+                    description.text = title
+                    pub_date.text = datetime.now().strftime("%c")
 
-                item.append(link)
-                item.append(enclosure)
-                item.append(description)
-                item.append(pub_date)
+                    item.append(link)
+                    item.append(enclosure)
+                    item.append(description)
+                    item.append(pub_date)
 
-                channel.append(item)
+                    channel.append(item)
 
         feed = to_string(dom)
 
