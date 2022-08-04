@@ -78,32 +78,33 @@ class LequipeHandler(PyRSSWRequestHandler):
                 item = etree.Element("item")
                 link = etree.Element("link")
                 enclosure = etree.Element("enclosure")
-                description = etree.Element("description")
+                #description = etree.Element("description")
+                title = etree.Element("title")
                 pub_date = etree.Element("pubDate")
 
                 link.text = self.get_handler_url_with_parameters(
                     {"url": href})
 
-
-                title = ""
+                title_str = ""
                 images = xpath(
                     article, './/img[contains(@class,"Image__img")]')
                 if len(images) > 0:
                     enclosure.attrib["url"] = images[0].attrib.get("src", "")
                     if len(images[0].attrib.get("alt", "")) > 0:
-                        title = images[0].attrib.get("alt", "")
+                        title_str = images[0].attrib.get("alt", "")
 
                 titles = xpath(article, ".//h2")
                 if len(titles) > 0:
-                    title = text(titles[0]).strip()
+                    title_str = text(titles[0]).strip()
 
-                if title != "":
-                    description.text = title
+                if title_str != "":
+                    title.text = title_str
                     pub_date.text = datetime.now().strftime("%c")
 
                     item.append(link)
                     item.append(enclosure)
-                    item.append(description)
+                    # item.append(description)
+                    item.append(title)
                     item.append(pub_date)
 
                     channel.append(item)
@@ -134,7 +135,6 @@ class LequipeHandler(PyRSSWRequestHandler):
             '//*[contains(@class,"RelatedLinks")]',
             '//*[contains(@aria-label,"Colonne de droite")]'
         ])
-        
 
         json_content = _parse_article_object(dom, content)
 
