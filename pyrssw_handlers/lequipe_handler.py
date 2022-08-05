@@ -40,7 +40,7 @@ class LequipeHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
-        return "https://www.lequipe.fr/img/favicons/favicon.svg"
+        return "https://www.lequipe.fr/img/favicons/apple-touch-icon-114x114.png"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         tempfile.TemporaryDirectory()
