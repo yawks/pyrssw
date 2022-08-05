@@ -21,15 +21,15 @@ class LequipeHandler(PyRSSWRequestHandler):
     Handler name: lequipe
 
     RSS parameters:
-     - filter : tennis, football, rugby, basket, cyclisme, football-transfert, jeux-olympiques, voile, handball, golf
-       to invert filtering, prefix it with: ^
+     - filter : Tennis, Football, Rugby, Cyclisme, Golf, Basket, Voile, Handball, F1, Transfert
        eg :
-         - /lequipe/rss?filter=tennis               # only feeds about tennis
-         # remove feeds having "transfert" or "golf" in the title or url
-         - /lequipe/rss?blacklist=transfert,golf
+         - /lequipe/rss?filter=Tennis                       # only feeds about tennis
+     - blacklist : remove feeds having keywords in their title or url (words separated by coma)
+         - /lequipe/rss?blacklist=transfert,golf            # remove feeds having "transfert" or "golf"
+         - /lequipe/rss?filter=Tennis&blacklist=Djokovic    # remove Tennis feeds about Djokovic
 
     Content:
-        Content without menus, ads, ...
+        Content without menus, ads, social media buttons, ...
     """
 
     def get_original_website(self) -> str:
@@ -45,13 +45,13 @@ class LequipeHandler(PyRSSWRequestHandler):
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         tempfile.TemporaryDirectory()
         self.PREVIOUS_ITEMS_FILE = f"{tempfile.tempdir}/lequipe.pickle"
-        if parameters.get("filter") in ["tennis", "football", "rugby", "cyclisme", "golf", "basket", "jeux-olympiques", "voile", "handball", "formule-1", "football-transfert"]:
+        if parameters.get("filter") in ["Tennis", "Football", "Rugby", "Cyclisme", "Golf", "Basket", "Voile", "Handball", "F1", "Transfert"]:
             # filter only on passed category, eg /lequipe/rss/tennis
             feed = session.get(url=self.get_rss_url() %
-                               "_"+parameters["filter"].capitalize(), headers={}).text
+                               ("_"+parameters["filter"]), headers={}).text
 
             html = session.get(self.get_original_website(
-            ) + parameters["filter"].capitalize(), headers={}).text
+            ) + parameters["filter"], headers={}).text
 
         else:
             feed = session.get(url=self.get_rss_url() %
@@ -563,32 +563,32 @@ span.Article__publishDate::after {
         for article in xpath(html_dom, "//article/a"):
             href = cast(str, article.attrib["href"])
             if href not in links and not href.startswith("https://bit.ly"):
+                item = etree.Element("item")
+                link = etree.Element("link")
+                enclosure = etree.Element("enclosure")
+                title = etree.Element("title")
+                pub_date = etree.Element("pubDate")
+                title_str = ""
+                images = xpath(
+                    article, './/img[contains(@class,"Image__img")]')
+                if len(images) > 0:
+                    enclosure.attrib["url"] = images[0].attrib.get(
+                        "src", "")
+                    if len(cast(str, images[0].attrib.get("alt", ""))) > 0:
+                        title_str = cast(str, images[0].attrib.get("alt", ""))
+
+                titles = xpath(article, ".//h2")
+                if len(titles) > 0:
+                    title_str = text(titles[0]).strip()
+
                 blacklisted = False
                 for keyword in blacklisted_keywords:
-                    if keyword in href:
+                    if keyword in href or keyword in title_str:
                         blacklisted = True
                 if not blacklisted:
-                    item = etree.Element("item")
-                    link = etree.Element("link")
-                    enclosure = etree.Element("enclosure")
-                    title = etree.Element("title")
-                    pub_date = etree.Element("pubDate")
 
                     link.text = self.get_handler_url_with_parameters(
                         {"url": href})
-
-                    title_str = ""
-                    images = xpath(
-                        article, './/img[contains(@class,"Image__img")]')
-                    if len(images) > 0:
-                        enclosure.attrib["url"] = images[0].attrib.get(
-                            "src", "")
-                        if len(images[0].attrib.get("alt", "")) > 0:
-                            title_str = images[0].attrib.get("alt", "")
-
-                    titles = xpath(article, ".//h2")
-                    if len(titles) > 0:
-                        title_str = text(titles[0]).strip()
 
                     if title_str != "":
                         title.text = title_str
