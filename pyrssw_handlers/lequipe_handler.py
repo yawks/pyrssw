@@ -1,13 +1,16 @@
-from request.pyrssw_content import PyRSSWContent
+from typing import Dict, List, cast
 from datetime import datetime
+from os.path import exists
 import string
 import re
-from typing import Dict, cast
 import requests
 from lxml import etree
 import json
+import pickle
+import tempfile
+from request.pyrssw_content import PyRSSWContent
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
-from utils.dom_utils import delete_xpaths, get_content, text, to_string, xpath
+from utils.dom_utils import delete_xpaths, get_content, get_first_node, text, to_string, xpath
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
 
@@ -21,10 +24,9 @@ class LequipeHandler(PyRSSWRequestHandler):
      - filter : tennis, football, rugby, basket, cyclisme, football-transfert, jeux-olympiques, voile, handball, golf
        to invert filtering, prefix it with: ^
        eg :
-         - /lequipe/rss?filter=tennis             #only feeds about tennis
-         #only feeds about football and tennis
-         - /lequipe/rss?filter=football,tennis
-         - /lequipe/rss?filter=^football,tennis   #all feeds but football and tennis
+         - /lequipe/rss?filter=tennis               # only feeds about tennis
+         # remove feeds having "transfert" or "golf" in the title or url
+         - /lequipe/rss?blacklist=transfert,golf
 
     Content:
         Content without menus, ads, ...
@@ -41,6 +43,8 @@ class LequipeHandler(PyRSSWRequestHandler):
         return "https://www.lequipe.fr/img/favicons/favicon.svg"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
+        tempfile.TemporaryDirectory()
+        self.PREVIOUS_ITEMS_FILE = f"{tempfile.tempdir}/lequipe.pickle"
         if parameters.get("filter") in ["tennis", "football", "rugby", "cyclisme", "golf", "basket", "jeux-olympiques", "voile", "handball", "formule-1", "football-transfert"]:
             # filter only on passed category, eg /lequipe/rss/tennis
             feed = session.get(url=self.get_rss_url() %
@@ -54,6 +58,10 @@ class LequipeHandler(PyRSSWRequestHandler):
                                "", headers={}).text
             html = session.get(self.get_original_website(), headers={}).text
 
+        blacklisted_keywords = []
+        if "blacklist" in parameters:
+            blacklisted_keywords = parameters["blacklist"].split(",")
+
         # I probably do not use etree as I should
         feed = feed.replace('<?xml version="1.0" encoding="UTF-8" ?>', '')
         regex = re.compile(r"&(?!amp;|lt;|gt;)")
@@ -61,53 +69,9 @@ class LequipeHandler(PyRSSWRequestHandler):
         dom = etree.fromstring(myxml)
         description_img: str = ""
 
-        links = []
-        for link in xpath(dom, "//item/link"):
-            if link is not None and text(link) is not None:
-                href = text(link).strip().replace("#xtor=RSS-1", "")
-                links.append(href)
-                link.text = self.get_handler_url_with_parameters(
-                    {"url": href})
-
-        html_dom = etree.HTML(html)
-        channel = xpath(dom, "//channel")[0]
-        for article in xpath(html_dom, "//article/a"):
-            #print(article.attrib["href"] + " " + xpath(article, ".//h2")[0].strip())
-            href = article.attrib["href"]
-            if href not in links and not href.startswith("https://bit.ly"):
-                item = etree.Element("item")
-                link = etree.Element("link")
-                enclosure = etree.Element("enclosure")
-                #description = etree.Element("description")
-                title = etree.Element("title")
-                pub_date = etree.Element("pubDate")
-
-                link.text = self.get_handler_url_with_parameters(
-                    {"url": href})
-
-                title_str = ""
-                images = xpath(
-                    article, './/img[contains(@class,"Image__img")]')
-                if len(images) > 0:
-                    enclosure.attrib["url"] = images[0].attrib.get("src", "")
-                    if len(images[0].attrib.get("alt", "")) > 0:
-                        title_str = images[0].attrib.get("alt", "")
-
-                titles = xpath(article, ".//h2")
-                if len(titles) > 0:
-                    title_str = text(titles[0]).strip()
-
-                if title_str != "":
-                    title.text = title_str
-                    pub_date.text = datetime.now().strftime("%c")
-
-                    item.append(link)
-                    item.append(enclosure)
-                    # item.append(description)
-                    item.append(title)
-                    item.append(pub_date)
-
-                    channel.append(item)
+        links = self._process_feed_items(dom, blacklisted_keywords)
+        self._enrich_feed_with_url_homepage(
+            html, dom, blacklisted_keywords, links)
 
         feed = to_string(dom)
 
@@ -115,8 +79,8 @@ class LequipeHandler(PyRSSWRequestHandler):
         if "filter" in parameters:
             title = " - " + parameters["filter"]
 
-        feed = feed.replace("<title>lequipe - Toute l'actualite</title>",
-                            "<title>lequipe%s</title>" % string.capwords(title))
+        feed = re.sub(r"<title>L'Equipe.fr[^<]+</title>",
+                      "<title>L'Equipe.fr%s</title>" % string.capwords(title), feed)
 
         if description_img != "":
             feed = feed.replace(
@@ -141,6 +105,7 @@ class LequipeHandler(PyRSSWRequestHandler):
         _remove_duplicate_imgs(dom)
         _move_header_img(dom)
         _process_video(dom)
+        _process_tweet(dom)
         _process_instagram(dom)
 
         content = get_content(dom, [
@@ -576,6 +541,94 @@ span.Article__publishDate::after {
 
         """)
 
+    def _get_previous_items(self) -> Dict[str, str]:
+        previous_items = {}
+
+        if exists(self.PREVIOUS_ITEMS_FILE):
+            with open(self.PREVIOUS_ITEMS_FILE, "rb") as f:
+                previous_items = pickle.load(f)
+
+        return previous_items
+
+    def _store_previous_items(self, previous_items: Dict[str, str]):
+        # remove old items
+        with open(self.PREVIOUS_ITEMS_FILE, "wb") as f:
+          pickle.dump(previous_items, f)
+
+    def _enrich_feed_with_url_homepage(self, html: str, dom: etree._Element, blacklisted_keywords: List[str], links: List[str]):
+        previous_items = self._get_previous_items()
+
+        html_dom = etree.HTML(html)
+        channel = xpath(dom, "//channel")[0]
+        for article in xpath(html_dom, "//article/a"):
+            href = cast(str, article.attrib["href"])
+            if href not in links and not href.startswith("https://bit.ly"):
+                blacklisted = False
+                for keyword in blacklisted_keywords:
+                    if keyword in href:
+                        blacklisted = True
+                if not blacklisted:
+                    item = etree.Element("item")
+                    link = etree.Element("link")
+                    enclosure = etree.Element("enclosure")
+                    title = etree.Element("title")
+                    pub_date = etree.Element("pubDate")
+
+                    link.text = self.get_handler_url_with_parameters(
+                        {"url": href})
+
+                    title_str = ""
+                    images = xpath(
+                        article, './/img[contains(@class,"Image__img")]')
+                    if len(images) > 0:
+                        enclosure.attrib["url"] = images[0].attrib.get(
+                            "src", "")
+                        if len(images[0].attrib.get("alt", "")) > 0:
+                            title_str = images[0].attrib.get("alt", "")
+
+                    titles = xpath(article, ".//h2")
+                    if len(titles) > 0:
+                        title_str = text(titles[0]).strip()
+
+                    if title_str != "":
+                        title.text = title_str
+                        if href in previous_items:
+                          pub_date.text = previous_items[href]
+                        else:
+                          pub_date.text = datetime.now().strftime("%c")
+                          previous_items[href] = pub_date.text
+
+                        item.append(link)
+                        item.append(enclosure)
+                        item.append(title)
+                        item.append(pub_date)
+
+                        channel.append(item)
+        self._store_previous_items(previous_items)
+
+    def _process_feed_items(self, dom: etree._Element, blacklisted_keywords: List[str]) -> List[str]:
+        links: List[str] = []
+        for item in xpath(dom, "//item"):
+            item_title = get_first_node(item, [".//title"])
+            item_link = get_first_node(item, [".//link"])
+            blacklisted = False
+            for keyword in blacklisted_keywords:
+                if (item_title is not None and keyword in cast(str, item_title.text)) or \
+                        (item_link is not None and keyword in cast(str, item_link.text)):
+                    blacklisted = True
+                    break
+            if blacklisted:
+                item.getparent().remove(item)
+            else:
+                for link in xpath(item, ".//link"):
+                    if link is not None and text(link) is not None:
+                        href = text(link).strip().replace("#xtor=RSS-1", "")
+                        links.append(href)
+                        link.text = self.get_handler_url_with_parameters(
+                            {"url": href})
+
+        return links
+
 
 def _remove_duplicate_imgs(dom: etree._Element):
     alts = []
@@ -654,6 +707,15 @@ def _parse_article_object(dom: etree._Element, content: str) -> str:
             parent.append(new_article_body)
 
     return json_content
+
+
+def _process_tweet(dom: etree._Element):
+    for tweet in xpath(dom, '//*[contains(@class,"Embed__tweet")]'):
+        tweet_id = tweet.get("data-tweetid", "")
+        if tweet_id != "":
+            a = etree.Element("a")
+            a.attrib["href"] = f"https://twitter.com/NFL/status/{tweet_id}"
+            tweet.append(a)
 
 
 def _process_video(dom: etree._Element):
