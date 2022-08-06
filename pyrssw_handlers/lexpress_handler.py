@@ -47,6 +47,10 @@ class LExpress(PyRSSWRequestHandler):
     Content:
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
     """
+    
+    def get_handler_name(self, parameters: Dict[str, str]):
+        suffix = " - " + parameters["filter"] if parameters.get("filter", "") != "" else ""
+        return "L'Express" + suffix
 
     def get_original_website(self) -> str:
         return "https://www.lexpress.fr/"
@@ -75,7 +79,7 @@ class LExpress(PyRSSWRequestHandler):
         dom = etree.fromstring(feed)
         for node in xpath(dom, "//link|//guid"):
             node.text = "%s" % self.get_handler_url_with_parameters(
-                {"url": cast(str, node.text)})
+                {"url": cast(str, node.text), "filter" : parameters.get("filter", "")})
         feed = to_string(dom)
 
         return feed
