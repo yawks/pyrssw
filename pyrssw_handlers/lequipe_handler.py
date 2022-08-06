@@ -1,5 +1,5 @@
 from typing import Dict, List, cast
-from datetime import datetime
+from datetime import datetime, timedelta
 from os.path import exists
 import string
 import re
@@ -42,6 +42,10 @@ class LequipeHandler(PyRSSWRequestHandler):
     def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://www.lequipe.fr/img/favicons/apple-touch-icon-114x114.png"
 
+    def get_handler_name(self, parameters: Dict[str, str]):
+        suffix = " - " + parameters["filter"] if "filter" in parameters else ""
+        return "L'Equipe" + suffix
+
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         tempfile.TemporaryDirectory()
         self.PREVIOUS_ITEMS_FILE = f"{tempfile.tempdir}/lequipe.pickle"
@@ -69,9 +73,9 @@ class LequipeHandler(PyRSSWRequestHandler):
         dom = etree.fromstring(myxml)
         description_img: str = ""
 
-        links = self._process_feed_items(dom, blacklisted_keywords)
+        links = self._process_feed_items(dom, blacklisted_keywords, parameters)
         self._enrich_feed_with_url_homepage(
-            html, dom, blacklisted_keywords, links)
+            html, dom, blacklisted_keywords, links, parameters)
 
         feed = to_string(dom)
 
@@ -552,10 +556,14 @@ span.Article__publishDate::after {
 
     def _store_previous_items(self, previous_items: Dict[str, str]):
         # remove old items
+        old_date = datetime.now() - timedelta(days = 7)
+        for (url, date_str) in previous_items.copy().items():
+          if datetime.strptime(date_str, "%a %b %d %H:%M:%S %Y") < old_date:
+            del previous_items[url]
         with open(self.PREVIOUS_ITEMS_FILE, "wb") as f:
-          pickle.dump(previous_items, f)
+            pickle.dump(previous_items, f)
 
-    def _enrich_feed_with_url_homepage(self, html: str, dom: etree._Element, blacklisted_keywords: List[str], links: List[str]):
+    def _enrich_feed_with_url_homepage(self, html: str, dom: etree._Element, blacklisted_keywords: List[str], links: List[str], parameters: Dict[str, str]):
         previous_items = self._get_previous_items()
 
         html_dom = etree.HTML(html)
@@ -588,15 +596,15 @@ span.Article__publishDate::after {
                 if not blacklisted:
 
                     link.text = self.get_handler_url_with_parameters(
-                        {"url": href})
+                        {"url": href, "filter": parameters.get("filter", "")})
 
                     if title_str != "":
                         title.text = title_str
                         if href in previous_items:
-                          pub_date.text = previous_items[href]
+                            pub_date.text = previous_items[href]
                         else:
-                          pub_date.text = datetime.now().strftime("%c")
-                          previous_items[href] = pub_date.text
+                            pub_date.text = datetime.now().strftime("%c")
+                            previous_items[href] = pub_date.text
 
                         item.append(link)
                         item.append(enclosure)
@@ -606,7 +614,7 @@ span.Article__publishDate::after {
                         channel.append(item)
         self._store_previous_items(previous_items)
 
-    def _process_feed_items(self, dom: etree._Element, blacklisted_keywords: List[str]) -> List[str]:
+    def _process_feed_items(self, dom: etree._Element, blacklisted_keywords: List[str], parameters: Dict[str, str]) -> List[str]:
         links: List[str] = []
         for item in xpath(dom, "//item"):
             item_title = get_first_node(item, [".//title"])
@@ -625,7 +633,7 @@ span.Article__publishDate::after {
                         href = text(link).strip().replace("#xtor=RSS-1", "")
                         links.append(href)
                         link.text = self.get_handler_url_with_parameters(
-                            {"url": href})
+                            {"url": href, "filter": parameters.get("filter", "")})
 
         return links
 
