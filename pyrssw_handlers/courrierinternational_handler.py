@@ -1,7 +1,7 @@
 from pyrssw_handlers.le_monde_handler import URL_CONNECTION, URL_DECONNECTION
 from request.pyrssw_content import PyRSSWContent
 import re
-from typing import Dict, Optional, cast
+from typing import Dict
 import urllib.parse
 import requests
 from lxml import etree
@@ -9,7 +9,7 @@ from lxml import etree
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
-from utils.dom_utils import to_string, xpath
+from utils.dom_utils import to_string
 
 URL_CONNECTION = "https://www.courrierinternational.com/login?destination=%3Cfront%3E"
 URL_DECONNECTION = "https://www.courrierinternational.com/user/logout"
@@ -68,7 +68,8 @@ class CourrierInternationalHandler(PyRSSWRequestHandler):
             utils.dom_utils.delete_xpaths(dom, [
                 '//div[contains(@class, "article-metas")]',
                 '//div[contains(@class,"article-secondary")]',
-                '//aside[contains(@class,"article-tools")]'
+                '//aside[contains(@class,"article-tools")]',
+                '//*[contains(@class,"asset-encadre")]'
             ])
 
             header = utils.dom_utils.get_content(
