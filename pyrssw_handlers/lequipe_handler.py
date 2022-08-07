@@ -8,6 +8,7 @@ from lxml import etree
 import json
 import pickle
 import tempfile
+from ftfy import fix_text
 from request.pyrssw_content import PyRSSWContent
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 from utils.dom_utils import delete_xpaths, get_content, get_first_node, text, to_string, xpath
@@ -101,7 +102,8 @@ class LequipeHandler(PyRSSWRequestHandler):
         delete_xpaths(dom, [
             '//div[@class="article__action"]',
             '//*[contains(@class,"RelatedLinks")]',
-            '//*[contains(@aria-label,"Colonne de droite")]'
+            '//*[contains(@aria-label,"Colonne de droite")]',
+            '//*[contains(@class,"bookmarkButton")]'
         ])
 
         json_content = _parse_article_object(dom, content)
@@ -114,7 +116,8 @@ class LequipeHandler(PyRSSWRequestHandler):
 
         content = get_content(dom, [
             '//div[@class="article"]',
-            '//*[contains(@class,"Sheet__content")]'
+            '//*[contains(@class,"Sheet__content")]',
+            '//body[@class="body"]' # /explore/
         ])
         content = content.replace("#JSONCONTENT#", json_content)
         content += """<style type="text/css">
@@ -130,7 +133,7 @@ class LequipeHandler(PyRSSWRequestHandler):
 
 </style>
         """
-
+        content = fix_text(content)
         return PyRSSWContent(content, """
             .Image__content {
   padding-top: 0 !important;
@@ -200,10 +203,6 @@ ArticleTags__items + .ArticleTags__paid {
   padding: 2px 5px 0;
   text-align: center;
   text-decoration: none;
-  /*background-color: #1d1d1b;
-  background-color: var(--color-black, #1d1d1b);
-  color: #fff;
-  color: var(--color-white, #fff);*/
 }
 
 .flag--small {
@@ -541,7 +540,67 @@ span.Article__publishDate::after {
   overflow: hidden;
 }
 
+.chapo-1 {
+    margin-right: 0px;
+    margin-bottom: 20px;
+    margin-left: 0px;
+    font-family: 'Din next lt pro', sans-serif;
+    font-size: 24px;
+    line-height: 26px;
+    font-weight: 300;
+    text-align: left;
+}
 
+.chapo-2 {
+    margin-right: 0px;
+    margin-bottom: 20px;
+    margin-left: 0px;
+    font-family: 'Din next lt pro', sans-serif;
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 400;
+    text-align: left;
+}
+
+.introduction_columns {
+    margin-right: 0px;
+    margin-left: 0px;
+}
+
+.credit {
+    font-family: 'Din next lt pro', sans-serif;
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 400;
+    text-align: left;
+    float:left;
+    margin-right: 10px;
+}
+.credit.condensed {
+    font-family: 'Din next lt pro cond', sans-serif;
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 400;
+    text-align: left;
+}
+
+.column_info {
+    position: static;
+    padding-right: 0px;
+    padding-left: 0px;
+}
+.w-col-4 {
+    width: 33.33333333%;
+}
+
+.w-col {
+    position: relative;
+    float: left;
+    width: 100%;
+    min-height: 1px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
 
         """)
 

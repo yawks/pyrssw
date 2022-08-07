@@ -100,7 +100,8 @@ class LeMondeHandler(PyRSSWRequestHandler):
                 '//*[contains(@class, "post-navigation")]',  # blog
                 '//*[contains(@class, "entry-footer")]',  # blog
                 '//*[contains(@class, "catcher")]',  # tribune
-                '//aside'
+                '//aside',
+                '//*[@id="d_overlay"]'
             ])
 
             self.process_pictures(dom)
