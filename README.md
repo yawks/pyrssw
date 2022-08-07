@@ -139,6 +139,7 @@ Each handler can define its own parameters, but PyRSSW also provides a bunch of 
   ie: `/mywebsitewithnews/rss?login=!e:gAAAAABe5pg7zHtpdXwS-6klKSN7d-5BZNe0V7t_DU9PbC73ZSZxqwdLHr8RvjSARhVartOu1vHGqDIAn0RcazsZj8aE2Ptqew==`
 - `internallinksinpyrssw` (boolean): true by default. All internal links of the displayed content will use the content processing of pyrssw. If set to False, links will lead to original website.
 - `debug` (boolean): if set to true, will display some debug information after the content
+- `preview` (boolean): only useful for /rss suffix. If set to true the feed will be grapically rendered with 2 panes: one listing items, one displaying item contents.
 
 All the parameters can be combined, ie: `/mywebsitewithnews/rss?debug=true&dark=true&translateto=fr`
 

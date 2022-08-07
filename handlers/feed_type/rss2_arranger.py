@@ -1,9 +1,12 @@
-from typing import Dict, List, Optional, cast
+from typing import Dict, List, Optional, Tuple, cast
 from utils.dom_utils import xpath
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
 from urllib.parse import quote_plus
-
+from datetime import datetime, timezone
+import timeago
+import maya
+from utils.dom_utils import xpath, get_first_node
 
 class RSS2Arranger(FeedArranger):
     """arrange feed by adding some pictures in description, ..."""
@@ -94,3 +97,24 @@ class RSS2Arranger(FeedArranger):
             else:
                 link_node.text = self._generated_complete_url(
                     rss_url_prefix, parameters)
+
+    def get_items_tuples(self, dom: etree._Element) -> List[Tuple[str, str, str, str]]:
+        items_tuples = []
+        for item in xpath(dom, "//item"):
+            url = ""
+            if len(self.get_links(item)) > 0:
+                url = cast(str, self.get_links(item)[0].text)
+
+            img_url = self.get_img_url(item)
+            title = "" if self.get_title(item) is None else cast(etree._Element, self.get_title(item)).text
+
+            pub_date = ""
+            pub_date_node = get_first_node(item, [".//pubDate"])
+            if pub_date_node is not None:  # improve that finding local timezone name
+                pub_date = timeago.format(maya.parse(cast(str, pub_date_node.text)).datetime(
+                    to_timezone="Europe/Paris"), datetime.now(timezone.utc))
+        
+
+            items_tuples.append((url, img_url, title, pub_date))
+        
+        return items_tuples

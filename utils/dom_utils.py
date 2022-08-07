@@ -1,6 +1,6 @@
 import logging
 import traceback
-from typing import List, Optional, Tuple, cast
+from typing import Dict, List, Optional, Tuple, cast
 from googletrans import Translator, LANGUAGES
 from utils.url_utils import is_url_valid
 from lxml import etree
@@ -117,11 +117,14 @@ def get_text(dom: etree, xpaths: list) -> str:
     return content
 
 
-def get_first_node(dom: etree, xpaths: list):
+def get_first_node(dom: etree, xpaths: list, namespaces: Optional[Dict[str, str]] = None):
     """get first node found in the list of xpath expressions"""
     node: Optional[etree._Element] = None
     for xpath in xpaths:
-        results = dom.xpath(xpath)
+        if namespaces is not None:
+            results = dom.xpath(xpath, namespaces=namespaces)
+        else:
+            results = dom.xpath(xpath)
         if len(results) > 0:
             node = results[0]
             break

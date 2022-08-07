@@ -1,3 +1,4 @@
+
 from handlers.content.content_processor import ContentProcessor
 from typing import Dict, Optional, Tuple, Type, cast
 import traceback
@@ -100,14 +101,14 @@ class LauncherHandler(RequestHandler):
                   (self.module_name, self.url))
         session: requests.Session = requests.Session()
         session.headers.update({"User-Agent": USER_AGENT})
-        self.content_type = FEED_XML_CONTENT_TYPE
+
         self.contents = self.handler.get_feed(parameters, session)
         if self.contents.find("<rss ") > -1:
-            self.contents = RSS2Arranger(
-                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url(parameters))
+            self.contents, self.content_type = RSS2Arranger(
+                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url(parameters), self.handler)
         elif self.contents.find("<feed ") > -1:
-            self.contents = AtomArranger(
-                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url(parameters))
+            self.contents, self.content_type = AtomArranger(
+                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url(parameters), self.handler)
 
     def _extract_path_and_parameters(self, url: str) -> Tuple[str, dict]:
         """Extract url path and parameters (and decrypt them if they were crypted)

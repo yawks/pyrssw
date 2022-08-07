@@ -1,17 +1,21 @@
 from abc import ABCMeta, abstractmethod
 import logging
-from handlers.constants import GENERIC_PARAMETERS
-from utils.dom_utils import to_string, translate_dom, xpath
-from typing import Dict, Optional, cast
-import datetime
+from typing import Dict, List, Optional, Tuple, cast
 import re
 import html
+from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlparse, quote_plus, parse_qs
 from lxml import etree
+from handlers.constants import GENERIC_PARAMETERS
+from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
+from utils.dom_utils import to_string, translate_dom, xpath
 
 IMG_URL_REGEX = re.compile(
-    r'.*&lt;img src=(?:"|\')([^(\'|")]+).*')
+    r'.*&lt;img src=(?:"|\')([^(\'|")]+).*', re.MULTILINE)
 
+HTML_CONTENT_TYPE = "text/html; charset=utf-8"
+FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 
 class FeedArranger(metaclass=ABCMeta):
 
@@ -124,8 +128,20 @@ class FeedArranger(metaclass=ABCMeta):
             img_url (str): new thumbnail url
         """
 
-    def arrange(self, parameters: Dict[str, str], contents: str, rss_url_prefix: str, favicon_url: str) -> str:
+    @abstractmethod
+    def get_items_tuples(self, dom: etree._Element) -> List[Tuple[str, str, str, str]]:
+        """Returns items tuples
+
+        Args:
+            dom (etree._Element): etree root dom for feed
+
+        Returns:
+            List[Tuple[str, str, str, str]]: article url, item img url, title, item publication date for all items of the feed
+        """
+
+    def arrange(self, parameters: Dict[str, str], contents: str, rss_url_prefix: str, favicon_url: str, handler: PyRSSWRequestHandler) -> Tuple[str, str]:
         result: str = contents
+        content_type = FEED_XML_CONTENT_TYPE
 
         try:
             result: str = contents
@@ -141,21 +157,25 @@ class FeedArranger(metaclass=ABCMeta):
                 self.arrange_feed_top_level_element(
                     dom, rss_url_prefix, parameters, favicon_url)
 
+                
                 for item in self.get_items(dom):
                     self._arrange_item(item, parameters)
                     self._arrange_feed_link(item, parameters)
 
-                result = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
-                    to_string(dom)
+                if parameters.get("preview", "") == "true":
+                    result, content_type = self.apply_rss_preview(parameters, handler, dom)
+                else:
+                    result = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
+                        to_string(dom)
 
         except etree.XMLSyntaxError as e:
             logging.getLogger().info(
                 "[ %s ] - Unable to parse rss feed for module '%s' (%s), let's proceed anyway",
-                datetime.datetime.now().strftime("%Y-%m-%d - %H:%M"),
+                datetime.now().strftime("%Y-%m-%d - %H:%M"),
                 self.module_name,
                 str(e))
 
-        return result
+        return result, content_type
 
     def _arrange_item(self, item: etree._Element, parameters: dict):
         descriptions = self.get_descriptions(item)
@@ -206,7 +226,8 @@ class FeedArranger(metaclass=ABCMeta):
         if len(imgs) > 0:
             thumbnail_url = imgs[0].attrib["url"]
         else:
-            m = re.match(IMG_URL_REGEX, to_string(description))
+            m = re.match(IMG_URL_REGEX, to_string(
+                description).replace("\n", ""))
             if m is not None:
                 thumbnail_url = m.group(1)
 
@@ -227,9 +248,8 @@ class FeedArranger(metaclass=ABCMeta):
                 if "translateto" in parameters:
                     translate_dom(title_node, parameters["translateto"])
                 if img_url == "":
-                    # uses the ThumbnailHandler to fetch an image from google search images
-                    img_url = "%s/thumbnails?request=%s&blur=%s" % (
-                        self.serving_url_prefix, quote_plus(re.sub(r"</?title[^>]*>", "", to_string(title_node)).strip()), nsfw)
+                    # TODO no picture
+                    pass
 
                 img = etree.Element("img")
                 img.set("src", img_url)
@@ -251,8 +271,8 @@ class FeedArranger(metaclass=ABCMeta):
                     self.serving_url_prefix, quote_plus(cast(str, img.attrib["src"])))
         else:
             srcs = re.findall('src="([^"]*)"', cast(str, description.text))
-            for src in srcs:
-                description.text = description.text.replace(src, "%s/thumbnails?url=%s&blur=true" % (
+            for ssrc in srcs:
+                description.text = description.text.replace(cast(str, src), "%s/thumbnails?url=%s&blur=true" % (
                     self.serving_url_prefix, quote_plus(src)))
         self.replace_img_links(
             item, self.serving_url_prefix + "/thumbnails?url=%s&blur=true")
@@ -299,9 +319,57 @@ class FeedArranger(metaclass=ABCMeta):
         complete_url: str = handler_url_prefix
         first = True
         for parameter in parameters:
-            if parameters.get("%s_crypted" % parameter, "") == "": #do not put parameters having a crypted version
+            # do not put parameters having a crypted version
+            if parameters.get("%s_crypted" % parameter, "") == "":
                 complete_url += "?" if first else "&"
-                complete_url += "%s=%s" % (parameter.replace("_crypted", ""), parameters[parameter])
+                complete_url += "%s=%s" % (parameter.replace(
+                    "_crypted", ""), parameters[parameter])
                 first = False
 
         return complete_url
+
+    def apply_rss_preview(self, parameters: dict, handler: PyRSSWRequestHandler, dom: etree._Element):
+        handler_name = handler.get_handler_name(parameters)
+        handler_favicon = handler.get_favicon_url(parameters)
+        html = Path("resources/rss_preview.html").read_text()
+        html_items = ""
+        for (url, img_url, title, pub_date) in self.get_items_tuples(dom):
+            img = ""
+            if img_url != "":
+                img = f"""
+        <img src="{img_url}" class="item-img"/>
+"""
+            html_items += f"""
+<a href="{url}" class="item" target="item_content_iframe" onclick="focusItem(this);">
+    <div class="item activetitle">
+    <div class="item-img-container">
+        {img}
+    </div>
+    <div class="flex-item-title-author-container">
+        <div class="item-title-author-container">
+        <div class="item-title-fav">
+            <div class="item-title">{title}</div>
+        </div>
+        <div>
+            <div class="item-author-date-container">
+            <div class="item-author">
+                <img src="{handler_favicon}" class="titlesfavicon"/>
+                {handler_name}
+            </div>
+            <div class="item-date">{pub_date}</div>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+</a>
+"""
+
+        html = html.replace(
+            "#BODYCLASS#", "dark" if parameters.get("dark", "") == "true" else "")
+        html = html.replace(
+            "#HANDLER_NAME#", handler_name)
+        html = html.replace(
+            "#ITEMS#", html_items)
+
+        return html, HTML_CONTENT_TYPE

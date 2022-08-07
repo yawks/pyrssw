@@ -9,3 +9,5 @@ ftfy
 googletrans==3.1.0a0
 favicon
 cloudscraper
+timeago
+maya

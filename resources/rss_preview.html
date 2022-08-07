@@ -1,0 +1,378 @@
+<html>
+
+<head>
+    <title>PyRSSW</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name='viewport' content='width=device-width' />
+    <style>
+@import url(https://fonts.googleapis.com/css?family=Roboto:100,100italic,300,300italic,400,400italic,500,500italic,700,700italic,900,900italic&subset=latin,latin-ext,cyrillic,cyrillic-ext,greek-ext,greek,vietnamese);
+
+body {
+    font-family: Roboto;
+    font-weight: 300;
+    line-height: 150%;
+    font-size: 100%;
+    margin:0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+ul {
+    padding-left: 0;
+}
+
+
+.main {
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+}
+
+.content {
+    display: flex;
+    flex-flow: row;
+    overflow: scroll;
+    height: 100%;
+}
+
+.content>div {
+    border-right: 2px solid #555;
+}
+
+div.item-title-fav {
+    display: flex;
+    flex-flow: row;
+}
+
+.feeds_list_container {
+    width: 350px;
+    flex: 0 0 350px;
+    float: left;
+    display: flex;
+    flex-flow: column;
+}
+
+#feeds_list_header {
+    height: 25px;
+    background-color: #ccc;
+    text-align: center;
+    line-height: 25px;
+    border-bottom: 2px solid #555;
+    font-weight: bold;
+}
+
+#feeds_list_header.no-bottom-border {
+    border-bottom:0;
+}
+
+#feeds_list {
+    overflow-y: auto;
+}
+
+.item_content {
+    height: 100%;
+    width: 100%;
+    border: 0;
+}
+
+a.item {
+    text-decoration: none;
+}
+
+div#feeds_list>a.item>div.item {
+    display: flex;
+    padding: 7px 24px 7px 14px;
+    cursor: pointer;
+}
+
+#item_content_container {
+    width: 100%;
+    border: 0;
+}
+
+div.feed_name {
+    display: flex;
+    flex-flow: row;
+}
+
+
+.item-selected {
+    font-weight: 900;
+}
+
+div.feed_name img {
+    height: 16px;
+    margin-right: 4px;
+    margin-top: 5px;
+}
+
+div.item-img-container {
+    display: table-cell;
+    width: 55px;
+    height: 55px;
+}
+
+img.item-img {
+    object-fit: cover;
+    height: 55px;
+    width: 55px;
+    max-width: 55px;
+}
+
+.flex-item-title-author-container {
+    width: 100%;
+}
+
+div.item-title-author-container {
+    display: flex;
+    flex-flow: column;
+    padding-left: 8px;
+}
+
+div.item-author-date-container {
+    flex-flow: row;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #22ae6f;
+    padding-top: 4px;
+    height: 24px;
+}
+
+div.item-author {
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+img.titlesfavicon {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+div.item div.item-title {
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    display: -webkit-box;
+    font-size: 100%;
+    height: 29px;
+    line-height: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.75rem;
+    -webkit-flex: 1 1 100%;
+    flex: 1 1 100%;
+    color: #000022;
+}
+
+div.unread {
+    font-weight: bold;
+}
+
+a.focus div.item {
+    background-color: #ddd;
+}
+
+/* READABILITY FORMATTING */
+
+#item_content_div {
+    display: none;
+    overflow: auto;
+    padding: 10px;
+    font-family: Roboto;
+    font-weight: 300;
+    line-height: 150%;
+    font-size: 16px;
+    max-width: 800px;
+    margin: auto;
+}
+
+#item_content_div * {
+    max-width: 100%;
+    word-break: break-word;
+}
+
+#item_content_div h1, #item_content_div h2 {
+    font-weight: 300;
+    line-height: 130%
+}
+
+#item_content_div h1 {
+    font-size: 170%;
+    margin-bottom: 0.1em
+}
+
+#item_content_div h2 {
+    font-size: 140%
+}
+
+#item_content_div a {
+    color: #0099CC
+}
+
+#item_content_div h1 a {
+    color: inherit;
+    text-decoration: none
+}
+
+#item_content_div img {
+    height: auto;
+    margin-right: 15px
+}
+
+#item_content_div pre {
+    white-space: pre-wrap;
+    direction: ltr;
+}
+
+#item_content_div blockquote {
+    border-left: thick solid #686b6f;
+    background-color: #383b3f;
+    margin: 0.5em 0 0.5em 0em;
+    padding: 0.5em
+}
+
+#item_content_div p {
+    margin: 0.8em 0 0.8em 0
+}
+
+#item_content_div p.subtitle {
+    color: #8c8c8c;
+    border-top: 1px #303030;
+    border-bottom: 1px #303030;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-weight: 600
+}
+
+#item_content_div ul, #item_content_div ol {
+    margin: 0 0 0.8em 0.6em;
+    padding: 0 0 0 1em
+}
+
+#item_content_div ul li, #item_content_div ol li {
+    margin: 0 0 0.8em 0;
+    padding: 0
+}
+
+#item_content_div hr {
+    border: 1px solid #686b6f;
+    background-color: #686b6f
+}
+
+#item_content_div strong {
+    font-weight: 400
+}
+
+#item_content_div figure {
+    margin: 0
+}
+
+#item_content_div figure img {
+    width: 100%!important;
+    float: none
+}
+
+#item_content_div iframe {
+    width: 100%;
+    min-height: 30vw;
+    height: auto
+}
+
+#item_content_div blockquote.twitter-tweet {
+    background: transparent;
+    border-left-color: transparent;
+}
+
+#item_content_div .twitter-tweet iframe {
+    min-height: auto
+}
+
+#item_content_div .twitter-tweet {
+    margin: 0 auto
+}
+
+#item_content_div:focus {
+    outline: none;
+}
+
+/* DARK THEME */
+
+body.dark, body.dark div.toolbar {
+    background-color: #1e1e1e;
+}
+
+body.dark body.dark #feeds_list, body.dark #feeds_list_header {
+    background-color: #1e1e1e;
+    color: #aaa;
+}
+
+body.dark div.item div.item-title {
+    color: #d4d4d4;
+}
+
+body.dark .item_content {
+    background-color: #1e1e1e;
+}
+
+body.dark #item_content_div {
+    color: #d4d4d4;
+}
+
+body.dark .action-button, body.dark img.icon, body.dark .item-img-none {
+    -webkit-filter: grayscale(1) invert(1);
+    filter: grayscale(1) invert(1);
+}
+
+body.dark ::-webkit-scrollbar-thumb {
+    background-color: rgb(75, 75, 75);
+    border: 3px solid #222;
+}
+
+body.dark ::-webkit-scrollbar-track-piece, body.dark ::-webkit-scrollbar-track {
+    background-color: #222;
+}
+
+body.dark ::-webkit-scrollbar {
+    width: 15px;
+}
+
+body.dark ::-webkit-scrollbar-button:start:decrement, body.dark ::-webkit-scrollbar-button:end:increment {
+    height: 30px;
+    background-color: transparent;
+}
+
+body.dark a.focus div.item {
+    background-color: #444;
+}
+
+    </style>
+    <script>
+        function focusItem(node) {
+            document.querySelectorAll("a.item").forEach(function(a) {
+                a.classList.remove("focus");
+            });
+            node.classList.add("focus");
+        }
+    </script>
+</head>
+
+<body class="#BODYCLASS#">
+    <div class="main">
+        <div class="content">
+            <div class="feeds_list_container">
+                <div id="feeds_list_header">#HANDLER_NAME#</div>
+                <div id="feeds_list">#ITEMS#</div>
+            </div>
+            <div id="item_content_container">
+                <div tabindex="0" id="item_content_div" class="item_content"></div>
+                <iframe name="item_content_iframe" class="item_content">
+                </iframe>
+            </div>
+        </div>
+</body>
+
+</html>

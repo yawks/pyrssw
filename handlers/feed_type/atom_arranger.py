@@ -1,8 +1,10 @@
-from typing import Dict, Optional, cast
-from utils.dom_utils import xpath
+from datetime import datetime, timezone
+import timeago
+import maya
+from typing import Dict, List, Optional, Tuple, cast
+from utils.dom_utils import get_first_node, xpath
 from handlers.feed_type.feed_arranger import FeedArranger
 from lxml import etree
-from lxml.builder import ElementMaker
 from urllib.parse import quote_plus
 
 
@@ -38,7 +40,7 @@ class AtomArranger(FeedArranger):
 
         return title
 
-    def get_img_url(self, node: etree) -> str:
+    def get_img_url(self, node: etree._Element) -> str:
         """get img url from enclosure or media:thumbnail tag if any
 
         Arguments:
@@ -98,3 +100,23 @@ class AtomArranger(FeedArranger):
             else:
                 link_node.text = self._generated_complete_url(
                     rss_url_prefix, parameters)
+
+    def get_items_tuples(self, dom: etree._Element) -> List[Tuple[str, str, str, str]]:
+        items_tuples = []
+        for entry in xpath(dom, "//atom:entry", NAMESPACES):
+            url = ""
+            if len(self.get_links(entry)) > 0:
+                url = cast(str, self.get_links(entry)[0].attrib.get("href"))
+
+            img_url = self.get_img_url(entry)
+            title = "" if self.get_title(entry) is None else cast(etree._Element, self.get_title(entry)).text
+
+            pub_date = ""
+            pub_date_node = get_first_node(entry, [".//atom:published"], NAMESPACES)
+            if pub_date_node is not None:  # improve that finding local timezone name
+                pub_date = timeago.format(maya.parse(cast(str, pub_date_node.text)).datetime(
+                    to_timezone="Europe/Paris"), datetime.now(timezone.utc))
+
+            items_tuples.append((url, img_url, title, pub_date))
+        
+        return items_tuples

@@ -18,11 +18,8 @@ class ThumbnailHandler(RequestHandler):
 
     Handler name: thumbnails
     Parameters:
-     - request: get the first thumbnail of Google Images of the request keywords.
      - url: make a thumbnail of the given url
      - blur: blur the thumbnail
-
-     "request" and "url" parameters are exclusive, but can both be used with blur
 
     Content:
         base64 encoded image
@@ -39,13 +36,9 @@ class ThumbnailHandler(RequestHandler):
 
     def _get_content(self, path: str, try_to_replace_amp: bool = False):
         content = b""
-        original_website: str = "https://www.google.fr/search?source=lnms&tbm=isch&q="
-
+        
         parsed = urlparse(path)
-        if "request" in parse_qs(parsed.query):
-            content = self._process_request(
-                parse_qs(parsed.query)["request"][0], original_website)
-        elif "url" in parse_qs(parsed.query):
+        if "url" in parse_qs(parsed.query):
             url = unquote_plus(parse_qs(parsed.query)["url"][0])
             if try_to_replace_amp:
                 url = url.replace("&amp;", "&")
@@ -68,27 +61,5 @@ class ThumbnailHandler(RequestHandler):
                 else:
                     self._log(
                         "Unable to blur image (path: %s) (reason : '%s')" % (path, str(e)))
-
-        return content
-
-    def _process_request(self, request: str, original_website: str) -> bytes:
-        content = b""
-        r = unquote_plus(request.replace('\t',
-                                         '').replace('\n', '').strip())
-        response = requests.get(
-            original_website + r, headers={"User-Agent": USER_AGENT})
-
-        split = response.text.split("_setImgSrc(")
-        if len(split) > 1:
-            content = split[1].split(",")[2].replace(
-                "\\/", "/").replace("\\x3d", "=").split("'")[0]
-            content = base64.b64decode(content.encode())
-        else:
-            imgs = re.findall(">data:[^;]*;base64,([^<]*)", response.text)
-            if len(imgs) > 0:
-                content = imgs[0]
-            else:
-                # returns an empty image
-                content = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
 
         return content
