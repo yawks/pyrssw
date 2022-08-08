@@ -1,9 +1,10 @@
-from typing import Dict, List, cast
-from datetime import datetime, timedelta
+from typing import Dict, List, Tuple, cast
+from datetime import datetime, timedelta, timezone
 from os.path import exists
 import string
 import re
 import requests
+import maya
 from lxml import etree
 import json
 import pickle
@@ -49,7 +50,7 @@ class LequipeHandler(PyRSSWRequestHandler):
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         tempfile.TemporaryDirectory()
-        self.PREVIOUS_ITEMS_FILE = f"{tempfile.tempdir}/lequipe.pickle"
+        self.PREVIOUS_ITEMS_FILE = f"{tempfile.tempdir}/lequipe_2.pickle"
         if parameters.get("filter") in ["Tennis", "Football", "Rugby", "Cyclisme", "Golf", "Basket", "Voile", "Handball", "F1", "Transfert"]:
             # filter only on passed category, eg /lequipe/rss/tennis
             feed = session.get(url=self.get_rss_url() %
@@ -76,7 +77,7 @@ class LequipeHandler(PyRSSWRequestHandler):
 
         links = self._process_feed_items(dom, blacklisted_keywords, parameters)
         self._enrich_feed_with_url_homepage(
-            html, dom, blacklisted_keywords, links, parameters)
+            session, html, dom, blacklisted_keywords, links, parameters)
 
         feed = to_string(dom)
 
@@ -117,7 +118,7 @@ class LequipeHandler(PyRSSWRequestHandler):
         content = get_content(dom, [
             '//div[@class="article"]',
             '//*[contains(@class,"Sheet__content")]',
-            '//body[@class="body"]' # /explore/
+            '//body[@class="body"]'  # /explore/
         ])
         content = content.replace("#JSONCONTENT#", json_content)
         content += """<style type="text/css">
@@ -604,7 +605,7 @@ span.Article__publishDate::after {
 
         """)
 
-    def _get_previous_items(self) -> Dict[str, str]:
+    def _get_previous_items(self) -> Dict[str, Dict[str, str]]:
         previous_items = {}
 
         if exists(self.PREVIOUS_ITEMS_FILE):
@@ -613,16 +614,16 @@ span.Article__publishDate::after {
 
         return previous_items
 
-    def _store_previous_items(self, previous_items: Dict[str, str]):
+    def _store_previous_items(self, previous_items: Dict[str, Dict[str, str]]):
         # remove old items
-        old_date = datetime.now() - timedelta(days = 7)
-        for (url, date_str) in previous_items.copy().items():
-          if datetime.strptime(date_str, "%a %b %d %H:%M:%S %Y") < old_date:
-            del previous_items[url]
+        old_date = datetime.now(timezone.utc) - timedelta(days=7)
+        for (url, feed_item) in previous_items.copy().items():
+            if maya.parse(feed_item.get("pub_date", "")).datetime() < old_date:
+                del previous_items[url]
         with open(self.PREVIOUS_ITEMS_FILE, "wb") as f:
             pickle.dump(previous_items, f)
 
-    def _enrich_feed_with_url_homepage(self, html: str, dom: etree._Element, blacklisted_keywords: List[str], links: List[str], parameters: Dict[str, str]):
+    def _enrich_feed_with_url_homepage(self, session: requests.Session, html: str, dom: etree._Element, blacklisted_keywords: List[str], links: List[str], parameters: Dict[str, str]):
         previous_items = self._get_previous_items()
 
         html_dom = etree.HTML(html)
@@ -635,43 +636,85 @@ span.Article__publishDate::after {
                 enclosure = etree.Element("enclosure")
                 title = etree.Element("title")
                 pub_date = etree.Element("pubDate")
-                title_str = ""
-                images = xpath(
-                    article, './/img[contains(@class,"Image__img")]')
-                if len(images) > 0:
-                    enclosure.attrib["url"] = images[0].attrib.get(
-                        "src", "")
-                    if len(cast(str, images[0].attrib.get("alt", ""))) > 0:
-                        title_str = cast(str, images[0].attrib.get("alt", ""))
+                description = etree.Element("description")
+                guid = etree.Element("guid")
 
-                titles = xpath(article, ".//h2")
-                if len(titles) > 0:
-                    title_str = text(titles[0]).strip()
+                if href in previous_items:
+                    feed_item = previous_items[href]
+                else:
+                    feed_item = self._get_feed_information_from_page(
+                        session, href)
+                    if feed_item["title"] == "":
+                      continue
+
+                    previous_items[href] = feed_item
+
+                pub_date.text = feed_item["pub_date"]
+                if feed_item["img_url"] != "":
+                    enclosure.attrib["url"] = feed_item["img_url"]
+                    enclosure.attrib["type"] = 'type="image/jpeg"'
+                    enclosure.attrib["length"] = "50000"
 
                 blacklisted = False
                 for keyword in blacklisted_keywords:
-                    if keyword in href or keyword in title_str:
+                    if keyword in href or keyword in feed_item["title"]:
                         blacklisted = True
-                if not blacklisted:
 
+                if not blacklisted:
                     link.text = self.get_handler_url_with_parameters(
                         {"url": href, "filter": parameters.get("filter", "")})
+                    guid.text = href
+                    description.text = feed_item["description"]
 
-                    if title_str != "":
-                        title.text = title_str
-                        if href in previous_items:
-                            pub_date.text = previous_items[href]
-                        else:
-                            pub_date.text = datetime.now().strftime("%c")
-                            previous_items[href] = pub_date.text
+                    title.text = feed_item["title"]
 
-                        item.append(link)
-                        item.append(enclosure)
-                        item.append(title)
-                        item.append(pub_date)
+                    item.append(link)
+                    item.append(enclosure)
+                    item.append(title)
+                    item.append(pub_date)
+                    item.append(description)
+                    item.append(guid)
 
-                        channel.append(item)
+                    channel.append(item)
         self._store_previous_items(previous_items)
+
+    def _get_feed_information_from_page(self, session: requests.Session, url: str) -> Dict[str, str]:
+        pub_date_str = ""
+        description = ""
+        img_url = ""
+        title_str = ""
+
+        content = session.get(url).text
+
+        date_published_idx = content.find('datePublished": "')
+        if date_published_idx > -1:
+            start_idx = date_published_idx + len('datePublished": "')
+            pub_date_str = content[start_idx:start_idx +
+                                   len("YYYY-mm-ddTHH:MM:SS+zz:zz")]
+
+        dom = etree.HTML(content, parser=None)
+
+        description_node = get_first_node(
+            dom, ['//h2[contains(@class,"Article__chapo")]'])
+        if description_node is not None:
+            description = cast(str, description_node.text)
+
+        img_node = get_first_node(
+            dom, ['//div[contains(@class,"Image__content")]/img'])
+        if img_node is not None:
+            img_url = cast(str, img_node.attrib.get("src", ""))
+
+        title_node = get_first_node(
+            dom, ['//h1[contains(@class,"article__title")]'])
+        if title_node is not None:
+            title_str = cast(str, title_node.text)
+
+        return {
+            "pub_date": pub_date_str,
+            "description": description,
+            "img_url": img_url,
+            "title": title_str
+        }
 
     def _process_feed_items(self, dom: etree._Element, blacklisted_keywords: List[str], parameters: Dict[str, str]) -> List[str]:
         links: List[str] = []
@@ -770,8 +813,9 @@ def _parse_article_object(dom: etree._Element, content: str) -> str:
             new_article_body.attrib["class"] = "article__body"
             new_article_body.text = "#JSONCONTENT#"
             parent = article_body[0].getparent()
-            parent.remove(article_body[0])
-            parent.append(new_article_body)
+            if parent is not None:
+                parent.remove(article_body[0])
+                parent.append(new_article_body)
 
     return json_content
 

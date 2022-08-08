@@ -7,10 +7,10 @@ from lxml import etree
 
 
 def to_string(dom: etree._Element) -> str:
-    return cast(str, etree.tostring(dom, method="c14n").decode("utf8"))
+    return cast(str, cast(bytes, etree.tostring(dom, method="c14n")).decode("utf8"))
 
 
-def get_content(dom: etree, xpaths: list) -> str:
+def get_content(dom: etree._Element, xpaths: list) -> str:
     """get content of first found xpath in the list of xpath expressions"""
     content: str = ""
     node: Optional[etree._Element] = get_first_node(dom, xpaths)
@@ -23,7 +23,7 @@ def get_content(dom: etree, xpaths: list) -> str:
     return content
 
 
-def get_all_contents(dom: etree, xpaths: list, alt_to_p: bool = False) -> Tuple[str, str]:
+def get_all_contents(dom: etree._Element, xpaths: list, alt_to_p: bool = False) -> Tuple[str, str]:
     """Get content of all xpaths provided.
 
     Args:
@@ -37,7 +37,7 @@ def get_all_contents(dom: etree, xpaths: list, alt_to_p: bool = False) -> Tuple[
     content: str = ""
     alts: str = ""
     for xpath in xpaths:
-        results = dom.xpath(xpath)
+        results = cast(list, dom.xpath(xpath))
         if len(results) > 0:
             for result in results:
                 enclosing: str = "%s%s"
@@ -99,7 +99,7 @@ def _get_alts(alt_to_p: bool, result: etree._Element) -> str:
     return alts
 
 
-def get_text(dom: etree, xpaths: list) -> str:
+def get_text(dom: etree._Element, xpaths: list) -> str:
     """get text of first node found in first matching xpath in the list
 
     Arguments:
@@ -117,21 +117,21 @@ def get_text(dom: etree, xpaths: list) -> str:
     return content
 
 
-def get_first_node(dom: etree, xpaths: list, namespaces: Optional[Dict[str, str]] = None):
+def get_first_node(dom: etree._Element, xpaths: list, namespaces: Optional[Dict[str, str]] = None):
     """get first node found in the list of xpath expressions"""
     node: Optional[etree._Element] = None
     for xpath in xpaths:
         if namespaces is not None:
-            results = dom.xpath(xpath, namespaces=namespaces)
+            results = cast(list, dom.xpath(xpath, namespaces=namespaces))
         else:
-            results = dom.xpath(xpath)
+            results = cast(list, dom.xpath(xpath))
         if len(results) > 0:
             node = results[0]
             break
     return node
 
 
-def delete_xpaths(dom: etree, xpaths: List[str]):
+def delete_xpaths(dom: etree._Element, xpaths: List[str]):
     """delete nodes of the given dom matching xpath exrepssions"""
     for xpath in xpaths:
         delete_nodes(dom.xpath(xpath))
@@ -174,8 +174,10 @@ def translate_dom(dom: etree._Element, dest_language: str, original_url: Optiona
     if dest_language in LANGUAGES:
         translator = Translator()
         for node in dom.iter():
-            node.text = _translate(node.text, translator, dest_language)
-            node.tail = _translate(node.tail, translator, dest_language)
+            node.text = _translate(cast(str, node.text),
+                                   translator, dest_language)
+            node.tail = _translate(cast(str, node.tail),
+                                   translator, dest_language)
 
         if original_url is not None:
             a = etree.Element("a")
