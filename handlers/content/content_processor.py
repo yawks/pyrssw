@@ -241,6 +241,7 @@ class ContentProcessor():
                 #pyrssw_wrapper h1, #pyrssw_wrapper h2 {font-weight: 300; line-height: 130%}
                 #pyrssw_wrapper h1 {font-size: 170%; margin-bottom: 0.1em}
                 #pyrssw_wrapper h2 {font-size: 140%}
+                #pyrssw_wrapper h1 span, #pyrssw_wrapper h2 span {padding-right:10px;}
                 #pyrssw_wrapper a {color: #0099CC}
                 #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
                 #pyrssw_wrapper img {height: auto; margin-right:15px;vertical-align:middle;}
