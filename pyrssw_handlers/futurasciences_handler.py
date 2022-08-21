@@ -19,9 +19,9 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
 
        to invert filtering, prefix it with: ^
        eg :
-         - /franceinfo/rss?filter=Etoiles              #only feeds about Etoiles
-         - /franceinfo/rss?filter=Volcan,Etoiles       #only feeds about Volcan and Etoiles
-         - /franceinfo/rss?filter=^Volcan,Etoiles      #all feeds but Volcan and Etoiles
+         - /futurasciences/rss?filter=Etoiles              #only feeds about Etoiles
+         - /futurasciences/rss?filter=Volcan,Etoiles       #only feeds about Volcan and Etoiles
+         - /futurasciences/rss?filter=^Volcan,Etoiles      #all feeds but Volcan and Etoiles
 
     Content:
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
