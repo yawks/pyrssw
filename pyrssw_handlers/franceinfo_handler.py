@@ -45,9 +45,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
         feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
 
-        # I probably do not use etree as I should
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
 
         if "filter" in parameters:
             # filter only on passed category
@@ -108,7 +106,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[@id="share-fallback"]', #francetvinfo
             '//*[contains(@class,"p-article__column--sidebar")]', #francetvinfo
             '//*[contains(@class,"o-related-cards")]', #francetvinfo
-            '//*[contains(@class,"p-article__tags")]'  #francetvinfo
+            '//*[contains(@class,"p-article__tags")]',  #francetvinfo
+            '//*[contains(@class, "rf-player-wrapper")]' #podcast
         ])
 
         _process_videos(dom)
