@@ -46,9 +46,7 @@ class CourrierInternationalHandler(PyRSSWRequestHandler):
         feed = feed.replace(link, '<link>%s?%surl=' % (
             self.url_prefix, self._getAuthentificationSuffix(parameters)))
 
-        # I probably do not use etree as I should
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
 
         feed = to_string(dom)
 

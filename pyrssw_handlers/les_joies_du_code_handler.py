@@ -37,10 +37,8 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
         feed = re.sub(
             r'<guid isPermaLink="false">https://lesjoiesducode.fr/\?p=[^<]*</guid>', r"", feed)
 
-        # I probably do not use etree as I should
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
 
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
         for item in xpath(dom, "//item"):
             for child in item.getchildren():  # did not find how to xpath content:encoded tag
                 if child.tag.endswith("encoded"):

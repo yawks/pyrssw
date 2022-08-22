@@ -15,9 +15,8 @@ def test_handlers():
         py_rssw_request_handler: PyRSSWRequestHandler = handler()
         feed = py_rssw_request_handler.get_feed(
             {}, Session()).encode().decode('utf-8')
-        # I probably do not use etree as I should
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = etree.fromstring(feed)
+        
+        dom = etree.fromstring(feed.encode("utf-8"))
         links = dom.xpath("//link")
         if len(links) <= 0:
             raise AssertionError

@@ -52,9 +52,7 @@ class EurosportHandler(PyRSSWRequestHandler):
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text
 
-        # I probably do not use etree as I should
-        feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
 
         if "filter" in parameters:
             # filter only on passed category, eg /eurosport/rss/tennis
@@ -77,9 +75,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         """find in rss file the item having the link_url and returns the description"""
         description = ""
         feed = requests.get(url=self.get_rss_url(), headers={}).text
-        # I probably do not use etree as I should
-        feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
         descriptions = xpath(dom,
                              "//item/link/text()[contains(., '%s')]/../../description" % link_url)
         if len(descriptions) > 0:

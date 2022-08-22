@@ -71,12 +71,8 @@ class LExpress(PyRSSWRequestHandler):
         feed = feed.replace('<guid isPermaLink="false">', link)
         feed = feed.replace('<guid isPermaLink="true">', link)
         feed = feed.replace('</guid>', '</link>')
-        # f eed = feed.replace(link, '<link>%ssurl=' % (
-        #    self.url_prefix))
 
-        # I probably do not use etree as I should
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
         for node in xpath(dom, "//link|//guid"):
             node.text = "%s" % self.get_handler_url_with_parameters(
                 {"url": cast(str, node.text), "filter" : parameters.get("filter", "")})

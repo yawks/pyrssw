@@ -35,9 +35,7 @@ class NovethicHandler(PyRSSWRequestHandler):
 
         feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
 
-        # I probably do not use etree as I should
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
 
         for link in xpath(dom, "//item/link"):
             link.text = self.get_handler_url_with_parameters(

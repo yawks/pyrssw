@@ -70,11 +70,9 @@ class Sport24Handler(PyRSSWRequestHandler):
             feed = session.get(url=self.get_rss_url() %
                                "sport", headers={}).text
 
-        # I probably do not use etree as I should
-        feed = feed.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
         regex = re.compile(r"&(?!amp;|lt;|gt;)")
         myxml = regex.sub("&amp;", feed)
-        dom = etree.fromstring(myxml)
+        dom = etree.fromstring(myxml.encode("utf-8"))
         description_img: str = ""
 
         """xpath_expression = "//item[not(enclosure)]"

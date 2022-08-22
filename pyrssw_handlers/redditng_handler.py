@@ -60,9 +60,7 @@ class RedditHandler(PyRSSWRequestHandler):
 
         feed = session.get(url=rss_url, headers={}).text
 
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        # I probably do not use etree as I should
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
 
         for entry in xpath(dom, "//atom:entry", namespaces=NAMESPACES):
             content = cast(str, xpath(entry, "./atom:content",

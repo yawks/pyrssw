@@ -1,3 +1,4 @@
+import re
 from urllib.parse import quote_plus, urlparse
 from request.pyrssw_content import PyRSSWContent
 from typing import Dict, cast
@@ -70,9 +71,8 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
             feed = feed.replace('<guid>',' <link>')
             feed = feed.replace('</guid>', '</link>')
 
-            # I probably do not use etree as I should
-            feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
-            dom = etree.fromstring(feed)
+            #f eed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
+            dom = etree.fromstring(feed.encode("utf-8"))
             
             for item in xpath(dom, "//item"):
                 for link in xpath(item, ".//link"):

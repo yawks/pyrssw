@@ -40,9 +40,7 @@ class FuturaSciencesHandler(PyRSSWRequestHandler):
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url()).text
 
-        # I probably do not use etree as I should
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
 
         if "filter" in parameters:
             # filter only on passed category

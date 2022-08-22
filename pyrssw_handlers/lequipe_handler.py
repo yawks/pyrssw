@@ -68,11 +68,9 @@ class LequipeHandler(PyRSSWRequestHandler):
         if "blacklist" in parameters:
             blacklisted_keywords = parameters["blacklist"].split(",")
 
-        # I probably do not use etree as I should
-        feed = feed.replace('<?xml version="1.0" encoding="UTF-8" ?>', '')
         regex = re.compile(r"&(?!amp;|lt;|gt;)")
         myxml = regex.sub("&amp;", feed)
-        dom = etree.fromstring(myxml)
+        dom = etree.fromstring(myxml.encode("utf-8"))
         description_img: str = ""
 
         links = self._process_feed_items(dom, blacklisted_keywords, parameters)

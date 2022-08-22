@@ -55,9 +55,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
         feed = feed.replace(link, '<link>%s?%surl=' % (
             self.url_prefix, self._getAuthentificationSuffix(parameters)))
 
-        # I probably do not use etree as I should
-        feed = re.sub(r'<\?xml [^>]*?>', '', feed).strip()
-        dom = etree.fromstring(feed)
+        dom = etree.fromstring(feed.encode("utf-8"))
 
         # available filters : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts
         if "filter" in parameters:
