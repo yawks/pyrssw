@@ -1,13 +1,13 @@
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
 from request.pyrssw_content import PyRSSWContent
-from typing import Dict
+from typing import Dict, cast
 import requests
 from lxml import etree
 from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 import favicon
 from ftfy import fix_text
-from utils.dom_utils import xpath
+from utils.dom_utils import to_string, xpath
 
 
 class GenericWrapperHandler(PyRSSWRequestHandler):
@@ -69,7 +69,16 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
             feed = feed.replace('<guid isPermaLink="true">', '<link>')
             feed = feed.replace('<guid>',' <link>')
             feed = feed.replace('</guid>', '</link>')
-            feed = feed.replace('<link>', '<link>%s?url=' % self.url_prefix)
+
+            # I probably do not use etree as I should
+            feed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
+            dom = etree.fromstring(feed)
+            
+            for item in xpath(dom, "//item"):
+                for link in xpath(item, ".//link"):
+                    link.text = f"{self.url_prefix}?url={quote_plus(cast(str, link.text))}"
+            
+            feed = to_string(dom)
 
         return feed
 
