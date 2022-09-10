@@ -104,8 +104,7 @@ class ContentProcessor():
                     tweet_id,
                     tweet_id,
                     tweet_id,
-                    "dark" if "dark" in self.parameters and self.parameters[
-                        "dark"] == "true" else "light",
+                    "dark" if self.parameters.get("theme","") == "dark" else "light",
                     tweet_id
                 )
                 tweet_div = etree.Element("div")
@@ -214,29 +213,17 @@ class ContentProcessor():
         """wrap the html content with header, body and some predefined styles"""
 
         style: str = """
-                @import url(https://fonts.googleapis.com/css?family=Roboto:100,100italic,300,300italic,400,400italic,500,500italic,700,700italic,900,900italic&subset=latin,latin-ext,cyrillic,cyrillic-ext,greek-ext,greek,vietnamese);
+                #ROBOTO_FONT_IMPORT#
 
-                body {
-                    color: #TEXT_COLOR#;
-                    background-color:#BACKGROUND_COLOR#;
-                    font-family: Roboto;
-                    font-weight: 300;
-                    line-height: 150%;
-                    font-size: #GLOBAL_FONT_SIZE#;
-                    margin:0;
-                    #BODY_PADDING_FOR_HEADER#
-                }
 
-                @media screen and (max-width : 640px) {
-                    body {
-                        font-size:#SMARTPHONE_GLOBAL_FONT_SIZE#;
-                    }
-                }
+                #BODY_MOBILE#
+                #BODY#
 
                 #pyrssw_wrapper {
                     max-width:800px;
                     margin:auto;
                     padding:8px;
+                    #ADDITIONAL_STYLES_PYRSSW_WRAPPER#
                 }
                 #pyrssw_wrapper * {max-width: 100%; word-break: break-word}
                 #pyrssw_wrapper h1, #pyrssw_wrapper h2 {font-weight: 300; line-height: 130%}
@@ -297,19 +284,11 @@ class ContentProcessor():
             source = "<p class='pyrssw-source'><a href='%s'>Source</a></p>" % self.parameters["url"]
             domain = urlparse.urlparse(self.parameters["url"]).netloc
 
-        text_color = "#000000"
-        bg_color = "#f6f6f6"
-        quote_left_color = "#a6a6a6"
-        quote_bg_color = "#e6e6e6"
-        subtitle_color = "#666666"
-        subtitle_border_color = "#ddd"
-        hr_color = "#a6a6a6"
-        header_css_bg_color = "#ccc"
-        header_css_border_color = "#888"
-        header_css_a_color = "#000"
         body_padding_for_header = ""
+        robot_font_import = "@import url(https://fonts.googleapis.com/css?family=Roboto:100,100italic,300,300italic,400,400italic,500,500italic,700,700italic,900,900italic&subset=latin,latin-ext,cyrillic,cyrillic-ext,greek-ext,greek,vietnamese);"
+        font_family = "Roboto"
 
-        if "dark" in self.parameters and self.parameters["dark"] == "true":
+        if self.parameters.get("theme","") == "dark":
             text_color = "#8c8c8c"
             bg_color = "#222222"
             quote_left_color = "#686b6f"
@@ -321,14 +300,38 @@ class ContentProcessor():
             header_css_border_color = "#555"
             header_css_a_color = "#adadad"
             style += """
-                body {
+                #pyrssw_wrapper {
                     background-color: #1e1e1e;
                     color: #d4d4d4;
                 }
-                a {
+                #pyrssw_wrapper a {
                     color:#0080ff
                 }
             """
+        elif self.parameters.get("integrationmode","div") != "div":
+            text_color = "inherit"
+            bg_color = "inherit"
+            quote_left_color = "inherit"
+            quote_bg_color = "inherit"
+            subtitle_color = "inherit"
+            subtitle_border_color = "inherit"
+            hr_color = "inherit"
+            header_css_bg_color = "inherit"
+            header_css_border_color = "inherit"
+            header_css_a_color = "inherit"
+            robot_font_import = "inherit"
+            font_family = "inherit"
+        else: #light theme
+            text_color = "#000000"
+            bg_color = "#f6f6f6"
+            quote_left_color = "#a6a6a6"
+            quote_bg_color = "#e6e6e6"
+            subtitle_color = "#666666"
+            subtitle_border_color = "#ddd"
+            hr_color = "#a6a6a6"
+            header_css_bg_color = "#ccc"
+            header_css_border_color = "#888"
+            header_css_a_color = "#000"
 
         if "header" in self.parameters and self.parameters["header"] == "true":
             body_padding_for_header = "padding-top:40px;"
@@ -339,6 +342,42 @@ class ContentProcessor():
             global_font_size = self.parameters["fontsize"]
             smartphone_global_font_size = str(
                 int(int(global_font_size.split("%")[0])) * 1.2) + "%"
+
+        if self.parameters.get("integrationmode", "") == "fullpage":
+            style = style.replace("#BODY_MOBILE#", """
+    @media screen and (max-width : 640px) {
+        body {
+            font-size:#SMARTPHONE_GLOBAL_FONT_SIZE#;
+        }
+    }
+""")
+            style = style.replace("#BODY#", """
+    body {
+        color: #TEXT_COLOR#;
+        background-color:#BACKGROUND_COLOR#;
+        font-family: #FONT_FAMILY#;
+        font-weight: 300;
+        line-height: 150%;
+        font-size: #GLOBAL_FONT_SIZE#;
+        margin:0;
+        #BODY_PADDING_FOR_HEADER#
+    }
+""")
+            style = style.replace("#ADDITIONAL_STYLES_PYRSSW_WRAPPER#", "")
+        else:
+            style = style.replace("#BODY_MOBILE#", "")
+            style = style.replace("#BODY#", "")
+            style = style.replace("#ADDITIONAL_STYLES_PYRSSW_WRAPPER#", """
+        color: #TEXT_COLOR#;
+        background-color:#BACKGROUND_COLOR#;
+        font-family: #FONT_FAMILY#;
+        font-weight: 300;
+        line-height: 150%;
+        font-size: #GLOBAL_FONT_SIZE#;
+        margin:0;
+        #BODY_PADDING_FOR_HEADER#
+""")
+
 
         style = style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)\
                      .replace("#BG_BLOCKQUOTE#", quote_bg_color)\
@@ -352,7 +391,9 @@ class ContentProcessor():
                      .replace("#HEADER_CSS_BG_COLOR#", header_css_bg_color)\
                      .replace("#HEADER_CSS_BORDER_COLOR#", header_css_border_color)\
                      .replace("#HEADER_CSS_A_COLOR#", header_css_a_color)\
-                     .replace("#BODY_PADDING_FOR_HEADER#", body_padding_for_header)
+                     .replace("#BODY_PADDING_FOR_HEADER#", body_padding_for_header)\
+                     .replace("#FONT_FAMILY#", font_family)\
+                     .replace("#ROBOTO_FONT_IMPORT#", robot_font_import)
 
         self.contents = """<!DOCTYPE html>
                     <html>

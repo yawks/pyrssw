@@ -13,7 +13,6 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
-FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
 
 # duration in minutes of a session
@@ -67,7 +66,7 @@ class LauncherHandler(RequestHandler):
                                     </body>
                                 </html>""" % (self.url, str(e), traceback.format_exc())
             self.content_type = "text/html; utf-8"
-            self.set_status(500)
+            self.status = 500
 
     def _process_content(self, url, parameters: dict):
         self._log("content page requested: %s" % unquote_plus(url))

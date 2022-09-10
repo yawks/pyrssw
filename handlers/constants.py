@@ -1,3 +1,3 @@
 
 
-GENERIC_PARAMETERS = ["dark", "debug", "plain", "hidetitle", "translateto", "fontsize", "header", "internallinksinpyrssw"]
+GENERIC_PARAMETERS = ["theme", "debug", "plain", "hidetitle", "translateto", "fontsize", "header", "internallinksinpyrssw", "integrationmode"]

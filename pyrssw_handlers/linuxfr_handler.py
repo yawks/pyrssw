@@ -120,7 +120,7 @@ class LinuxFRHandler(PyRSSWRequestHandler):
 
         h2_comment_bgcolor = "#e9e6e4"
         a_comment_color = "#343434"
-        if parameters.get("dark", "") == "true":
+        if parameters.get("theme", "") == "dark":
             h2_comment_bgcolor = "#343434"
             a_comment_color = "#aaa9a8"
 

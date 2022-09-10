@@ -15,7 +15,7 @@ IMG_URL_REGEX = re.compile(
     r'.*&lt;img src=(?:"|\')([^(\'|")]+).*', re.MULTILINE)
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
-FEED_XML_CONTENT_TYPE = "text/xml; charset=utf-8"
+FEED_XML_CONTENT_TYPE = "application/rss+xml; charset=utf-8"
 
 class FeedArranger(metaclass=ABCMeta):
 
@@ -251,9 +251,10 @@ class FeedArranger(metaclass=ABCMeta):
                     # TODO no picture
                     pass
 
-                img = etree.Element("img")
-                img.set("src", img_url)
-                description.append(img)
+                if img_url is not None:
+                    img = etree.Element("img")
+                    img.set("src", img_url)
+                    description.append(img)
             else:
                 img_url = description_thumbnail_url
 
@@ -366,7 +367,7 @@ class FeedArranger(metaclass=ABCMeta):
 """
 
         html = html.replace(
-            "#BODYCLASS#", "dark" if parameters.get("dark", "") == "true" else "")
+            "#BODYCLASS#", "dark" if parameters.get("theme", "") == "dark" else "")
         html = html.replace(
             "#HANDLER_NAME#", handler_name)
         html = html.replace(

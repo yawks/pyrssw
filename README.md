@@ -124,8 +124,9 @@ Any RSS feed provided by get_feed methods will be reworked:
 
 Each handler can define its own parameters, but PyRSSW also provides a bunch of generic parameters for every handlers:
 
-- `dark` (boolean): if set to true, a dark CSS stylesheet is applied to the content provided by handler's get_content
+- `theme` (dark|light): dark/light css stylesheet is applied to the content provided by handler's get_content. If *integrationmode* is set to *div* this parameter is ignored and background color + font family will inherit css from the page integrating the article.
 - `fontsize` (percent): percentage of global font size. By default 100%. fontsize=120% will increase font size of 20%
+- `integrationmode` (fullpage|div): (default *div*) if set to *fullpage*, content pages css will be applied on body. If set to *div* css will be applied only inside articles content.
   ie: `/mywebsitewithnews/rss?dark=true`
 - `hidetitle` (boolean): if set to true, the first h1 of the article will be hidden
   ie: `/mywebsitewithnews/rss?hidetitle=true`
