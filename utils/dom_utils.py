@@ -7,7 +7,7 @@ from lxml import etree
 
 
 def to_string(dom: etree._Element) -> str:
-    return cast(str, cast(bytes, etree.tostring(dom, method="c14n")).decode("utf8"))
+    return cast(str, cast(bytes, etree.tostring(dom, method="c14n")).decode("utf8")) if dom is not None else ""
 
 
 def get_content(dom: etree._Element, xpaths: list) -> str:

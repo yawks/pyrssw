@@ -108,6 +108,8 @@ class LExpress(PyRSSWRequestHandler):
             '//*[contains(@class,"article__item--rebond")]',
             '//*[@id="footer"]'
         ])
+        
+        _process_imgs(dom)
 
         content = get_content(dom, [
             '//div[contains(@class,"article")]'
@@ -118,3 +120,11 @@ class LExpress(PyRSSWRequestHandler):
     width: 100%!important;
 }
         """)
+
+
+def _process_imgs(dom: etree._Element):
+    for img in xpath(dom, "//img[@data-srcset]"):
+        img.attrib["src"] = img.attrib["data-srcset"].strip().split(" ")[0]
+        del img.attrib["data-srcset"]
+        if "data-src" in img.attrib:
+            del img.attrib["data-src"]
