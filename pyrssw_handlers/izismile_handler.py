@@ -23,6 +23,8 @@ HEADERS = {
     "Pragma": "no-cache"
 }
 
+MAX_NB_PAGES = 11 # maximum number of pages to visit when crawling izismile website
+
 class IzismileHandler(PyRSSWRequestHandler):
 
     def get_original_website(self) -> str:
@@ -77,7 +79,7 @@ class IzismileHandler(PyRSSWRequestHandler):
         content, url_next_page, comments, cpt_comments = self._get_content(
             url, session, with_title=True, cpt_comments=1)
 
-        while url_next_page != "" and nb_pages <= 6 and url_next_page not in urls:
+        while url_next_page != "" and nb_pages <= MAX_NB_PAGES and url_next_page not in urls:
             urls.append(url_next_page)
             next_content, url_next_page, _, cpt_comments = self._get_content(
                 url_next_page, session, with_title=False, cpt_comments=cpt_comments)
