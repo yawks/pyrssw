@@ -88,8 +88,9 @@ class Marianne(PyRSSWRequestHandler):
             '//article[contains(@class,"article")]'
         ]) + premium_article_content
 
-        bc_bg_color = "#fff"
-        bc_color = "#000"
+        bc_bg_color = "#ccc"
+        bc_color = "#353535"
+        bg_hover = "#aaa"
         if parameters.get("theme", "") == "dark":
             bc_bg_color = "#353535"
             bc_color = "#ccc"
@@ -152,21 +153,40 @@ svg {
 }
 
 .breadcrumb__label--link:hover {
-    background-color: #BC_COLOR#;
+    background-color: #BG_HOVER#;
     color: #BC_BG_COLOR#;
 }
 
 .breadcrumb a, .breadcrumb a:active, .breadcrumb  a:focus, .breadcrumb  a:hover, .breadcrumb  a:visited {
-    color: #BC_BG_COLOR#;
     text-decoration: none;
 }
 
-#pyrssw_wrapper a {
-    color: #BC_COLOR#;
+.breadcrumb a {
+    color: #BC_COLOR#!important;
 }
 
 figcaption {
     font-style: italic;
     font-size: 12px;
 }
-        """.replace("#BC_BG_COLOR#", bc_bg_color).replace("#BC_COLOR#", bc_color))
+
+li {
+    list-style: none;
+}
+
+@media (min-width: 75em)
+.article-author__item {
+    margin: 0 2rem;
+}
+.article-author__item {
+    display: flex;
+    align-items: center;
+    margin: 0 1rem;
+    padding: 1rem 0;
+}
+
+.link__decoration {
+    position: relative;
+}
+
+        """.replace("#BC_BG_COLOR#", bc_bg_color).replace("#BC_COLOR#", bc_color).replace("#BG_HOVER#", bg_hover))

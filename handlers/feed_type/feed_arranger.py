@@ -341,7 +341,7 @@ class FeedArranger(metaclass=ABCMeta):
         <img src="{img_url}" class="item-img"/>
 """
             html_items += f"""
-<a href="{url}" class="item" target="item_content_iframe" onclick="focusItem(this);">
+<a href="{url}&integrationmode=fullpage" class="item" target="item_content_iframe" onclick="focusItem(this);">
     <div class="item activetitle">
     <div class="item-img-container">
         {img}
