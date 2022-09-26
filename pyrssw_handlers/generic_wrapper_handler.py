@@ -37,16 +37,32 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
-        urlp = urlparse(parameters.get("rssurl", parameters.get("url", "")))
-        larger_favicon_url = ""
-        larger_favicon_width = 0
-        if urlp.hostname is not None:
-            for fav in favicon.get("%s://%s" % (urlp.scheme, urlp.hostname)):
-                if requests.head(fav.url).status_code == 200 and fav.width >= larger_favicon_width:
-                    larger_favicon_url = fav.url
-                    larger_favicon_width = fav.width
+        url = parameters.get("rssurl", parameters.get("url", ""))
+        urlp = urlparse(url)
+        favicon_url = ""
 
-        return larger_favicon_url
+        def get_favicon(url: str) -> str:
+            larger_favicon_url = ""
+            larger_favicon_width = 0
+            for fav in favicon.get(url):
+                    if requests.head(fav.url).status_code == 200 and fav.width >= larger_favicon_width:
+                        larger_favicon_url = fav.url
+                        larger_favicon_width = fav.width
+            
+            return larger_favicon_url
+
+        if urlp.hostname is not None:
+            try:
+                favicon_url = get_favicon("%s://%s" % (urlp.scheme, urlp.hostname))
+            except:
+                feed = requests.get(url).text
+                dom = etree.fromstring(feed.encode("utf-8"))
+                site_urls = xpath(dom, "//link")
+                if len(site_urls) > 0:
+                    favicon_url = get_favicon(cast(str,site_urls[0].text))
+
+
+        return favicon_url
 
     def get_handler_name(self, parameters: Dict[str, str]):
         site_name = ""
