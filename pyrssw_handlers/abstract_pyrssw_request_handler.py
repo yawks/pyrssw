@@ -150,40 +150,41 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
                 r = session.get(cast(str, url), headers=headers, verify=False)
 
                 html = fix_text(r.text)
-                doc = Document(html.replace("width", "_width_").replace(
-                    "height", "_height_"))
+                if html is not None and html.strip() != "":
+                    doc = Document(html.replace("width", "_width_").replace(
+                        "height", "_height_"))
 
-                url_prefix = url[:len("https://") +
-                                len(url[len("https://"):].split("/")[0])+1]
+                    url_prefix = url[:len("https://") +
+                                    len(url[len("https://"):].split("/")[0])+1]
 
-                if add_source_link:
-                    readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (
-                        url, url_prefix)
+                    if add_source_link:
+                        readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (
+                            url, url_prefix)
 
-                summary = doc.summary(html_partial=True).replace(
-                    "_width_", "width").replace("_height_", "height")
-                dom = etree.HTML(html, parser=None)
-                if add_title:
-                    readable_content = _complete_with_h1(dom, summary)
+                    summary = doc.summary(html_partial=True).replace(
+                        "_width_", "width").replace("_height_", "height")
+                    dom = etree.HTML(html, parser=None)
+                    if add_title:
+                        readable_content = _complete_with_h1(dom, summary)
 
-                noticeable_imgs = _get_noticeable_imgs(dom, url_prefix)
-                for img in noticeable_imgs:
-                    if img not in summary:
-                        readable_content += "<img style=\"min-width:100%%\" src=\"%s\"></img>" % img
+                    noticeable_imgs = _get_noticeable_imgs(dom, url_prefix)
+                    for img in noticeable_imgs:
+                        if img not in summary:
+                            readable_content += "<img style=\"min-width:100%%\" src=\"%s\"></img>" % img
 
-                readable_content += summary
+                    readable_content += summary
 
-                # replace relative links
-                readable_content = readable_content.replace(
-                    'href="/', 'href="' + url_prefix)
-                readable_content = readable_content.replace(
-                    'src="/', 'src="' + url_prefix)
-                readable_content = readable_content.replace(
-                    'href=\'/', 'href=\'' + url_prefix)
-                readable_content = readable_content.replace(
-                    'src=\'/', 'src=\'' + url_prefix)
-                readable_content = readable_content.replace(
-                    "<noscript>", "").replace("</noscript>", "")
+                    # replace relative links
+                    readable_content = readable_content.replace(
+                        'href="/', 'href="' + url_prefix)
+                    readable_content = readable_content.replace(
+                        'src="/', 'src="' + url_prefix)
+                    readable_content = readable_content.replace(
+                        'href=\'/', 'href=\'' + url_prefix)
+                    readable_content = readable_content.replace(
+                        'src=\'/', 'src=\'' + url_prefix)
+                    readable_content = readable_content.replace(
+                        "<noscript>", "").replace("</noscript>", "")
             except Exception as e:
                 readable_content = f"Error getting <i><a href='{url}'>{url}</a></i><br/> <pre>{e}</pre>"
 
