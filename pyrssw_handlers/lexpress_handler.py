@@ -106,18 +106,33 @@ class LExpress(PyRSSWRequestHandler):
             '//*[contains(@class,"article__nav-seo")]',
             '//*[contains(@class,"article__footer")]',
             '//*[contains(@class,"article__item--rebond")]',
+            '//*[contains(@class,"groupement__nav-seo")]',
+            '//*[contains(@class,"groupement__breadcrumb")]',
+            '//*[contains(@class,"groupement__subhead")]',
             '//*[@id="footer"]'
         ])
         
         _process_imgs(dom)
 
         content = get_content(dom, [
-            '//div[contains(@class,"article")]'
+            '//div[contains(@class,"article")]',
+            '//div[contains(@class,"groupement")]'
         ])
 
         return PyRSSWContent(content, """
 .article__illustration img {
     width: 100%!important;
+}
+
+h2 a {
+    line-height: 1.1;
+    text-decoration: none;
+}
+
+span.thumbnail__date.text--info {
+    font-style: italic;
+    margin-bottom: 15px;
+    font-size: 12px;
 }
         """)
 
