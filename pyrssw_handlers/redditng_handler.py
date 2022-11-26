@@ -13,7 +13,10 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
 from utils.dom_utils import get_content, to_string, xpath, get_first_node
 from utils.json_utils import get_node, get_node_value_if_exists
 
-NAMESPACES = {'atom': 'http://www.w3.org/2005/Atom'}
+NAMESPACES = {
+    "atom": "http://www.w3.org/2005/Atom",
+    "media": "http://search.yahoo.com/mrss/"
+}
 
 IMGUR_GIFV = re.compile(r'(?:https?://.*imgur.com)(?:.*)/([^/]*).gifv')
 IMG_PREVIEW_REDDIT = 'src="(https?://preview.redd.it/([^\?]*)[^"]*)"'
@@ -62,6 +65,11 @@ class RedditHandler(PyRSSWRequestHandler):
 
         dom = etree.fromstring(feed.encode("utf-8"))
 
+        logo_node = get_first_node(dom, ["//atom:logo"], namespaces=NAMESPACES)
+        logo = ""
+        if logo_node is not None:
+            logo = logo_node.text
+
         for entry in xpath(dom, "//atom:entry", namespaces=NAMESPACES):
             content = cast(str, xpath(entry, "./atom:content",
                                       namespaces=NAMESPACES)[0].text)
@@ -78,6 +86,12 @@ class RedditHandler(PyRSSWRequestHandler):
             if thumb != "" and other != "":
                 xpath(entry, "./atom:content", namespaces=NAMESPACES)[0].text = content.replace(
                     thumb, other).replace("<td> &#32;", "</tr><tr><td> &#32;")
+            
+            if len(entry.xpath(".//media:thumbnail", namespaces=NAMESPACES)) == 0:
+                thumbnail = etree.Element("{%s}thumbnail" %
+                                  NAMESPACES["media"], nsmap=NAMESPACES)
+                thumbnail.attrib["url"] = thumb if thumb != "" else other if other != "" else logo
+                entry.append(thumbnail)
 
             for link in xpath(entry, "./atom:link", namespaces=NAMESPACES):
                 link.attrib["href"] = self.get_handler_url_with_parameters(
