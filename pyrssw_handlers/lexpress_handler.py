@@ -1,4 +1,6 @@
+import json
 from typing import Dict, cast
+from handlers.launcher_handler import USER_AGENT
 from request.pyrssw_content import PyRSSWContent
 import re
 import urllib.parse
@@ -47,9 +49,10 @@ class LExpress(PyRSSWRequestHandler):
     Content:
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
     """
-    
+
     def get_handler_name(self, parameters: Dict[str, str]):
-        suffix = " - " + parameters["filter"] if parameters.get("filter", "") != "" else ""
+        suffix = " - " + \
+            parameters["filter"] if parameters.get("filter", "") != "" else ""
         return "L'Express" + suffix
 
     def get_original_website(self) -> str:
@@ -60,7 +63,7 @@ class LExpress(PyRSSWRequestHandler):
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
-        return "https://www.lexpress.fr/Favicone.png"
+        return "https://www.lexpress.fr/pf/resources/Favicon_152x152.png?d=574"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url() %
@@ -75,49 +78,53 @@ class LExpress(PyRSSWRequestHandler):
         dom = etree.fromstring(feed.encode("utf-8"))
         for node in xpath(dom, "//link|//guid"):
             node.text = "%s" % self.get_handler_url_with_parameters(
-                {"url": cast(str, node.text), "filter" : parameters.get("filter", "")})
+                {"url": cast(str, node.text), "filter": parameters.get("filter", "")})
         feed = to_string(dom)
 
         return feed
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
 
-        page = session.get(url=url)
+        page = session.get(url=url, headers={"User-Agent": USER_AGENT})
         content = page.text
 
         dom = etree.HTML(content)
 
-        utils.dom_utils.delete_xpaths(dom, [
-            '//*[contains(@class, "meta__social")]',
-            '//*[contains(@class,"header--content")]',
-            '//*[contains(@class,"article__subhead")]',
-            '//*[contains(@class,"block_pub")]',
-            '//*[contains(@class,"search__container")]',
-            '//*[contains(@class,"article__metas")]',
-            '//*[contains(@class,"abo-inread")]',
-            '//*[contains(@class,"sgt-inread")]',
-            '//*[@id="placeholder--plus-lus"]',
-            '//*[@id="placeholder--opinion"]',
-            '//*[contains(@class,"article__popin")]',
-            '//*[contains(@class,"nav_footer")]',
-            '//*[contains(@class,"bloc_surfooter")]',
-            '//*[contains(@class,"js-outbrain")]',
-            '//*[contains(@class,"article__breadcrumb")]',
-            '//*[contains(@class,"article__nav-seo")]',
-            '//*[contains(@class,"article__footer")]',
-            '//*[contains(@class,"article__item--rebond")]',
-            '//*[contains(@class,"groupement__nav-seo")]',
-            '//*[contains(@class,"groupement__breadcrumb")]',
-            '//*[contains(@class,"groupement__subhead")]',
-            '//*[@id="footer"]'
-        ])
-        
-        _process_imgs(dom)
+        paywall_content = _process_paywall_json(content, dom)
+        if paywall_content == "":
+            utils.dom_utils.delete_xpaths(dom, [
+                '//*[contains(@class, "meta__social")]',
+                '//*[contains(@class,"header--content")]',
+                '//*[contains(@class,"article__subhead")]',
+                '//*[contains(@class,"block_pub")]',
+                '//*[contains(@class,"search__container")]',
+                '//*[contains(@class,"article__metas")]',
+                '//*[contains(@class,"abo-inread")]',
+                '//*[contains(@class,"sgt-inread")]',
+                '//*[@id="placeholder--plus-lus"]',
+                '//*[@id="placeholder--opinion"]',
+                '//*[contains(@class,"article__popin")]',
+                '//*[contains(@class,"nav_footer")]',
+                '//*[contains(@class,"bloc_surfooter")]',
+                '//*[contains(@class,"js-outbrain")]',
+                '//*[contains(@class,"article__breadcrumb")]',
+                '//*[contains(@class,"article__nav-seo")]',
+                '//*[contains(@class,"article__footer")]',
+                '//*[contains(@class,"article__item--rebond")]',
+                '//*[contains(@class,"groupement__nav-seo")]',
+                '//*[contains(@class,"groupement__breadcrumb")]',
+                '//*[contains(@class,"groupement__subhead")]',
+                '//*[@id="footer"]'
+            ])
 
-        content = get_content(dom, [
-            '//div[contains(@class,"article")]',
-            '//div[contains(@class,"groupement")]'
-        ])
+            _process_imgs(dom)
+
+            content = get_content(dom, [
+                '//div[contains(@class,"article")]',
+                '//div[contains(@class,"groupement")]'
+            ])
+        else:
+            content = paywall_content
 
         return PyRSSWContent(content, """
 .article__illustration img {
@@ -135,6 +142,52 @@ span.thumbnail__date.text--info {
     font-size: 12px;
 }
         """)
+
+
+def _process_paywall_json(content: str, dom: etree._Element) -> str:
+    found_content: str = ""
+    FUSION_MARKER = "Fusion.globalContent="
+    start_idx = content.find(FUSION_MARKER)
+    if start_idx > -1:
+        end_idx = content[start_idx+len(FUSION_MARKER):].find("};Fusion")
+        json_str = content[start_idx +
+                           len(FUSION_MARKER):start_idx+len(FUSION_MARKER)+end_idx+1]
+        json_content = json.loads(json_str)
+
+        found_content = "<h1>%s</h1>" % json_content.get(
+            "headlines", {}).get("basic", "")
+
+        for element in json_content.get("content_elements", []):
+            if element["type"] == "text":
+                found_content += "<p>%s</p>" % element.get("content")
+            elif element["type"] == "image":
+                found_content += "<img src=\"%s\">" % element.get("url")
+            elif element["type"] == "header":
+                found_content += "<h%d>%s</h%d>" % (int(element.get(
+                    "level", 1)) +1, element.get("content", ""), int(element.get("level", 1)) + 1)
+            elif element["type"] == "link_list":
+                for item in element.get("items", []):
+                    if item.get("type", "") == "interstitial_link":
+                        found_content += "<p><a href=\"%s\">%s</a></p>" % (
+                            item.get("url"), item.get("content"))
+                    else:
+                        found_content += "<p><i>Unhandled link_list type '%s'</i></p>" % item.get(
+                            "type", "")
+
+            else:
+                found_content += "<p><i>unhandled type '%s'</i></p>" % element.get(
+                    "type")
+
+    else:
+        # this is working, but we miss pictures + paragraph formatting.
+        for script in xpath(dom, "//script"):
+            if script.attrib.get("type", "") == "application/ld+json" and script.text[0:1] == "{":
+                json_content = json.loads(script.text)
+                if json_content.get("@type", "") == "NewsArticle" and "articlebody" in json_content:
+                    found_content = json_content.get("articlebody")
+                    break
+
+    return found_content
 
 
 def _process_imgs(dom: etree._Element):
