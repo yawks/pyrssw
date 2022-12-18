@@ -157,27 +157,14 @@ def _process_paywall_json(content: str, dom: etree._Element) -> str:
         found_content = "<h1>%s</h1>" % json_content.get(
             "headlines", {}).get("basic", "")
 
-        for element in json_content.get("content_elements", []):
-            if element["type"] == "text":
-                found_content += "<p>%s</p>" % element.get("content")
-            elif element["type"] == "image":
-                found_content += "<img src=\"%s\">" % element.get("url")
-            elif element["type"] == "header":
-                found_content += "<h%d>%s</h%d>" % (int(element.get(
-                    "level", 1)) +1, element.get("content", ""), int(element.get("level", 1)) + 1)
-            elif element["type"] == "link_list":
-                for item in element.get("items", []):
-                    if item.get("type", "") == "interstitial_link":
-                        found_content += "<p><a href=\"%s\">%s</a></p>" % (
-                            item.get("url"), item.get("content"))
-                    else:
-                        found_content += "<p><i>Unhandled link_list type '%s'</i></p>" % item.get(
-                            "type", "")
+        elements = json_content.get("content_elements", [])
 
-            else:
-                found_content += "<p><i>unhandled type '%s'</i></p>" % element.get(
-                    "type")
+        for element in elements:
+            found_content += _process_paywall_element(element)
 
+        if json_content.get("promo_items", {}).get("youtube", "") != "":
+            found_content += json_content["promo_items"]["youtube"].get("embed", {}).get("config", {}).get("html", "")
+    
     else:
         # this is working, but we miss pictures + paragraph formatting.
         for script in xpath(dom, "//script"):
@@ -186,6 +173,53 @@ def _process_paywall_json(content: str, dom: etree._Element) -> str:
                 if json_content.get("@type", "") == "NewsArticle" and "articlebody" in json_content:
                     found_content = json_content.get("articlebody")
                     break
+
+    return found_content
+
+
+def _process_paywall_element(element: dict) -> str:
+    found_content: str = ""
+
+    if element["type"] == "text":
+        found_content += "<p>%s</p>\n" % element.get("content")
+    elif element["type"] == "image":
+        found_content += "<img src=\"%s\">\n" % element.get("url")
+    elif element["type"] == "header":
+        found_content += "<h%d>%s</h%d>\n" % (int(element.get(
+            "level", 1)) + 1, element.get("content", ""), int(element.get("level", 1)) + 1)
+    elif element["type"] == "list":
+        list_tag_name = "ul"
+        if element["list_type"] != "unordered":
+            list_tag_name = "ol"
+
+        found_content += f"<{list_tag_name}>"
+        for item in element["items"]:
+            found_content += "<li>%s</li>\n" % _process_paywall_element(item)
+        found_content += f"</{list_tag_name}>"
+
+    elif element["type"] == "quote":
+        for item in element["content_elements"]:
+            found_content += "<blockquote>%s</blockquote>\n" % _process_paywall_element(
+                item)
+
+    elif element["type"] == "oembed_response":
+        html = element.get("raw_oembed", {}).get("html", "")
+        found_content += html
+        if html == "":
+            found_content += "<i>Unhandled subtype '%s' type '%s'</i>\n" % (element["subtype"], element["type"])
+
+    elif element["type"] == "link_list":
+        for item in element.get("items", []):
+            if item.get("type", "") == "interstitial_link":
+                found_content += "<p><a href=\"%s\">%s</a></p>\n" % (
+                    item.get("url"), item.get("content"))
+            else:
+                found_content += "<p><i>Unhandled link_list type '%s'</i></p>\n" % item.get(
+                    "type", "")
+
+    else:
+        found_content += "<p><i>unhandled type '%s'</i></p>\n" % element.get(
+            "type")
 
     return found_content
 
