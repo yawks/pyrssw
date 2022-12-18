@@ -10,7 +10,8 @@ from urllib.parse import quote_plus
 
 NAMESPACES = {
     "atom": "http://www.w3.org/2005/Atom",
-    "media": "http://search.yahoo.com/mrss/"
+    "media": "http://search.yahoo.com/mrss/",
+    "content": "http://purl.org/rss/1.0/modules/content/"
 }
 
 

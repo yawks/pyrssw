@@ -308,19 +308,6 @@ class ContentProcessor():
                     color:#0080ff
                 }
             """
-        elif self.parameters.get("integrationmode","div") != "div":
-            text_color = "inherit"
-            bg_color = "inherit"
-            quote_left_color = "inherit"
-            quote_bg_color = "inherit"
-            subtitle_color = "inherit"
-            subtitle_border_color = "inherit"
-            hr_color = "inherit"
-            header_css_bg_color = "inherit"
-            header_css_border_color = "inherit"
-            header_css_a_color = "inherit"
-            robot_font_import = "inherit"
-            font_family = "inherit"
         else: #light theme
             text_color = "#000000"
             bg_color = "#f6f6f6"

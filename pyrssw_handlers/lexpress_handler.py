@@ -1,5 +1,6 @@
 import json
 from typing import Dict, cast
+from handlers.feed_type.atom_arranger import NAMESPACES
 from handlers.launcher_handler import USER_AGENT
 from request.pyrssw_content import PyRSSWContent
 import re
@@ -59,7 +60,7 @@ class LExpress(PyRSSWRequestHandler):
         return "https://www.lexpress.fr/"
 
     def get_rss_url(self) -> str:
-        return "https://www.lexpress.fr/rss/%s.xml"
+        return "https://www.lexpress.fr/arc/outboundfeeds/rss/%s.xml"
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
@@ -75,7 +76,7 @@ class LExpress(PyRSSWRequestHandler):
         feed = feed.replace('<guid isPermaLink="true">', link)
         feed = feed.replace('</guid>', '</link>')
 
-        dom = etree.fromstring(feed.encode("utf-8"))
+        dom = etree.fromstring(feed.encode("utf-8"), parser=None)
         for node in xpath(dom, "//link|//guid"):
             node.text = "%s" % self.get_handler_url_with_parameters(
                 {"url": cast(str, node.text), "filter": parameters.get("filter", "")})
@@ -85,46 +86,51 @@ class LExpress(PyRSSWRequestHandler):
 
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
 
-        page = session.get(url=url, headers={"User-Agent": USER_AGENT})
-        content = page.text
+        html = session.get(url=url, headers={"User-Agent": USER_AGENT}).text
 
-        dom = etree.HTML(content)
+        dom = etree.HTML(html, parser=None)
+        content = _process_paywall_json(html, dom)
+        if content == "":
 
-        paywall_content = _process_paywall_json(content, dom)
-        if paywall_content == "":
-            utils.dom_utils.delete_xpaths(dom, [
-                '//*[contains(@class, "meta__social")]',
-                '//*[contains(@class,"header--content")]',
-                '//*[contains(@class,"article__subhead")]',
-                '//*[contains(@class,"block_pub")]',
-                '//*[contains(@class,"search__container")]',
-                '//*[contains(@class,"article__metas")]',
-                '//*[contains(@class,"abo-inread")]',
-                '//*[contains(@class,"sgt-inread")]',
-                '//*[@id="placeholder--plus-lus"]',
-                '//*[@id="placeholder--opinion"]',
-                '//*[contains(@class,"article__popin")]',
-                '//*[contains(@class,"nav_footer")]',
-                '//*[contains(@class,"bloc_surfooter")]',
-                '//*[contains(@class,"js-outbrain")]',
-                '//*[contains(@class,"article__breadcrumb")]',
-                '//*[contains(@class,"article__nav-seo")]',
-                '//*[contains(@class,"article__footer")]',
-                '//*[contains(@class,"article__item--rebond")]',
-                '//*[contains(@class,"groupement__nav-seo")]',
-                '//*[contains(@class,"groupement__breadcrumb")]',
-                '//*[contains(@class,"groupement__subhead")]',
-                '//*[@id="footer"]'
-            ])
+            if parameters.get("filter", "") != "":
+                # feed content seems to be in xml feeds
+                content = self._get_content_from_feed(
+                    url, parameters["filter"], session)
 
-            _process_imgs(dom)
+            if content == "":
+                # if no content found by previous versions, try to parse page
 
-            content = get_content(dom, [
-                '//div[contains(@class,"article")]',
-                '//div[contains(@class,"groupement")]'
-            ])
-        else:
-            content = paywall_content
+                utils.dom_utils.delete_xpaths(dom, [
+                    '//*[contains(@class, "meta__social")]',
+                    '//*[contains(@class,"header--content")]',
+                    '//*[contains(@class,"article__subhead")]',
+                    '//*[contains(@class,"block_pub")]',
+                    '//*[contains(@class,"search__container")]',
+                    '//*[contains(@class,"article__metas")]',
+                    '//*[contains(@class,"abo-inread")]',
+                    '//*[contains(@class,"sgt-inread")]',
+                    '//*[@id="placeholder--plus-lus"]',
+                    '//*[@id="placeholder--opinion"]',
+                    '//*[contains(@class,"article__popin")]',
+                    '//*[contains(@class,"nav_footer")]',
+                    '//*[contains(@class,"bloc_surfooter")]',
+                    '//*[contains(@class,"js-outbrain")]',
+                    '//*[contains(@class,"article__breadcrumb")]',
+                    '//*[contains(@class,"article__nav-seo")]',
+                    '//*[contains(@class,"article__footer")]',
+                    '//*[contains(@class,"article__item--rebond")]',
+                    '//*[contains(@class,"groupement__nav-seo")]',
+                    '//*[contains(@class,"groupement__breadcrumb")]',
+                    '//*[contains(@class,"groupement__subhead")]',
+                    '//*[@id="footer"]'
+                ])
+
+                _process_imgs(dom)
+
+                content = get_content(dom, [
+                    '//div[contains(@class,"article")]',
+                    '//div[contains(@class,"groupement")]'
+                ])
 
         return PyRSSWContent(content, """
 .article__illustration img {
@@ -142,6 +148,22 @@ span.thumbnail__date.text--info {
     font-size: 12px;
 }
         """)
+
+    def _get_content_from_feed(self, url: str, filter: str, session: requests.Session) -> str:
+        content: str = ""
+
+        feed = session.get(url=self.get_rss_url() %
+                           FILTERS[filter], headers={}).text
+
+        dom = etree.fromstring(feed.encode("utf-8"), parser=None)
+        for node in xpath(dom, "//link"):
+            if node.text == url:
+                for x in xpath(node, "..//content:encoded", namespaces=NAMESPACES):
+                    content = x.text
+                    break
+                break
+
+        return content
 
 
 def _process_paywall_json(content: str, dom: etree._Element) -> str:
@@ -163,8 +185,9 @@ def _process_paywall_json(content: str, dom: etree._Element) -> str:
             found_content += _process_paywall_element(element)
 
         if json_content.get("promo_items", {}).get("youtube", "") != "":
-            found_content += json_content["promo_items"]["youtube"].get("embed", {}).get("config", {}).get("html", "")
-    
+            found_content += json_content["promo_items"]["youtube"].get(
+                "embed", {}).get("config", {}).get("html", "")
+
     else:
         # this is working, but we miss pictures + paragraph formatting.
         for script in xpath(dom, "//script"):
@@ -206,7 +229,8 @@ def _process_paywall_element(element: dict) -> str:
         html = element.get("raw_oembed", {}).get("html", "")
         found_content += html
         if html == "":
-            found_content += "<i>Unhandled subtype '%s' type '%s'</i>\n" % (element["subtype"], element["type"])
+            found_content += "<i>Unhandled subtype '%s' type '%s'</i>\n" % (
+                element["subtype"], element["type"])
 
     elif element["type"] == "link_list":
         for item in element.get("items", []):
