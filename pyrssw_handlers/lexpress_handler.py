@@ -1,5 +1,5 @@
 import json
-from typing import Dict, cast
+from typing import Dict, List, cast
 from handlers.feed_type.atom_arranger import NAMESPACES
 from handlers.launcher_handler import USER_AGENT
 from request.pyrssw_content import PyRSSWContent
@@ -20,20 +20,10 @@ FILTERS = {
     "Politique": "politique",
     "Société": "societe",
     "Monde": "monde",
-    "Science et santé": "science-et-sante",
     "Culture": "culture",
-    "Sport": "sport",
-    "Education": "education",
     "Emploi": "emploi",
     "Styles": "styles",
-    "Tendances": "tendances",
-    "Insolite": "insolite",
-    "Médias": "medias",
-    "Vie Pratique": "viepratique",
-    "Régions": "regions",
-    "Enquete": "enquete",
-    "Vidéo": "videos",
-    "Nos dossiers": "dossiers"
+    "Médias": "medias"
 }
 
 
@@ -43,9 +33,13 @@ class LExpress(PyRSSWRequestHandler):
     Handler name: lexpress
 
     RSS parameters:
-     - filter : A la Une, Politique, Société, Monde, Science et santé, Culture, Sport, Education, Emploi, Styles, Tendances, Insolite, Médias, Vie Pratique, Régions, Enquete, Vidéo, Nos dossiers
+     - filter : A la Une, Politique, Société, Monde, Culture, Emploi, Styles, Médias
        eg :
          - /lexpress/rss?filter=Politique
+
+     - avoidfilters: list of articles category to avoid in list: A la Une, Politique, Société, Monde, Culture, Emploi, Styles, Médias
+         - /lexpress/rss?filter=alaune&avoidfilters=Politique,Monde
+         => will provide "A la Une" articles without articles provided by "Politique" nor "Monde" filters.
 
     Content:
         Get content of the page, removing menus, headers, footers, breadcrumb, social media sharing, ...
@@ -76,10 +70,19 @@ class LExpress(PyRSSWRequestHandler):
         feed = feed.replace('<guid isPermaLink="true">', link)
         feed = feed.replace('</guid>', '</link>')
 
+        avoided_links: List[str] = []
+        for avoided_filter in parameters.get("avoidfilters", "").split(","):
+            if avoided_filter != "" and avoided_filter in FILTERS:
+                avoided_links.extend(_get_feed_links(
+                    session=session, url=self.get_rss_url() % FILTERS[avoided_filter]))
+
         dom = etree.fromstring(feed.encode("utf-8"), parser=None)
         for node in xpath(dom, "//link|//guid"):
-            node.text = "%s" % self.get_handler_url_with_parameters(
-                {"url": cast(str, node.text), "filter": parameters.get("filter", "")})
+            if node.text in avoided_links:
+                node.getparent().getparent().remove(node.getparent())
+            else:
+                node.text = "%s" % self.get_handler_url_with_parameters(
+                    {"url": cast(str, node.text), "filter": parameters.get("filter", "")})
         feed = to_string(dom)
 
         return feed
@@ -254,3 +257,13 @@ def _process_imgs(dom: etree._Element):
         del img.attrib["data-srcset"]
         if "data-src" in img.attrib:
             del img.attrib["data-src"]
+
+
+def _get_feed_links(session: requests.Session, url: str) -> List[str]:
+    links = []
+    feed = session.get(url=url, headers={}).text
+    dom = etree.fromstring(feed.encode("utf-8"), parser=None)
+    for link in xpath(dom, "//item/link"):
+        links.append(link.text)
+
+    return links
