@@ -66,7 +66,7 @@ class ContentProcessor():
         for img in xpath(dom, "//img"):
             if img.attrib.get("src", "").strip() == "":
                 img.getparent().remove(img)
-    
+
     def _remove_duplicate_imgs(self, dom: etree._Element):
         imgs = []
         for img in xpath(dom, "//img"):
@@ -104,7 +104,8 @@ class ContentProcessor():
                     tweet_id,
                     tweet_id,
                     tweet_id,
-                    "dark" if self.parameters.get("theme","") == "dark" else "light",
+                    "dark" if self.parameters.get(
+                        "theme", "") == "dark" else "light",
                     tweet_id
                 )
                 tweet_div = etree.Element("div")
@@ -119,6 +120,20 @@ class ContentProcessor():
             script.set("src", "https://platform.twitter.com/widgets.js")
             script.set("sync", "")
             dom.append(script)
+
+        # some sites embed their tweets with an iframe
+        # change their theme accordingly
+        for iframe in xpath(dom, "//iframe[@data-tweet-id]"):
+            if iframe.attrib.get("src", "").find("platform.twitter.com") > -1:
+                if iframe.attrib["src"].find("&theme=") == -1:
+                    iframe.attrib["src"] += "&theme=light"
+
+                if self.parameters.get("theme", "") == "dark":
+                    iframe.attrib["src"] = iframe.attrib["src"].replace(
+                        "&theme=light", "&theme=dark")
+                else:
+                    iframe.attrib["src"] = iframe.attrib["src"].replace(
+                        "&theme=dark", "&theme=light")
 
     def _manage_translation(self, dom: etree._Element):
         if "translateto" in self.parameters:
@@ -288,7 +303,7 @@ class ContentProcessor():
         robot_font_import = "@import url(https://fonts.googleapis.com/css?family=Roboto:100,100italic,300,300italic,400,400italic,500,500italic,700,700italic,900,900italic&subset=latin,latin-ext,cyrillic,cyrillic-ext,greek-ext,greek,vietnamese);"
         font_family = "Roboto"
 
-        if self.parameters.get("theme","") == "dark":
+        if self.parameters.get("theme", "") == "dark":
             text_color = "#8c8c8c"
             bg_color = "#222222"
             quote_left_color = "#686b6f"
@@ -308,7 +323,7 @@ class ContentProcessor():
                     color:#0080ff
                 }
             """
-        else: #light theme
+        else:  # light theme
             text_color = "#000000"
             bg_color = "#f6f6f6"
             quote_left_color = "#a6a6a6"
@@ -364,7 +379,6 @@ class ContentProcessor():
         margin:0;
         #BODY_PADDING_FOR_HEADER#
 """)
-
 
         style = style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)\
                      .replace("#BG_BLOCKQUOTE#", quote_bg_color)\

@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, cast
+from typing import Dict, List, cast
 from datetime import datetime, timedelta, timezone
 from os.path import exists
 import string
@@ -70,7 +70,7 @@ class LequipeHandler(PyRSSWRequestHandler):
 
         regex = re.compile(r"&(?!amp;|lt;|gt;)")
         myxml = regex.sub("&amp;", feed)
-        dom = etree.fromstring(myxml.encode("utf-8"))
+        dom = etree.fromstring(myxml.encode("utf-8"), parser=None)
         description_img: str = ""
 
         links = self._process_feed_items(dom, blacklisted_keywords, parameters)
@@ -624,7 +624,7 @@ span.Article__publishDate::after {
     def _enrich_feed_with_url_homepage(self, session: requests.Session, html: str, dom: etree._Element, blacklisted_keywords: List[str], links: List[str], parameters: Dict[str, str]):
         previous_items = self._get_previous_items()
 
-        html_dom = etree.HTML(html)
+        html_dom = etree.HTML(html, parser=None)
         channel = xpath(dom, "//channel")[0]
         for article in xpath(html_dom, "//article/a"):
             href = cast(str, article.attrib["href"])
@@ -643,7 +643,7 @@ span.Article__publishDate::after {
                     feed_item = self._get_feed_information_from_page(
                         session, href)
                     if feed_item["title"] == "":
-                      continue
+                        continue
 
                     previous_items[href] = feed_item
 

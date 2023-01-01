@@ -36,7 +36,7 @@ class PyRSSWHTTPServer(HTTPServer, AbstractPyRSSWHTTPServer):
 
     def get_protocol(self) -> str:
         protocol = "http"
-        if not Config.instance().get_key_file() is None and not Config.instance().get_cert_file() is None:
+        if Config.instance().get_key_file() is not None and Config.instance().get_cert_file() is not None:
             protocol = "https"
 
         return protocol
