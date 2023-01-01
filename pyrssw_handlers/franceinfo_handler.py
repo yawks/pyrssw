@@ -149,7 +149,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             #franceinfo_handler ul li.localities__locality+li.localities__locality:before {padding: 8px;content: "/";}
             #franceinfo_handler ul li.localities__locality  {display: inline;font-size: 18px;}
             #franceinfo_handler .a-article__rubric {color: var(--blue-om,#007a99);font-size: 12px;line-height: 14px;text-decoration: none;font-size:16px; font-weight:500;}
-
+            #franceinfo_handler h2 span.mce-nbsp-wrap {display: none;}
 
         """)
 
