@@ -14,8 +14,6 @@ from utils.dom_utils import to_string
 URL_CONNECTION = "https://www.courrierinternational.com/login?destination=%3Cfront%3E"
 URL_DECONNECTION = "https://www.courrierinternational.com/user/logout"
 
-#http://127.0.0.1:8001/courrierinternational/rss?dark=true&header=true&login=!e:gAAAAABifik181hybNagrygFLj9jyprTFzxsb0yYcfMmncyQiXQhnKbGVGIzYQ13m3NcFXYCWnaEcVaVWzUOW3e4omWaPVraNoS5w0bkQMy_7uJGH9251Ps=&password=!e:gAAAAABifil6TNOR8aWmcVpqrT2DEelz0em8dvEIlZ-pbCXyCQNy7oH0-lk9dgu_w4PZRJXDijVx_5rL9hesiM0rURr2Y-K-AA==
-
 class CourrierInternationalHandler(PyRSSWRequestHandler):
     """Handler for french <a href="http://www.courrierinternational.fr">Courrier International</a> website.
 
