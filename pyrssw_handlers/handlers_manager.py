@@ -1,3 +1,4 @@
+import re
 import importlib
 import inspect
 import logging
@@ -27,7 +28,7 @@ class HandlersManager:
 
     def _load_handlers(self):
         for handler in glob("pyrssw_handlers/*.py"):
-            module_name = ".%s" % os.path.basename(handler).strip(".py")
+            module_name = ".%s" % re.sub( "\.py$", "", os.path.basename(handler))
             module = importlib.import_module(
                 module_name, package="pyrssw_handlers")
             if hasattr(module, "PyRSSWRequestHandler") and not hasattr(module, "ABC"):

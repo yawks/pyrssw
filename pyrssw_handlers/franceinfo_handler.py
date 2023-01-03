@@ -45,7 +45,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
 
         feed = re.sub(r'<guid>[^<]*</guid>', '', feed)
 
-        dom = etree.fromstring(feed.encode("utf-8"))
+        dom = etree.fromstring(feed.encode("utf-8"), parser=None)
 
         if "filter" in parameters:
             # filter only on passed category

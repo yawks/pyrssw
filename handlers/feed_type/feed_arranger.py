@@ -11,11 +11,11 @@ from handlers.constants import GENERIC_PARAMETERS
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 from utils.dom_utils import to_string, translate_dom, xpath
 
-IMG_URL_REGEX = re.compile(
-    r'.*&lt;img src=(?:"|\')([^(\'|")]+).*', re.MULTILINE)
+IMG_SRC_REGEX = r'(&lt;|<)img.*src=(?:"|\')([^(\'|")]+)[^>]*>'
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 FEED_XML_CONTENT_TYPE = "application/rss+xml; charset=utf-8"
+
 
 class FeedArranger(metaclass=ABCMeta):
 
@@ -157,13 +157,13 @@ class FeedArranger(metaclass=ABCMeta):
                 self.arrange_feed_top_level_element(
                     dom, rss_url_prefix, parameters, favicon_url)
 
-                
                 for item in self.get_items(dom):
                     self._arrange_item(item, parameters)
                     self._arrange_feed_link(item, parameters)
 
                 if parameters.get("preview", "") == "true":
-                    result, content_type = self.apply_rss_preview(parameters, handler, dom)
+                    result, content_type = self.apply_rss_preview(
+                        parameters, handler, dom)
                 else:
                     result = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
                         to_string(dom)
@@ -226,10 +226,15 @@ class FeedArranger(metaclass=ABCMeta):
         if len(imgs) > 0:
             thumbnail_url = imgs[0].attrib["url"]
         else:
-            m = re.match(IMG_URL_REGEX, to_string(
-                description).replace("\n", ""))
-            if m is not None:
-                thumbnail_url = m.group(1)
+            m = re.findall(
+                IMG_SRC_REGEX, to_string(description), re.MULTILINE)
+            if len(m) > 0 and len(m[0]) > 1:
+                thumbnail_url = m[0][1]
+            else:
+                m = re.findall(
+                    IMG_SRC_REGEX, description.text, re.MULTILINE)
+                if len(m) > 0 and len(m[0]) > 1:
+                    thumbnail_url = m[0][1]
 
         return thumbnail_url
 
