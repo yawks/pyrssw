@@ -102,7 +102,8 @@ class LequipeHandler(PyRSSWRequestHandler):
             '//div[@class="article__action"]',
             '//*[contains(@class,"RelatedLinks")]',
             '//*[contains(@aria-label,"Colonne de droite")]',
-            '//*[contains(@class,"bookmarkButton")]'
+            '//*[contains(@class,"bookmarkButton")]',
+            '//*[@id="ReactionSummary"]'
         ])
 
         json_content = _parse_article_object(dom, content)
@@ -626,7 +627,7 @@ span.Article__publishDate::after {
 
         html_dom = etree.HTML(html, parser=None)
         channel = xpath(dom, "//channel")[0]
-        for article in xpath(html_dom, "//article/a"):
+        for article in xpath(html_dom, "//main//article/a"):
             href = cast(str, article.attrib["href"])
             if href not in links and not href.startswith("https://bit.ly"):
                 item = etree.Element("item")
