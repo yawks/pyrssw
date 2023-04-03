@@ -12,7 +12,7 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
     PyRSSWRequestHandler
 from utils.dom_utils import to_string, xpath
 
-URL_CONNECTION = "https://secure.lemonde.fr/sfuser/connexion"
+URL_CONNECTION = "https://secure.lemonde.fr/sfuser/connexion" 
 URL_DECONNECTION = "https://secure.lemonde.fr/sfuser/deconnexion"
 
 
@@ -55,7 +55,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
         feed = feed.replace(link, '<link>%s?%surl=' % (
             self.url_prefix, self._getAuthentificationSuffix(parameters)))
 
-        dom = etree.fromstring(feed.encode("utf-8"))
+        dom = etree.fromstring(feed.encode("utf-8"), parser=None)
 
         # available filters : international, politique, societe, les-decodeurs, sport, planete, sciences, campus, afrique, pixels, actualites-medias, sante, big-browser, disparitions, podcasts
         if "filter" in parameters:
@@ -84,7 +84,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
             page = session.get(url=url)
             content = page.text
 
-            dom = etree.HTML(content)
+            dom = etree.HTML(content, parser=None)
 
             utils.dom_utils.delete_xpaths(dom, [
                 '//*[contains(@class, "meta__social")]',
@@ -134,19 +134,19 @@ class LeMondeHandler(PyRSSWRequestHandler):
     def _authent(self, parameters: dict, session: requests.Session):
         page = session.get(url=URL_CONNECTION)
         if "login" in parameters and "password" in parameters:
-            idx = page.text.find("connection[_token]")
-            if idx > -1:
-                start = page.text[idx+len('connection[_token]" value="'):]
-                token = start[0:start.find('"')]
-
-                # credits to https://www.freecodecamp.org/news/how-i-scraped-7000-articles-from-a-newspaper-website-using-node-1309133a5070/
+            dom = etree.HTML(page.text, parser=None)
+            input_node_key = None
+            for input in xpath(dom, '//input[@type="hidden"]'):
+                if input.attrib.get("id", "") not in ["newsletters", "article"] and len(input.attrib.get("id", "")) > 10:
+                    input_node_key = input
+                    break
+            if input_node_key is not None:
                 data = {
-                    "connection[mail]": parameters["login"],
-                    "connection[password]": parameters["password"],
-                    "connection[stay_connected]": "1",
-                    "connection[save]": "",
-                    "connection[newsletters]": "[]",
-                    "connection[_token]": token}
+                    "email": parameters["login"],
+                    "password": parameters["password"],
+                    "newsletters": "[]",
+                    "article": "",
+                    input_node_key.attrib["id"]: input_node_key.attrib.get("value", "")}
                 session.post(
                     url=URL_CONNECTION, data=data, headers=self._get_headers(URL_CONNECTION))
 
