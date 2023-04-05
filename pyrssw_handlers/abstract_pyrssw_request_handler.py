@@ -151,11 +151,14 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
 
                 html = fix_text(r.text)
                 if html is not None and html.strip() != "":
-                    doc = Document(html.replace("width", "_width_").replace(
-                        "height", "_height_"))
-
+                    dom = etree.HTML(html, parser=None)
                     url_prefix = url[:len("https://") +
-                                    len(url[len("https://"):].split("/")[0])+1]
+                                     len(url[len("https://"):].split("/")[0])+1]
+                    noticeable_imgs = _get_noticeable_imgs(dom, url_prefix)
+                    new_html = to_string(dom)
+
+                    doc = Document(new_html.replace("width", "_width_").replace(
+                        "height", "_height_"))
 
                     if add_source_link:
                         readable_content += "<hr/><p><u><a href=\"%s\">Source</a></u> : %s</p><hr/>" % (
@@ -163,14 +166,13 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
 
                     summary = doc.summary(html_partial=True).replace(
                         "_width_", "width").replace("_height_", "height")
-                    dom = etree.HTML(html, parser=None)
+
                     if add_title:
                         readable_content = _complete_with_h1(dom, summary)
 
-                    noticeable_imgs = _get_noticeable_imgs(dom, url_prefix)
                     for img in noticeable_imgs:
                         if img not in summary:
-                            readable_content += "<img style=\"min-width:100%%\" src=\"%s\"></img>" % img
+                            readable_content += "<p><img style=\"min-width:100%%\" src=\"%s\"></img></p>" % img
 
                     readable_content += summary
 
@@ -219,11 +221,14 @@ def _get_noticeable_imgs(dom: etree.HTML, url_prefix: str) -> List[str]:
     for node in xpath(dom, "//img"):
         if _get_width(node) > 500:
             attr_name = "src"
-            for attr in node.attrib: #handle lazyload img attributes
+            for attr in node.attrib:  # handle lazyload img attributes
                 if attr.endswith("-src") or attr.find("-src-") > -1:
                     attr_name = attr
                     break
             src = cast(str, node.attrib.get(attr_name, ""))
+            if src[0:1] not in ("h", "/"):
+                src = url_prefix + src
+                node.attrib[attr_name] = src
             """
             i f src == "":
                 for attr in node.attrib: #handle lazyload img attributes
@@ -237,6 +242,20 @@ def _get_noticeable_imgs(dom: etree.HTML, url_prefix: str) -> List[str]:
                         break
             """
             if src != "" and (is_url_valid(src) or node.attrib[attr_name][:1] == "/") and src not in noticeable_imgs:
+                img_node = node
+                ref_node = node.getparent()
+                n = node
+                while n is not None:
+                    if n.tag in ["dt", "aside", "dl", "dd"]:
+                        ref_node = n
+                    n = n.getparent()
+
+                if ref_node.tag != "p":
+                    p = etree.Element("p")
+                    ref_node.addprevious(p)
+                    img_node.getparent().remove(img_node)
+                    p.append(img_node)
+
                 noticeable_imgs.append(src)
 
     return noticeable_imgs
@@ -251,11 +270,11 @@ def _complete_with_h1(dom: etree.HTML, summary: str) -> str:
         h1_str = re.sub('\s+(?=<)', '', to_string(h1))
         if h1_str.strip() != "":
             h1_content = h1_str
-    
+
     if h1_content in re.sub('\s+(?=<)', '', summary):
         h1_content = ""
     elif h1_content == "":
-        #if nothing found in h1, take a look in the title of the page
+        # if nothing found in h1, take a look in the title of the page
         title = get_first_node(dom, ["//head//title"])
         if title is not None and text(title) != "":
             h1_content = "<h1>%s</h1>" % text(title)
