@@ -170,11 +170,11 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
                     if add_title:
                         readable_content = _complete_with_h1(dom, summary)
 
-                    for img in noticeable_imgs:
-                        if img not in summary:
-                            readable_content += "<p><img style=\"min-width:100%%\" src=\"%s\"></img></p>" % img
-
+                    readable_content += _get_first_noticeable_image(
+                        noticeable_imgs, summary)
                     readable_content += summary
+                    readable_content += _get_second_and_following_noticeable_images(
+                        noticeable_imgs, summary)
 
                     # replace relative links
                     readable_content = readable_content.replace(
@@ -191,6 +191,25 @@ class PyRSSWRequestHandler(metaclass=ABCMeta):
                 readable_content = f"Error getting <i><a href='{url}'>{url}</a></i><br/> <pre>{e}</pre>"
 
         return readable_content
+
+
+def _get_first_noticeable_image(noticeable_imgs: List[str], summary: str) -> str:
+    first_noticeable = ""
+    if len(noticeable_imgs) > 0 and noticeable_imgs[0] not in summary:
+        first_noticeable = "<p><img style=\"min-width:100%%\" src=\"%s\"></img></p>" % noticeable_imgs[0]
+
+    return first_noticeable
+
+
+def _get_second_and_following_noticeable_images(noticeable_imgs: List[str], summary: str) -> str:
+    noticeables = ""
+
+    if len(noticeable_imgs) > 1:
+        for image in noticeable_imgs[1:]:
+            if image not in summary:
+                noticeables += "<p><img style=\"min-width:100%%\" src=\"%s\"></img></p>" % image
+
+    return noticeables
 
 
 def _get_noticeable_imgs(dom: etree.HTML, url_prefix: str) -> List[str]:
