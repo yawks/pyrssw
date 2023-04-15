@@ -172,7 +172,7 @@ class EurosportHandler(PyRSSWRequestHandler):
             else:
                 articles = json_utils.get_nodes_by_name(data, "article")
                 for article in articles:
-                    if "publicationTime" in article:
+                    if article is not None and "publicationTime" in article:
                         content = ArticleBuilder(article).build_article()
 
         return content
