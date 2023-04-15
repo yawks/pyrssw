@@ -150,6 +150,11 @@ span.thumbnail__date.text--info {
     margin-bottom: 15px;
     font-size: 12px;
 }
+
+figcaption {
+    font-size: 0.75em;
+    font-style: italic;
+}
         """)
 
     def _get_content_from_feed(self, url: str, filter: str, session: requests.Session) -> str:
@@ -181,6 +186,16 @@ def _process_paywall_json(content: str, dom: etree._Element) -> str:
 
         found_content = "<h1>%s</h1>" % json_content.get(
             "headlines", {}).get("basic", "")
+        
+        if "promo_items" in json_content:
+            promo_items = json_content.get("promo_items").get("basic", {})
+            found_content += "<h2>%s</h2>" % promo_items.get("alt_text", "")
+            if promo_items.get("type", "") == "image":
+                found_content += """<figure>
+                    <img src=\"%s\"></img>
+                    <figcaption>%s</figcaption>
+                </figure>""" % (promo_items.get("url", ""), promo_items.get("caption", ""))
+
 
         elements = json_content.get("content_elements", [])
 
@@ -243,7 +258,8 @@ def _process_paywall_element(element: dict) -> str:
             else:
                 found_content += "<p><i>Unhandled link_list type '%s'</i></p>\n" % item.get(
                     "type", "")
-
+    elif element.get("type") == "custom_embed" and element.get("embed", {}).get("config", {}).get("html", "") != "":
+        found_content += element.get("embed", {}).get("config", {}).get("html", "")
     else:
         found_content += "<p><i>unhandled type '%s'</i></p>\n" % element.get(
             "type")
