@@ -118,6 +118,7 @@ class Sport24Handler(PyRSSWRequestHandler):
             imgsrc = imgs[0].get("srcset")
 
         utils.dom_utils.delete_xpaths(dom, [
+            '//*[contains(@class,"fig-sharebar")]',
             '//*[@class="s24-art-cross-linking"]',
             '//*[@class="fig-media__button"]',
             '//*[@class="s24-art-pub-top"]'])
@@ -139,10 +140,9 @@ class Sport24Handler(PyRSSWRequestHandler):
             content = to_string(contents[0])
         else:
             content = utils.dom_utils.get_content(dom, [
-                # handles golf.lefigaro structure
-                '//article[contains(@class,"fig-content")]',
-                # handles lefigaro.fr/sports
-                '//article[contains(@class,"fig-main")]'
+                '//article',
+                '//*[contains(@class,"fig-content")]',
+                '//*[contains(@class,"fig-main")]'
             ])
 
         content = "%s%s" % (title, content)
