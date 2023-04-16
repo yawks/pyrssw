@@ -219,7 +219,7 @@ class ContentProcessor():
         }( document, window, 0 ));
     });
 </script>
-            <header class="pyrssw_content_header"><div class="container"><a href="%s" target="_blank"><img src="%s"/>%s</a></div></header>""" % (
+            <header class="pyrssw_content_header"><div class="pyrssw_container"><a href="%s" target="_blank"><img src="%s"/>%s</a></div></header>""" % (
                 self.parameters["url"], self.handler.get_favicon_url(self.parameters), self.handler.get_handler_name(self.parameters))
 
         return header
@@ -264,7 +264,7 @@ class ContentProcessor():
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
                 #pyrssw_wrapper .twitter-tweet iframe {min-height:auto}
                 #pyrssw_wrapper .twitter-tweet {margin: 0 auto}
-                .pyrssw_content_header .container {height: 100%;overflow: hidden;}
+                .pyrssw_content_header .pyrssw_container {height: 100%;overflow: hidden;}
                 .pyrssw_content_header {position: fixed;z-index: 1;top: 0;left: 0;width:100%;height:32px;padding: 5px;background-color:#HEADER_CSS_BG_COLOR#;text-align: center;border-bottom: 2px solid #HEADER_CSS_BORDER_COLOR#}
                 .pyrssw_content_header a {color:#HEADER_CSS_A_COLOR#;text-decoration:none;font-weight:500;font-size:20px;}
                 .pyrssw_content_header img {margin-right:10px;vertical-align:middle;height:32px}
