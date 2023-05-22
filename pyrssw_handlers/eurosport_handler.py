@@ -3,7 +3,6 @@ import html
 import json
 import logging
 from base64 import b64decode
-from time import time, sleep
 from request.pyrssw_content import PyRSSWContent
 from typing import Dict, List, Optional, cast
 
@@ -52,7 +51,7 @@ class EurosportHandler(PyRSSWRequestHandler):
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed = session.get(url=self.get_rss_url(), headers={}).text
 
-        dom = etree.fromstring(feed.encode("utf-8"))
+        dom = etree.fromstring(feed.encode("utf-8"), parser=None)
 
         if "filter" in parameters:
             # filter only on passed category, eg /eurosport/rss/tennis
@@ -75,7 +74,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         """find in rss file the item having the link_url and returns the description"""
         description = ""
         feed = requests.get(url=self.get_rss_url(), headers={}).text
-        dom = etree.fromstring(feed.encode("utf-8"))
+        dom = etree.fromstring(feed.encode("utf-8"), parser=None)
         descriptions = xpath(dom,
                              "//item/link/text()[contains(., '%s')]/../../description" % link_url)
         if len(descriptions) > 0:
@@ -90,7 +89,7 @@ class EurosportHandler(PyRSSWRequestHandler):
             content = self._get_video_content(url, session)
         elif url.find("www.rugbyrama.fr") > -1:
             page = session.get(url=url, headers=self._get_headers())
-            dom = etree.HTML(page.text)
+            dom = etree.HTML(page.text, parser=None)
             self._process_lazy_img(dom)
             utils.dom_utils.delete_xpaths(dom, [
                 '//div[contains(@class, "storyfull__header")]',
@@ -102,14 +101,15 @@ class EurosportHandler(PyRSSWRequestHandler):
                 '//div[contains(@class, "storyfull")]'])
         elif url.find("/live.shtml") > -1 or url.find("/liveevent.shtml") > -1:
             page = session.get(url=url, headers=self._get_headers())
-            dom = etree.HTML(page.text)
+            dom = etree.HTML(page.text, parser=None)
             utils.dom_utils.delete_xpaths(dom, [
                 '//*[@class="nav-tab"]',
                 '//*[@class="live-match-nav__sharing"]',
                 '//*[@class="livecomments-nav"]',
                 '//*[@id="subnavigation-nav-tabs"]',
                 '//*[contains(@class,"livecomments-header")]',
-                '//*[contains(@class,"score-cards--hide-desktop-sm")]'
+                '//*[contains(@class,"score-cards--hide-desktop-sm")]',
+                '//*[contains(@class,"AdContainer")]'
             ])
             self._process_lazy_img(dom)
             content = utils.dom_utils.get_content(dom, [
