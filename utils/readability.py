@@ -36,11 +36,11 @@ REGEXES = {
     "divToPElementsRe": re.compile(
         r"<(a|blockquote|dl|div|img|ol|p|pre|table|ul)", re.I
     ),
-    #'replaceBrsRe': re.compile(r'(<br[^>]*>[ \n\r\t]*){2,}',re.I),
-    #'replaceFontsRe': re.compile(r'<(\/?)font[^>]*>',re.I),
-    #'trimRe': re.compile(r'^\s+|\s+$/'),
-    #'normalizeRe': re.compile(r'\s{2,}/'),
-    #'killBreaksRe': re.compile(r'(<br\s*\/?>(\s|&nbsp;?)*){1,}/'),
+    # 'replaceBrsRe': re.compile(r'(<br[^>]*>[ \n\r\t]*){2,}',re.I),
+    # 'replaceFontsRe': re.compile(r'<(\/?)font[^>]*>',re.I),
+    # 'trimRe': re.compile(r'^\s+|\s+$/'),
+    # 'normalizeRe': re.compile(r'\s{2,}/'),
+    # 'killBreaksRe': re.compile(r'(<br\s*\/?>(\s|&nbsp;?)*){1,}/'),
     "videoRe": re.compile(r"https?:\/\/(www\.)?(youtube|vimeo)\.com", re.I),
     # skipFootnoteLink:      /^\s*(\[?[a-z0-9]{1,2}\]?|^|edit|citation needed)\s*$/i,
 }
@@ -85,7 +85,8 @@ def compile_pattern(elements):
     if isinstance(elements, (list, tuple)):
         return re.compile(u"|".join([re.escape(x.strip()) for x in elements]), re.U)
     else:
-        raise Exception("Unknown type for the pattern: {}".format(type(elements)))
+        raise Exception(
+            "Unknown type for the pattern: {}".format(type(elements)))
         # assume string or string like object
 
 
@@ -270,7 +271,8 @@ class Document:
         # Now that we have the top candidate, look through its siblings for
         # content that might also be related.
         # Things like preambles, content split by ads that we removed, etc.
-        sibling_score_threshold = max([10, best_candidate["content_score"] * 0.2])
+        sibling_score_threshold = max(
+            [10, best_candidate["content_score"] * 0.2])
         # create a new html document with a html->body->div
         if html_partial:
             output = fragment_fromstring("<div/>")
@@ -326,7 +328,8 @@ class Document:
         )
         for candidate in sorted_candidates[:5]:
             elem = candidate["elem"]
-            log.debug("Top 5 : %6.3f %s" % (candidate["content_score"], describe(elem)))
+            log.debug("Top 5 : %6.3f %s",
+                      candidate["content_score"], describe(elem))
 
         best_candidate = sorted_candidates[0]
         return best_candidate
@@ -363,7 +366,8 @@ class Document:
                 ordered.append(parent_node)
 
             if grand_parent_node is not None and grand_parent_node not in candidates:
-                candidates[grand_parent_node] = self.score_node(grand_parent_node)
+                candidates[grand_parent_node] = self.score_node(
+                    grand_parent_node)
                 ordered.append(grand_parent_node)
 
             content_score = 1
@@ -385,8 +389,8 @@ class Document:
             ld = self.get_link_density(elem)
             score = candidate["content_score"]
             log.debug(
-                "Branch %6.3f %s link density %.3f -> %6.3f"
-                % (score, describe(elem), ld, score * (1 - ld))
+                "Branch %6.3f %s link density %.3f -> %6.3f", score, describe(
+                    elem), ld, score * (1 - ld)
             )
             candidate["content_score"] *= 1 - ld
 
@@ -450,7 +454,7 @@ class Document:
                 and (not REGEXES["okMaybeItsACandidateRe"].search(s))
                 and elem.tag not in ["html", "body"]
             ):
-                log.debug("Removing unlikely candidate - %s" % describe(elem))
+                log.debug("Removing unlikely candidate - %s", describe(elem))
                 elem.drop_tree()
 
     def transform_misused_divs_into_paragraphs(self):
@@ -509,7 +513,8 @@ class Document:
 
         for elem in self.tags(node, "iframe"):
             if "src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"]):
-                elem.text = "VIDEOVIDEOVIDEOVIDEOVIDEOVIDEO"  # ADD content to iframe text node to force <iframe></iframe> proper output
+                # ADD content to iframe text node to force <iframe></iframe> proper output
+                elem.text = "VIDEOVIDEOVIDEOVIDEOVIDEOVIDEO"
             else:
                 elem.drop_tree()
 
@@ -530,8 +535,8 @@ class Document:
 
             if weight + content_score < 0:
                 log.debug(
-                    "Removed %s with score %6.3f and weight %-3s"
-                    % (describe(el), content_score, weight,)
+                    "Removed %s with score %6.3f and weight %-3s", describe(
+                        el), content_score, weight
                 )
                 el.drop_tree()
             elif el.text_content().count(",") < 10:
@@ -646,22 +651,22 @@ class Document:
                     # log.debug(str_(siblings))
                     if siblings and sum(siblings) > 1000:
                         to_remove = False
-                        log.debug("Allowing %s" % describe(el))
+                        log.debug("Allowing %s", describe(el))
                         for desnode in self.tags(el, "table", "ul", "div", "section"):
                             allowed[desnode] = True
 
                 if to_remove:
                     log.debug(
-                        "Removed %6.3f %s with weight %s cause it has %s."
-                        % (content_score, describe(el), weight, reason)
+                        "Removed %6.3f %s with weight %s cause it has %s.", content_score, describe(
+                            el), weight, reason
                     )
                     # print tounicode(el)
                     # log.debug("pname %s pweight %.3f" %(pname, pweight))
                     el.drop_tree()
                 else:
                     log.debug(
-                        "Not removing %s of length %s: %s"
-                        % (describe(el), content_length, text_content(el))
+                        "Not removing %s of length %s: %s", describe(
+                            el), content_length, text_content(el)
                     )
 
         self.html = node
@@ -716,7 +721,9 @@ def main():
     if options.url:
         headers = {"User-Agent": "Mozilla/5.0"}
         if sys.version_info[0] == 3:
-            import urllib.request, urllib.parse, urllib.error
+            import urllib.request
+            import urllib.parse
+            import urllib.error
 
             request = urllib.request.Request(options.url, None, headers)
             file = urllib.request.urlopen(request)
