@@ -144,7 +144,7 @@ class IzismileHandler(PyRSSWRequestHandler):
             script.getparent().remove(script)
 
         pagers = dom.xpath('//*[@class="postpages"]')
-        if len(pagers) > 1:
+        if len(pagers) > 1 and len(dom.xpath('//*[@class="postpages"]//a')) > 0:
             url_next_page = cast(str, dom.xpath(
                 '//*[@class="postpages"]//a')[-1].values()[0])
         for pager in list(pagers):
