@@ -257,7 +257,7 @@ class ContentProcessor():
                 #pyrssw_wrapper h1 span, #pyrssw_wrapper h2 span {padding-right:10px;}
                 #pyrssw_wrapper a {color: #0099CC}
                 #pyrssw_wrapper h1 a {color: inherit; text-decoration: none}
-                #pyrssw_wrapper img {height: auto; margin-right:15px;vertical-align:middle;}
+                #pyrssw_wrapper img {height: auto; margin-right:15px;margin-top: 5px;vertical-align:middle;}
                 #pyrssw_wrapper pre {white-space: pre-wrap; direction: ltr;}
                 #pyrssw_wrapper blockquote {border-left: thick solid #QUOTE_LEFT_COLOR#; background-color:#BG_BLOCKQUOTE#; margin: 0.5em 0 0.5em 0em; padding: 0.5em}
                 #pyrssw_wrapper p {margin: 0.8em 0 0.8em 0}
