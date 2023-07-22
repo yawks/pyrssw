@@ -39,27 +39,7 @@ class Sport24Handler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
-        favicon_url = "https://static-s.aa-cdn.net/img/ios/378095281/153e14a0a7986d4fe3e1802129113c66"
-        if parameters.get("filter", "").find("football") > -1:
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500044.png"
-        elif parameters.get("filter") == "tennis":
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500072.png"
-        elif parameters.get("filter") == "rugby":
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500073.png"
-        elif parameters.get("filter") == "cyclisme":
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500050.png"
-        elif parameters.get("filter") == "basket":
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500060.png"
-        elif parameters.get("filter") == "voile":
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500050.png"
-        elif parameters.get("filter") == "handball":
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500078.png"
-        elif parameters.get("filter") == "golf":
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500087.png"
-        elif parameters.get("filter") == "jeux-olympiques":
-            favicon_url = "https://cdn-icons-png.flaticon.com/512/4500/4500049.png"
-
-        return favicon_url
+        return "https://static-s.aa-cdn.net/img/ios/378095281/153e14a0a7986d4fe3e1802129113c66"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         if parameters.get("filter") == ("tennis" or "football" or "rugby" or "cyclisme" or "golf" or "basket" or "jeux-olympiques" or "voile" or "handball" or "formule-1" or "football-transfert"):
@@ -106,7 +86,7 @@ class Sport24Handler(PyRSSWRequestHandler):
     def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
         page = session.get(url=url, headers={})
         
-        dom = etree.HTML(page.text)
+        dom = etree.HTML(page.text, parser=None)
         title = utils.dom_utils.get_content(dom, ["//h1"])
         h1s = xpath(dom, "//h1")
         if len(h1s) > 0:
@@ -119,9 +99,11 @@ class Sport24Handler(PyRSSWRequestHandler):
 
         utils.dom_utils.delete_xpaths(dom, [
             '//*[contains(@class,"fig-sharebar")]',
+            '//*[contains(@class,"fig-live-post__sharing-container")]',
             '//*[@class="s24-art-cross-linking"]',
             '//*[@class="fig-media__button"]',
-            '//*[@class="s24-art-pub-top"]'])
+            '//*[@class="s24-art-pub-top"]',
+            '//*[@class="fig-live-essential-facts"]'])
 
         self._process_dugout(session, dom)
 
