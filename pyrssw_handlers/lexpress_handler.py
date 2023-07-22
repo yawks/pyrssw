@@ -186,7 +186,7 @@ def _process_paywall_json(content: str, dom: etree._Element) -> str:
 
         found_content = "<h1>%s</h1>" % json_content.get(
             "headlines", {}).get("basic", "")
-        
+
         if "promo_items" in json_content:
             promo_items = json_content.get("promo_items").get("basic", {})
             found_content += "<h2>%s</h2>" % promo_items.get("alt_text", "")
@@ -195,7 +195,6 @@ def _process_paywall_json(content: str, dom: etree._Element) -> str:
                     <img src=\"%s\"></img>
                     <figcaption>%s</figcaption>
                 </figure>""" % (promo_items.get("url", ""), promo_items.get("caption", ""))
-
 
         elements = json_content.get("content_elements", [])
 
@@ -259,8 +258,9 @@ def _process_paywall_element(element: dict) -> str:
                 found_content += "<p><i>Unhandled link_list type '%s'</i></p>\n" % item.get(
                     "type", "")
     elif element.get("type") == "custom_embed" and element.get("embed", {}).get("config", {}).get("html", "") != "":
-        found_content += element.get("embed", {}).get("config", {}).get("html", "")
-    else:
+        found_content += element.get("embed", {}
+                                     ).get("config", {}).get("html", "")
+    elif element.get("type", "") != "divider":
         found_content += "<p><i>unhandled type '%s'</i></p>\n" % element.get(
             "type")
 
