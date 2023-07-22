@@ -46,6 +46,7 @@ class ContentProcessor():
             self._manage_translation(dom)
             self._remove_imgs_without_src(dom)
             self._remove_duplicate_imgs(dom)
+            self._process_iframes(dom)
             self.contents = to_string(dom)\
                 .replace("<html>", "")\
                 .replace("</html>", "")\
@@ -74,6 +75,15 @@ class ContentProcessor():
                 img.getparent().remove(img)
             else:
                 imgs.append(img.attrib.get("src"))
+
+    def _process_iframes(self, dom: etree._Element):
+        for iframe in dom.xpath("//iframe"):
+            if "data-tweet-id" not in iframe.attrib and "instagram-media" not in iframe.attrib.get("class", ""):
+                div = etree.Element("div")
+                div.set("class", "video-container")
+                iframe.getparent().append(div)
+                iframe.getparent().remove(iframe)
+                div.append(iframe)
 
     def _post_process_tweets(self, dom: etree._Element):
         """
@@ -258,7 +268,8 @@ class ContentProcessor():
                 #pyrssw_wrapper strong {font-weight:400}
                 #pyrssw_wrapper figure {margin:0}
                 #pyrssw_wrapper figure img {width:100%!important;float:none}
-                #pyrssw_wrapper iframe {width:100%;position:unset!important;min-height: max(220px,20vw);}
+                #pyrssw_wrapper .video-container {position: relative;padding-bottom: 56.25%;height: 0;width: 100%;}
+                #pyrssw_wrapper .video-container iframe {position: absolute;top: 0;left: 0;width: 100%;height: 100%;}
                 #pyrssw_wrapper iframe.instagram-media {margin:auto!important;}
                 #pyrssw_wrapper table, th, td {border: 1px solid;border-collapse: collapse;padding: 5px;}
                 #pyrssw_wrapper blockquote.twitter-tweet {background: transparent;border-left-color: transparent;}
