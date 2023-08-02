@@ -34,7 +34,7 @@ class FranceInfoHandler(PyRSSWRequestHandler):
         return "http://www.franceinfo.fr/"
 
     def get_rss_url(self) -> str:
-        return "http://www.franceinfo.fr/rss.xml"
+        return "https://www.francetvinfo.fr/titres.rss"
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
@@ -107,7 +107,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[contains(@class,"p-article__column--sidebar")]', #francetvinfo
             '//*[contains(@class,"o-related-cards")]', #francetvinfo
             '//*[contains(@class,"p-article__tags")]',  #francetvinfo
-            '//*[contains(@class, "rf-player-wrapper")]' #podcast
+            '//*[contains(@class, "rf-player-wrapper")]', #podcast
+            '//*[contains(@class, "signature__images")]'
         ])
 
         _process_videos(dom)
