@@ -1,13 +1,20 @@
 import logging
 import traceback
-from typing import Dict, List, Optional, Tuple, cast
-from googletrans import Translator, LANGUAGES
+from typing import Dict, List, Optional, Tuple, cast, Any
 from utils.url_utils import is_url_valid
 from lxml import etree
+import httpcore
+
+setattr(httpcore, "SyncHTTPTransport", Any)
+from googletrans import Translator, LANGUAGES
 
 
 def to_string(dom: etree._Element) -> str:
-    return cast(str, cast(bytes, etree.tostring(dom, method="c14n")).decode("utf8")) if dom is not None else ""
+    return (
+        cast(str, cast(bytes, etree.tostring(dom, method="c14n")).decode("utf8"))
+        if dom is not None
+        else ""
+    )
 
 
 def get_content(dom: etree._Element, xpaths: list) -> str:
@@ -23,7 +30,9 @@ def get_content(dom: etree._Element, xpaths: list) -> str:
     return content
 
 
-def get_all_contents(dom: etree._Element, xpaths: list, alt_to_p: bool = False) -> Tuple[str, str]:
+def get_all_contents(
+    dom: etree._Element, xpaths: list, alt_to_p: bool = False
+) -> Tuple[str, str]:
     """Get content of all xpaths provided.
 
     Args:
@@ -51,14 +60,17 @@ def get_all_contents(dom: etree._Element, xpaths: list, alt_to_p: bool = False) 
     return content, alts
 
 
-def xpath(dom: etree._Element, xpath_query: str, namespaces=None) -> List[etree._Element]:
+def xpath(
+    dom: etree._Element, xpath_query: str, namespaces=None
+) -> List[etree._Element]:
     nodes: List[etree._Element] = []
     if dom is not None:
         if namespaces is None:
             nodes = cast(List[etree._Element], dom.xpath(xpath_query))
         else:
-            nodes = cast(List[etree._Element], dom.xpath(
-                xpath_query, namespaces=namespaces))
+            nodes = cast(
+                List[etree._Element], dom.xpath(xpath_query, namespaces=namespaces)
+            )
 
     return nodes
 
@@ -117,7 +129,9 @@ def get_text(dom: etree._Element, xpaths: list) -> str:
     return content
 
 
-def get_first_node(dom: etree._Element, xpaths: list, namespaces: Optional[Dict[str, str]] = None):
+def get_first_node(
+    dom: etree._Element, xpaths: list, namespaces: Optional[Dict[str, str]] = None
+):
     """get first node found in the list of xpath expressions"""
     node: Optional[etree._Element] = None
     for xpath in xpaths:
@@ -144,8 +158,7 @@ def delete_nodes(nodes):
 
 
 def get_xpath_expression_for_filters(parameters, xpath_to_include, xpath_to_exclude):
-    """Get xpath expression to filter item depending on parameters and xpath expressions passed xpath_to_include and xpath_to_exclude must contain ## to be replaced by category text
-    """
+    """Get xpath expression to filter item depending on parameters and xpath expressions passed xpath_to_include and xpath_to_exclude must contain ## to be replaced by category text"""
     # filter only on passed category
     others_than_listed = False
     if parameters["filter"][:1] == "^":  # other categories than listed
@@ -170,32 +183,34 @@ def get_xpath_expression_for_filters(parameters, xpath_to_include, xpath_to_excl
     return "//rss/channel/item[%s]" % xpath_expression
 
 
-def translate_dom(dom: etree._Element, dest_language: str, original_url: Optional[str] = None):
+def translate_dom(
+    dom: etree._Element, dest_language: str, original_url: Optional[str] = None
+):
     if dest_language in LANGUAGES:
         translator = Translator()
         for node in dom.iter():
-            node.text = _translate(cast(str, node.text),
-                                   translator, dest_language)
-            node.tail = _translate(cast(str, node.tail),
-                                   translator, dest_language)
+            node.text = _translate(cast(str, node.text), translator, dest_language)
+            node.tail = _translate(cast(str, node.tail), translator, dest_language)
 
         if original_url is not None:
             a = etree.Element("a")
             a.text = "Untranslated"
-            a.attrib["href"] = original_url\
-                .replace("&translateto=", "&nop=")\
-                .replace("?translateto=", "?nop=")  # quick & dirty
+            a.attrib["href"] = original_url.replace("&translateto=", "&nop=").replace(
+                "?translateto=", "?nop="
+            )  # quick & dirty
             dom.append(etree.Element("hr"))
             dom.append(a)
             dom.append(etree.Element("hr"))
 
 
-def _translate(text: Optional[str], translator: Translator, dest_language: str) -> Optional[str]:
-    PUNCTUATION_CHARS = ''' !()-[]{};:'"\,<>./?@#$%^&*_~'''
+def _translate(
+    text: Optional[str], translator: Translator, dest_language: str
+) -> Optional[str]:
+    PUNCTUATION_CHARS = """ !()-[]{};:'"\,<>./?@#$%^&*_~"""
 
     def punctuation_start(txt: str) -> str:
         i = 0
-        while i+1 < len(txt) and txt[i:i+1] in PUNCTUATION_CHARS:
+        while i + 1 < len(txt) and txt[i : i + 1] in PUNCTUATION_CHARS:
             i += 1
 
         return txt[0:i]
@@ -205,12 +220,17 @@ def _translate(text: Optional[str], translator: Translator, dest_language: str) 
         try:
             starting_punctuation = punctuation_start(text)
             trailing_space = " " if text[-1:] == " " else ""
-            value = "%s%s%s" % (starting_punctuation,
-                                translator.translate(
-                                    text, dest=dest_language).text,
-                                trailing_space)
+            value = "%s%s%s" % (
+                starting_punctuation,
+                translator.translate(text, dest=dest_language).text,
+                trailing_space,
+            )
         except Exception as e:
-            logging.getLogger().info("Error translating '%s' => '%s' (%s)",
-                                     text, str(e), traceback.format_exc())
+            logging.getLogger().info(
+                "Error translating '%s' => '%s' (%s)",
+                text,
+                str(e),
+                traceback.format_exc(),
+            )
 
     return value
