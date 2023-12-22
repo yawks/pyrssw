@@ -403,7 +403,7 @@ class QLArticleBuilder():
     def __init__(self, data: dict, article_node: dict) -> None:
         self.data: dict = data
         self.root: Optional[dict] = json_utils.get_node(
-            self.data, "props", "pageProps", "serverQueryRecords")
+            self.data, "props", "pageProps", "relayRecords")
 
         self.ql_article: dict = article_node
 
