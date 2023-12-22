@@ -108,7 +108,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
             '//*[contains(@class,"o-related-cards")]', #francetvinfo
             '//*[contains(@class,"p-article__tags")]',  #francetvinfo
             '//*[contains(@class, "rf-player-wrapper")]', #podcast
-            '//*[contains(@class, "signature__images")]'
+            '//*[contains(@class, "signature__images")]',
+            '//*[contains(@class, "content-banner-nl")]'
         ])
 
         _process_videos(dom)
