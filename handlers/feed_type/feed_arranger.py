@@ -9,7 +9,7 @@ from urllib.parse import urlparse, quote_plus, parse_qs
 from lxml import etree
 from handlers.constants import GENERIC_PARAMETERS
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
-from utils.dom_utils import to_string, translate_dom, xpath
+from utils.dom_utils import to_string, xpath
 
 IMG_SRC_REGEX = r'(&lt;|<)img.*src=(?:"|\')([^(\'|")]+)[^>]*>'
 
@@ -206,11 +206,7 @@ class FeedArranger(metaclass=ABCMeta):
             description = etree.Element(descriptions[0].tag)  # "description")
             description.text = html.unescape(
                 description_xml.strip()).replace("&nbsp;", " ")
-            if "translateto" in parameters:
-                dom = etree.HTML(description.text)
-                translate_dom(dom, parameters["translateto"])
-                description.text = to_string(dom)
-
+            
             parent_obj.append(description)
 
             if "debug" in parameters and parameters["debug"] == "true":
@@ -250,8 +246,6 @@ class FeedArranger(metaclass=ABCMeta):
 
                 title_node: etree._Element = cast(
                     etree._Element, self.get_title(item))
-                if "translateto" in parameters:
-                    translate_dom(title_node, parameters["translateto"])
                 if img_url == "":
                     # TODO no picture
                     pass

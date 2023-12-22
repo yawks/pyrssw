@@ -4,26 +4,33 @@ import urllib.parse as urlparse
 from urllib.parse import unquote
 from handlers.constants import GENERIC_PARAMETERS
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
-from utils.dom_utils import to_string, translate_dom, xpath
+from utils.dom_utils import to_string, xpath
 
-TWEETS_REGEX = re.compile(
-    r'(?:(?:https:)?//twitter.com/)(?:.*)/status/([^\?]*)')
-PERCENTAGE_REGEX = re.compile(r'\d+(?:\.\d+)?%')
+TWEETS_REGEX = re.compile(r"(?:(?:https:)?//twitter.com/)(?:.*)/status/([^\?]*)")
+PERCENTAGE_REGEX = re.compile(r"\d+(?:\.\d+)?%")
 
 
-class ContentProcessor():
+class ContentProcessor:
     """Generic processing of article content provided by handlers:
-     - add CSS: font, pictures & video dimensions, ...
-     - replace tweet links by tweet cards
-     - apply parameters:
-        - dark/white theme
-        - font size
-        - show/hide main article title
-        - content translation
-        - add a header with the handler name + link of the source article
+    - add CSS: font, pictures & video dimensions, ...
+    - replace tweet links by tweet cards
+    - apply parameters:
+       - dark/white theme
+       - font size
+       - show/hide main article title
+       - content translation
+       - add a header with the handler name + link of the source article
     """
 
-    def __init__(self, handler: PyRSSWRequestHandler, url: str, contents: str, additional_css: str, parameters: dict, handler_url_prefix: str) -> None:
+    def __init__(
+        self,
+        handler: PyRSSWRequestHandler,
+        url: str,
+        contents: str,
+        additional_css: str,
+        parameters: dict,
+        handler_url_prefix: str,
+    ) -> None:
         self.handler: PyRSSWRequestHandler = handler
         self.url: str = url
         self.contents: str = contents
@@ -38,21 +45,22 @@ class ContentProcessor():
 
     def _post_processing(self):
         if len(self.contents.strip()) > 0:
-            #dom = etree.HTML(self.contents.replace("\n", ""), parser=None)
+            # dom = etree.HTML(self.contents.replace("\n", ""), parser=None)
             dom = etree.HTML(self.contents, parser=None)
             self._process_lazyload_imgs(dom)
             self._post_process_tweets(dom)
             self._replace_prefix_urls(dom)
-            self._manage_translation(dom)
             self._remove_imgs_without_src(dom)
             self._remove_duplicate_imgs(dom)
             self._process_iframes(dom)
-            self.contents = to_string(dom)\
-                .replace("<html>", "")\
-                .replace("</html>", "")\
-                .replace("<body>", "")\
-                .replace("</body>", "")\
-                .replace("<video", "<video preload=\"none\"")
+            self.contents = (
+                to_string(dom)
+                .replace("<html>", "")
+                .replace("</html>", "")
+                .replace("<body>", "")
+                .replace("</body>", "")
+                .replace("<video", '<video preload="none"')
+            )
 
             self.contents = self.contents.replace("</br>", "")
 
@@ -78,7 +86,10 @@ class ContentProcessor():
 
     def _process_iframes(self, dom: etree._Element):
         for iframe in dom.xpath("//iframe"):
-            if "data-tweet-id" not in iframe.attrib and "instagram-media" not in iframe.attrib.get("class", ""):
+            if (
+                "data-tweet-id" not in iframe.attrib
+                and "instagram-media" not in iframe.attrib.get("class", "")
+            ):
                 div = etree.Element("div")
                 div.set("class", "video-container")
                 iframe.getparent().append(div)
@@ -87,11 +98,14 @@ class ContentProcessor():
 
     def _post_process_tweets(self, dom: etree._Element):
         """
-            Process tweets, to replace twitter url by tweets' content
+        Process tweets, to replace twitter url by tweets' content
         """
 
         has_tweets: bool = False
-        for a in xpath(dom, "//a[contains(@href,'https://twitter.com/')]|//a[contains(@href,'//twitter.com/')]"):
+        for a in xpath(
+            dom,
+            "//a[contains(@href,'https://twitter.com/')]|//a[contains(@href,'//twitter.com/')]",
+        ):
             m = re.match(TWEETS_REGEX, a.attrib["href"])
             if m is not None:
                 tweet_id: str = m.group(1)
@@ -114,9 +128,8 @@ class ContentProcessor():
                     tweet_id,
                     tweet_id,
                     tweet_id,
-                    "dark" if self.parameters.get(
-                        "theme", "") == "dark" else "light",
-                    tweet_id
+                    "dark" if self.parameters.get("theme", "") == "dark" else "light",
+                    tweet_id,
                 )
                 tweet_div = etree.Element("div")
                 tweet_div.set("id", "tweet_%s" % tweet_id)
@@ -140,14 +153,12 @@ class ContentProcessor():
 
                 if self.parameters.get("theme", "") == "dark":
                     iframe.attrib["src"] = iframe.attrib["src"].replace(
-                        "&theme=light", "&theme=dark")
+                        "&theme=light", "&theme=dark"
+                    )
                 else:
                     iframe.attrib["src"] = iframe.attrib["src"].replace(
-                        "&theme=dark", "&theme=light")
-
-    def _manage_translation(self, dom: etree._Element):
-        if "translateto" in self.parameters:
-            translate_dom(dom, self.parameters["translateto"], self.url)
+                        "&theme=dark", "&theme=light"
+                    )
 
     def _get_header(self) -> str:
         header: str = """
@@ -230,7 +241,10 @@ class ContentProcessor():
     });
 </script>
             <header class="pyrssw_content_header"><div class="pyrssw_container"><a href="%s" target="_blank"><img src="%s"/>%s</a></div></header>""" % (
-                self.parameters["url"], self.handler.get_favicon_url(self.parameters), self.handler.get_handler_name(self.parameters))
+                self.parameters["url"],
+                self.handler.get_favicon_url(self.parameters),
+                self.handler.get_handler_name(self.parameters),
+            )
 
         return header
 
@@ -307,7 +321,10 @@ class ContentProcessor():
         source: str = ""
         domain: str = ""
         if "url" in self.parameters:
-            source = "<p class='pyrssw-source'><a href='%s'>Source</a></p>" % self.parameters["url"]
+            source = (
+                "<p class='pyrssw-source'><a href='%s'>Source</a></p>"
+                % self.parameters["url"]
+            )
             domain = urlparse.urlparse(self.parameters["url"]).netloc
 
         body_padding_for_header = ""
@@ -351,20 +368,28 @@ class ContentProcessor():
 
         global_font_size = "100%"
         smartphone_global_font_size = "120%"
-        if "fontsize" in self.parameters and re.match(PERCENTAGE_REGEX, self.parameters["fontsize"]):
+        if "fontsize" in self.parameters and re.match(
+            PERCENTAGE_REGEX, self.parameters["fontsize"]
+        ):
             global_font_size = self.parameters["fontsize"]
-            smartphone_global_font_size = str(
-                int(int(global_font_size.split("%")[0])) * 1.2) + "%"
+            smartphone_global_font_size = (
+                str(int(int(global_font_size.split("%")[0])) * 1.2) + "%"
+            )
 
         if self.parameters.get("integrationmode", "") == "fullpage":
-            style = style.replace("#BODY_MOBILE#", """
+            style = style.replace(
+                "#BODY_MOBILE#",
+                """
     @media screen and (max-width : 640px) {
         body {
             font-size:#SMARTPHONE_GLOBAL_FONT_SIZE#;
         }
     }
-""")
-            style = style.replace("#BODY#", """
+""",
+            )
+            style = style.replace(
+                "#BODY#",
+                """
     body {
         color: #TEXT_COLOR#;
         background-color:#BACKGROUND_COLOR#;
@@ -375,12 +400,15 @@ class ContentProcessor():
         margin:0;
         #BODY_PADDING_FOR_HEADER#
     }
-""")
+""",
+            )
             style = style.replace("#ADDITIONAL_STYLES_PYRSSW_WRAPPER#", "")
         else:
             style = style.replace("#BODY_MOBILE#", "")
             style = style.replace("#BODY#", "")
-            style = style.replace("#ADDITIONAL_STYLES_PYRSSW_WRAPPER#", """
+            style = style.replace(
+                "#ADDITIONAL_STYLES_PYRSSW_WRAPPER#",
+                """
         color: #TEXT_COLOR#;
         background-color:#BACKGROUND_COLOR#;
         font-family: #FONT_FAMILY#;
@@ -389,23 +417,26 @@ class ContentProcessor():
         font-size: #GLOBAL_FONT_SIZE#;
         margin:0;
         #BODY_PADDING_FOR_HEADER#
-""")
+""",
+            )
 
-        style = style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)\
-                     .replace("#BG_BLOCKQUOTE#", quote_bg_color)\
-                     .replace("#SUBTITLE_COLOR#", subtitle_color)\
-                     .replace("#SUBTITLE_BORDER_COLOR#", subtitle_border_color)\
-                     .replace("#TEXT_COLOR#", text_color)\
-                     .replace("#BACKGROUND_COLOR#", bg_color)\
-                     .replace("#HR_COLOR#", hr_color)\
-                     .replace("#GLOBAL_FONT_SIZE#", global_font_size)\
-                     .replace("#SMARTPHONE_GLOBAL_FONT_SIZE#", smartphone_global_font_size)\
-                     .replace("#HEADER_CSS_BG_COLOR#", header_css_bg_color)\
-                     .replace("#HEADER_CSS_BORDER_COLOR#", header_css_border_color)\
-                     .replace("#HEADER_CSS_A_COLOR#", header_css_a_color)\
-                     .replace("#BODY_PADDING_FOR_HEADER#", body_padding_for_header)\
-                     .replace("#FONT_FAMILY#", font_family)\
-                     .replace("#ROBOTO_FONT_IMPORT#", robot_font_import)
+        style = (
+            style.replace("#QUOTE_LEFT_COLOR#", quote_left_color)
+            .replace("#BG_BLOCKQUOTE#", quote_bg_color)
+            .replace("#SUBTITLE_COLOR#", subtitle_color)
+            .replace("#SUBTITLE_BORDER_COLOR#", subtitle_border_color)
+            .replace("#TEXT_COLOR#", text_color)
+            .replace("#BACKGROUND_COLOR#", bg_color)
+            .replace("#HR_COLOR#", hr_color)
+            .replace("#GLOBAL_FONT_SIZE#", global_font_size)
+            .replace("#SMARTPHONE_GLOBAL_FONT_SIZE#", smartphone_global_font_size)
+            .replace("#HEADER_CSS_BG_COLOR#", header_css_bg_color)
+            .replace("#HEADER_CSS_BORDER_COLOR#", header_css_border_color)
+            .replace("#HEADER_CSS_A_COLOR#", header_css_a_color)
+            .replace("#BODY_PADDING_FOR_HEADER#", body_padding_for_header)
+            .replace("#FONT_FAMILY#", font_family)
+            .replace("#ROBOTO_FONT_IMPORT#", robot_font_import)
+        )
 
         self.contents = """<!DOCTYPE html>
                     <html>
@@ -430,12 +461,20 @@ class ContentProcessor():
                                 %s
                             </div>
                         </body>
-                    </html>""" % (domain, style, self.additional_css, self._get_header(),  self.handler.get_handler_name_for_url(), self.contents, source)
+                    </html>""" % (
+            domain,
+            style,
+            self.additional_css,
+            self._get_header(),
+            self.handler.get_handler_name_for_url(),
+            self.contents,
+            source,
+        )
 
     def _replace_prefix_urls(self, dom: etree._Element):
         """Replace relative urls by absolute urls using handler prefix url"""
 
-        if self.handler.get_original_website() != '' and dom is not None:
+        if self.handler.get_original_website() != "" and dom is not None:
             self._replace_urls_process_links(dom, "href")
             self._replace_urls_process_links(dom, "src")
             self._manage_title(dom)
@@ -446,18 +485,25 @@ class ContentProcessor():
             for parameter in self.parameters:
                 if not parameter.endswith("_crypted") and parameter != "url":
                     if "%s_crypted" % parameter not in self.parameters:
-                        suffix_url += "&%s=%s" % (parameter,
-                                                  self.parameters[parameter])
+                        suffix_url += "&%s=%s" % (parameter, self.parameters[parameter])
                     else:
-                        suffix_url += "&%s=%s" % (parameter,
-                                                  self.parameters["%s_crypted" % parameter])
+                        suffix_url += "&%s=%s" % (
+                            parameter,
+                            self.parameters["%s_crypted" % parameter],
+                        )
 
-            urlp = urlparse.urlparse(self.parameters.get(
-                "rssurl", self.parameters.get("url", "")))
+            urlp = urlparse.urlparse(
+                self.parameters.get("rssurl", self.parameters.get("url", ""))
+            )
             for o in dom.xpath("//a[@href]"):
-                if o.attrib.get("href", "").startswith("%s://%s" % (urlp.scheme, urlp.hostname)):
+                if o.attrib.get("href", "").startswith(
+                    "%s://%s" % (urlp.scheme, urlp.hostname)
+                ):
                     o.attrib["href"] = "%s?url=%s%s" % (
-                        self.handler_url_prefix, o.attrib["href"], suffix_url)
+                        self.handler_url_prefix,
+                        o.attrib["href"],
+                        suffix_url,
+                    )
 
     def _manage_title(self, dom: etree._Element):
         if "hidetitle" in self.parameters and self.parameters["hidetitle"] == "true":
@@ -482,5 +528,8 @@ class ContentProcessor():
                 o.attrib[attribute] = protocol + o.attrib[attribute]
             elif o.attrib[attribute].startswith("/"):
                 o.attrib[attribute] = prefix_url + o.attrib[attribute][1:]
-            elif not o.attrib[attribute].startswith("http") and o.attrib[attribute].find("#") == -1:
+            elif (
+                not o.attrib[attribute].startswith("http")
+                and o.attrib[attribute].find("#") == -1
+            ):
                 o.attrib[attribute] = prefix_url + o.attrib[attribute]

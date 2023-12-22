@@ -5,7 +5,6 @@ This is a RSS proxy reworking existing RSS feeds in order to provide enhanced cl
 - get authentified content using credentials
 - display content in dark mode
 - automatic insertion of tweets using the tweet a href links
-- translate content (through google translate)
 
 
 Best way to use PyRSSW are RSS clients like [Flym](https://github.com/FredJul/Flym) or [FeedBro](https://nodetics.com/feedbro/) which can display feeds content inline.
@@ -132,8 +131,6 @@ Each handler can define its own parameters, but PyRSSW also provides a bunch of 
   ie: `/mywebsitewithnews/rss?hidetitle=true`
 - `header` (boolean): if set to true, a header will be added at the beginning of the article content with the handler name with a link to the original source. The handler name displayed comes from the handler class name separating words starting with a capital with a space. (eg: MyWebsiteWithNewsHandler will become 'My Website With News')
   ie: `/mywebsitewithnews/rss?header=true`
-- `translateto` (string): if set (and valid), the content will be translated using google translate (ie: "en", "fr", "fi")
-  ie: `/mywebsitewithnews/rss?translateto=fr`
 - `nsfw` (boolean): if set to true, the feed thumbnail is blurred
   ie: `/mywebsitewithnews/rss?debug=true`
 - the parameters provided in the feed URLs can be crypted when using sensitive information in parameters like login or passwords. (see crypto*key in configuration file section) When crypted, the parameters values are also replaced by XXX in the server logs. When crypted the value must be prefixed by **!e:**
@@ -142,7 +139,7 @@ Each handler can define its own parameters, but PyRSSW also provides a bunch of 
 - `debug` (boolean): if set to true, will display some debug information after the content
 - `preview` (boolean): only useful for /rss suffix. If set to true the feed will be grapically rendered with 2 panes: one listing items, one displaying item contents.
 
-All the parameters can be combined, ie: `/mywebsitewithnews/rss?debug=true&dark=true&translateto=fr`
+All the parameters can be combined, ie: `/mywebsitewithnews/rss?debug=true&dark=true`
 
 ## Adding new handlers
 

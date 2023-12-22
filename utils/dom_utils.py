@@ -6,7 +6,6 @@ from lxml import etree
 import httpcore
 
 setattr(httpcore, "SyncHTTPTransport", Any)
-from googletrans import Translator, LANGUAGES
 
 
 def to_string(dom: etree._Element) -> str:
@@ -181,56 +180,3 @@ def get_xpath_expression_for_filters(parameters, xpath_to_include, xpath_to_excl
                 xpath_expression += " and "
             xpath_expression += xpath_to_exclude % category
     return "//rss/channel/item[%s]" % xpath_expression
-
-
-def translate_dom(
-    dom: etree._Element, dest_language: str, original_url: Optional[str] = None
-):
-    if dest_language in LANGUAGES:
-        translator = Translator()
-        for node in dom.iter():
-            node.text = _translate(cast(str, node.text), translator, dest_language)
-            node.tail = _translate(cast(str, node.tail), translator, dest_language)
-
-        if original_url is not None:
-            a = etree.Element("a")
-            a.text = "Untranslated"
-            a.attrib["href"] = original_url.replace("&translateto=", "&nop=").replace(
-                "?translateto=", "?nop="
-            )  # quick & dirty
-            dom.append(etree.Element("hr"))
-            dom.append(a)
-            dom.append(etree.Element("hr"))
-
-
-def _translate(
-    text: Optional[str], translator: Translator, dest_language: str
-) -> Optional[str]:
-    PUNCTUATION_CHARS = """ !()-[]{};:'"\,<>./?@#$%^&*_~"""
-
-    def punctuation_start(txt: str) -> str:
-        i = 0
-        while i + 1 < len(txt) and txt[i : i + 1] in PUNCTUATION_CHARS:
-            i += 1
-
-        return txt[0:i]
-
-    value = text
-    if text is not None and len(text.strip()) > 0 and not is_url_valid(text.strip()):
-        try:
-            starting_punctuation = punctuation_start(text)
-            trailing_space = " " if text[-1:] == " " else ""
-            value = "%s%s%s" % (
-                starting_punctuation,
-                translator.translate(text, dest=dest_language).text,
-                trailing_space,
-            )
-        except Exception as e:
-            logging.getLogger().info(
-                "Error translating '%s' => '%s' (%s)",
-                text,
-                str(e),
-                traceback.format_exc(),
-            )
-
-    return value

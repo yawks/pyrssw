@@ -6,7 +6,6 @@ python-dateutil
 readability-lxml
 Pillow
 ftfy
-googletrans
 favicon
 cloudscraper
 timeago
