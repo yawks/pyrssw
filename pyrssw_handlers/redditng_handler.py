@@ -374,11 +374,11 @@ class RedditHandler(PyRSSWRequestHandler):
     def _get_headers(self):
         return {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-            "Accept-Language": "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
+            "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Cache-Control": "no-cache",
             "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Upgrade-Insecure-Requests": "1",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0",
             "Connection": "keep-alive",
             "Pragma": "no-cache"
         }
