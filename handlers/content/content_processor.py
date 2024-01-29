@@ -373,7 +373,7 @@ class ContentProcessor:
         ):
             global_font_size = self.parameters["fontsize"]
             smartphone_global_font_size = (
-                str(int(int(global_font_size.split("%")[0])) * 1.2) + "%"
+                str(int(int(global_font_size.split("%")[0]) * 1.2)) + "%"
             )
 
         if self.parameters.get("integrationmode", "") == "fullpage":
@@ -382,7 +382,7 @@ class ContentProcessor:
                 """
     @media screen and (max-width : 640px) {
         body {
-            font-size:#SMARTPHONE_GLOBAL_FONT_SIZE#;
+            font-size:#SMARTPHONE_GLOBAL_FONT_SIZE#!important;
         }
     }
 """,
