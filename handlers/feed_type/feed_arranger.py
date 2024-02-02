@@ -19,7 +19,9 @@ FEED_XML_CONTENT_TYPE = "application/rss+xml; charset=utf-8"
 
 class FeedArranger(metaclass=ABCMeta):
 
-    def __init__(self, module_name: str, serving_url_prefix: Optional[str], session_id: str) -> None:
+    def __init__(
+        self, module_name: str, serving_url_prefix: Optional[str], session_id: str
+    ) -> None:
         self.module_name: str = module_name
         self.serving_url_prefix: Optional[str] = serving_url_prefix
         self.session_id: str = session_id
@@ -36,7 +38,13 @@ class FeedArranger(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def arrange_feed_top_level_element(self, dom: etree._Element, rss_url_prefix: str, parameters: Dict[str, str], favicon_url: str):
+    def arrange_feed_top_level_element(
+        self,
+        dom: etree._Element,
+        rss_url_prefix: str,
+        parameters: Dict[str, str],
+        favicon_url: str,
+    ):
         """Arrange links in channel or feed node
 
         Args:
@@ -139,7 +147,14 @@ class FeedArranger(metaclass=ABCMeta):
             List[Tuple[str, str, str, str]]: article url, item img url, title, item publication date for all items of the feed
         """
 
-    def arrange(self, parameters: Dict[str, str], contents: str, rss_url_prefix: str, favicon_url: str, handler: PyRSSWRequestHandler) -> Tuple[str, str]:
+    def arrange(
+        self,
+        parameters: Dict[str, str],
+        contents: str,
+        rss_url_prefix: str,
+        favicon_url: str,
+        handler: PyRSSWRequestHandler,
+    ) -> Tuple[str, str]:
         result: str = contents
         content_type = FEED_XML_CONTENT_TYPE
 
@@ -147,15 +162,14 @@ class FeedArranger(metaclass=ABCMeta):
             result: str = contents
             if len(result.strip()) > 0:
                 # I probably do not use etree as I should
-                result = re.sub(
-                    r'<\?xml [^>]*?>', '', result).strip()
-                result = re.sub(
-                    r'<\?xml-stylesheet [^>]*?>', '', result).strip()
+                result = re.sub(r"<\?xml [^>]*?>", "", result).strip()
+                result = re.sub(r"<\?xml-stylesheet [^>]*?>", "", result).strip()
 
                 dom = etree.fromstring(result)
 
                 self.arrange_feed_top_level_element(
-                    dom, rss_url_prefix, parameters, favicon_url)
+                    dom, rss_url_prefix, parameters, favicon_url
+                )
 
                 for item in self.get_items(dom):
                     self._arrange_item(item, parameters)
@@ -163,17 +177,18 @@ class FeedArranger(metaclass=ABCMeta):
 
                 if parameters.get("preview", "") == "true":
                     result, content_type = self.apply_rss_preview(
-                        parameters, handler, dom)
+                        parameters, handler, dom
+                    )
                 else:
-                    result = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
-                        to_string(dom)
+                    result = '<?xml version="1.0" encoding="UTF-8"?>\n' + to_string(dom)
 
         except etree.XMLSyntaxError as e:
             logging.getLogger().info(
                 "[ %s ] - Unable to parse rss feed for module '%s' (%s), let's proceed anyway",
                 datetime.now().strftime("%Y-%m-%d - %H:%M"),
                 self.module_name,
-                str(e))
+                str(e),
+            )
 
         return result, content_type
 
@@ -184,7 +199,8 @@ class FeedArranger(metaclass=ABCMeta):
         if len(descriptions) > 0:
             description: etree._Element = descriptions[0]
             img_url = self._add_thumbnail_in_description(
-                item, description, parameters, thumbnail_url)
+                item, description, parameters, thumbnail_url
+            )
             if thumbnail_url == "" and img_url != "":
                 self.set_thumbnail_item(item, img_url)
 
@@ -204,9 +220,10 @@ class FeedArranger(metaclass=ABCMeta):
             parent_obj.remove(descriptions[0])
 
             description = etree.Element(descriptions[0].tag)  # "description")
-            description.text = html.unescape(
-                description_xml.strip()).replace("&nbsp;", " ")
-            
+            description.text = html.unescape(description_xml.strip()).replace(
+                "&nbsp;", " "
+            )
+
             parent_obj.append(description)
 
             if "debug" in parameters and parameters["debug"] == "true":
@@ -222,30 +239,34 @@ class FeedArranger(metaclass=ABCMeta):
         if len(imgs) > 0:
             thumbnail_url = imgs[0].attrib["url"]
         else:
-            m = re.findall(
-                IMG_SRC_REGEX, to_string(description), re.MULTILINE)
+            m = re.findall(IMG_SRC_REGEX, to_string(description), re.MULTILINE)
             if len(m) > 0 and len(m[0]) > 1:
                 thumbnail_url = m[0][1]
             else:
-                m = re.findall(
-                    IMG_SRC_REGEX, description.text, re.MULTILINE)
+                m = re.findall(IMG_SRC_REGEX, description.text, re.MULTILINE)
                 if len(m) > 0 and len(m[0]) > 1:
                     thumbnail_url = m[0][1]
 
         return thumbnail_url
 
-    def _add_thumbnail_in_description(self, item: etree._Element, description: etree._Element, parameters: Dict[str, str], thumbnail_url: str) -> str:
+    def _add_thumbnail_in_description(
+        self,
+        item: etree._Element,
+        description: etree._Element,
+        parameters: Dict[str, str],
+        thumbnail_url: str,
+    ) -> str:
         img_url: str = thumbnail_url
 
         nsfw: str = "false" if "nsfw" not in parameters else parameters["nsfw"]
         if description.text is not None:
             description_thumbnail_url: str = self._get_thumbnail_url_from_description(
-                description)
+                description
+            )
             if description_thumbnail_url == "":
                 # if description does not have a picture, add one from enclosure or media:content tag if any
 
-                title_node: etree._Element = cast(
-                    etree._Element, self.get_title(item))
+                title_node: etree._Element = cast(etree._Element, self.get_title(item))
                 if img_url == "":
                     # TODO no picture
                     pass
@@ -263,19 +284,27 @@ class FeedArranger(metaclass=ABCMeta):
 
         return img_url
 
-    def _manage_blur_image_link(self, item: etree._Element, description: etree._Element):
+    def _manage_blur_image_link(
+        self, item: etree._Element, description: etree._Element
+    ):
         imgs: list = xpath(description, ".//img")
         if len(imgs) > 0:
             for img in imgs:
                 img.attrib["src"] = "%s/thumbnails?url=%s&blur=true" % (
-                    self.serving_url_prefix, quote_plus(cast(str, img.attrib["src"])))
+                    self.serving_url_prefix,
+                    quote_plus(cast(str, img.attrib["src"])),
+                )
         else:
             srcs = re.findall('src="([^"]*)"', cast(str, description.text))
             for ssrc in srcs:
-                description.text = description.text.replace(cast(str, src), "%s/thumbnails?url=%s&blur=true" % (
-                    self.serving_url_prefix, quote_plus(src)))
+                description.text = description.text.replace(
+                    cast(str, ssrc),
+                    "%s/thumbnails?url=%s&blur=true"
+                    % (self.serving_url_prefix, quote_plus(ssrc)),
+                )
         self.replace_img_links(
-            item, self.serving_url_prefix + "/thumbnails?url=%s&blur=true")
+            item, self.serving_url_prefix + "/thumbnails?url=%s&blur=true"
+        )
 
     def _arrange_feed_link(self, item: etree._Element, parameters: Dict[str, str]):
         """arrange feed link, by adding  parameters if required
@@ -291,8 +320,9 @@ class FeedArranger(metaclass=ABCMeta):
 
         if suffix_url != "":
             for link in self.get_links(item):
-                self.set_url_from_link(link, "%s%s" % (
-                    self.get_url_from_link(link).strip(), suffix_url))
+                self.set_url_from_link(
+                    link, "%s%s" % (self.get_url_from_link(link).strip(), suffix_url)
+                )
 
     def _get_source(self, node: etree._Element) -> Optional[etree._Element]:
         """get source url from link in 'url' parameter
@@ -315,26 +345,37 @@ class FeedArranger(metaclass=ABCMeta):
                 n.append(a)
         return n
 
-    def _generated_complete_url(self, handler_url_prefix: str, parameters: Dict[str, str]) -> str:
+    def _generated_complete_url(
+        self, handler_url_prefix: str, parameters: Dict[str, str]
+    ) -> str:
         complete_url: str = handler_url_prefix
         first = True
         for parameter in parameters:
             # do not put parameters having a crypted version
             if parameters.get("%s_crypted" % parameter, "") == "":
                 complete_url += "?" if first else "&"
-                complete_url += "%s=%s" % (parameter.replace(
-                    "_crypted", ""), parameters[parameter])
+                complete_url += "%s=%s" % (
+                    parameter.replace("_crypted", ""),
+                    parameters[parameter],
+                )
                 first = False
 
         return complete_url
 
-    def apply_rss_preview(self, parameters: dict, handler: PyRSSWRequestHandler, dom: etree._Element):
+    def apply_rss_preview(
+        self, parameters: dict, handler: PyRSSWRequestHandler, dom: etree._Element
+    ):
         handler_name = handler.get_handler_name(parameters)
         handler_favicon = handler.get_favicon_url(parameters)
         html = Path("resources/rss_preview.html").read_text()
         html_items = ""
-        for (url, img_url, title, pub_date) in self.get_items_tuples(dom):
+        for url, img_url, title, pub_date in self.get_items_tuples(dom):
             img = ""
+            if parameters.get("nsfw", "") == "true":
+                img_url = "%s/thumbnails?url=%s&blur=true" % (
+                    self.serving_url_prefix,
+                    quote_plus(img_url),
+                )
             if img_url != "":
                 img = f"""
         <img src="{img_url}" class="item-img"/>
@@ -366,10 +407,9 @@ class FeedArranger(metaclass=ABCMeta):
 """
 
         html = html.replace(
-            "#BODYCLASS#", "dark" if parameters.get("theme", "") == "dark" else "")
-        html = html.replace(
-            "#HANDLER_NAME#", handler_name)
-        html = html.replace(
-            "#ITEMS#", html_items)
+            "#BODYCLASS#", "dark" if parameters.get("theme", "") == "dark" else ""
+        )
+        html = html.replace("#HANDLER_NAME#", handler_name)
+        html = html.replace("#ITEMS#", html_items)
 
         return html, HTML_CONTENT_TYPE
