@@ -1,4 +1,3 @@
-
 import base64
 import re
 from typing import Optional
@@ -36,7 +35,7 @@ class ThumbnailHandler(RequestHandler):
 
     def _get_content(self, path: str, try_to_replace_amp: bool = False):
         content = b""
-        
+
         parsed = urlparse(path)
         if "url" in parse_qs(parsed.query):
             url = unquote_plus(parse_qs(parsed.query)["url"][0])
@@ -47,19 +46,26 @@ class ThumbnailHandler(RequestHandler):
             # returns an empty image
             content = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
 
-        if "blur" in parse_qs(parsed.query) and parse_qs(parsed.query)["blur"][0] == "true":
+        if (
+            "blur" in parse_qs(parsed.query)
+            and parse_qs(parsed.query)["blur"][0] == "true"
+        ):
             try:
                 img = Image.open(BytesIO(content))
+                if img.mode != "RGBA":
+                    img = img.convert("RGBA")
                 img = img.resize((128, 128))
                 blurred_image = img.filter(ImageFilter.BoxBlur(10))
                 img_byte_arr = io.BytesIO()
-                blurred_image.save(img_byte_arr, format='PNG')
+                blurred_image.save(img_byte_arr, format="PNG")
                 content = img_byte_arr.getvalue()
             except Exception as e:
                 if "url" in parse_qs((parsed.query)) and not try_to_replace_amp:
                     content = self._get_content(path, True)
                 else:
                     self._log(
-                        "Unable to blur image (path: %s) (reason : '%s')" % (path, str(e)))
+                        "Unable to blur image (path: %s) (reason : '%s')"
+                        % (path, str(e))
+                    )
 
         return content
