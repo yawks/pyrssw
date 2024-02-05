@@ -10,3 +10,4 @@ favicon
 cloudscraper
 timeago
 maya
+httpcore
