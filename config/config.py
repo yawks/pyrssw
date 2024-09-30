@@ -27,7 +27,7 @@ class Config:
     """handle the optional config file"""
 
     def __init__(self) -> None:
-        self.configuration: Dict[str, str]
+        self.configuration: Dict[str, str] | None = None
         self.config_file: str = ""
 
     def load_config_file(self, config_file: str):
