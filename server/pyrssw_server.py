@@ -48,10 +48,7 @@ class PyRSSWHTTPServer(HTTPServer, AbstractPyRSSWHTTPServer):
             Config.instance().get_server_listening_port())
 
     def get_serving_url_prefix(self) -> str:
-        return "%s://%s:%d" % (
-            self.get_protocol(),
-            Config.instance().get_server_serving_hostname(),
-            Config.instance().get_server_listening_port())
+        return Config.instance().get_server_serving_url_prefix()
 
     def get_auth_key(self) -> Optional[str]:
         return self.auth_key

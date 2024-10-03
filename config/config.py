@@ -15,8 +15,7 @@ SERVER_KEYFILE_KEY = "server.keyfile"
 SERVER_CERTFILE_KEY = "server.certfile"
 SERVER_BASICAUTH_LOGIN_KEY = "server.basicauth.login"
 SERVER_BASICAUTH_PASSWORD_KEY = "server.basicauth.password"
-SERVER_SERVING_HOSTNAME_KEY = "server.serving_hostname"
-SERVER_URL_PREFIX = "server.url_prefix"
+SERVER_SERVING_URL_PREFIX = "server.serving_url_prefix"
 SERVER_CRYPTO_KEY = "server.crypto_key"
 
 
@@ -88,23 +87,14 @@ class Config:
 
         return cert_file
 
-    def get_server_serving_hostname(self) -> str:
+    def get_server_serving_url_prefix(self) -> str:
         server_hostname = self.get_server_listening_hostname()
-        if SERVER_SERVING_HOSTNAME_KEY in self._get_configuration() and self._get_configuration()[SERVER_SERVING_HOSTNAME_KEY] != '':
+        if SERVER_SERVING_URL_PREFIX in self._get_configuration() and self._get_configuration()[SERVER_SERVING_URL_PREFIX] != '':
             server_hostname = self._get_configuration()[
-                SERVER_SERVING_HOSTNAME_KEY]
+                SERVER_SERVING_URL_PREFIX]
 
         return server_hostname
     
-    def get_url_prefix(self) -> str:
-        url_prefix = ""
-
-        if SERVER_URL_PREFIX in self._get_configuration() and self._get_configuration()[SERVER_URL_PREFIX] != '':
-            url_prefix = self._get_configuration()[
-                SERVER_URL_PREFIX]
-
-        return url_prefix
-
     def get_basic_auth_credentials(self) -> Tuple[Optional[str], Optional[str]]:
         login = None
         password = None
