@@ -16,6 +16,7 @@ SERVER_CERTFILE_KEY = "server.certfile"
 SERVER_BASICAUTH_LOGIN_KEY = "server.basicauth.login"
 SERVER_BASICAUTH_PASSWORD_KEY = "server.basicauth.password"
 SERVER_SERVING_HOSTNAME_KEY = "server.serving_hostname"
+SERVER_URL_PREFIX = "server.url_prefix"
 SERVER_CRYPTO_KEY = "server.crypto_key"
 
 
@@ -27,7 +28,7 @@ class Config:
     """handle the optional config file"""
 
     def __init__(self) -> None:
-        self.configuration: Dict[str, str]
+        self.configuration: Dict[str, str] | None = None
         self.config_file: str = ""
 
     def load_config_file(self, config_file: str):
@@ -94,6 +95,15 @@ class Config:
                 SERVER_SERVING_HOSTNAME_KEY]
 
         return server_hostname
+    
+    def get_url_prefix(self) -> str:
+        url_prefix = ""
+
+        if SERVER_URL_PREFIX in self._get_configuration() and self._get_configuration()[SERVER_URL_PREFIX] != '':
+            url_prefix = self._get_configuration()[
+                SERVER_URL_PREFIX]
+
+        return url_prefix
 
     def get_basic_auth_credentials(self) -> Tuple[Optional[str], Optional[str]]:
         login = None

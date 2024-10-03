@@ -1,4 +1,5 @@
 lxml
+lxml_html_clean
 requests
 typing_extensions
 cryptography
