@@ -210,7 +210,11 @@ class EurosportHandler(PyRSSWRequestHandler):
 
         page = session.get(
             url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % vid)
-        j = json.loads(page.text)
+        try:
+            j = json.loads(page.text)
+        except Exception as e:
+            j = {}
+            video_content = "Error"
 
         if "EmbedUrl" in j:
             embed: str = ""
@@ -584,7 +588,11 @@ class QLArticleBuilder():
                 cast(str, node["id"]).encode("ascii")).decode("ascii")
             page = requests.get(
                 url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % video_id[len("Video:"):])
-            j = json.loads(page.text)
+            try:
+                j = json.loads(page.text)
+            except Exception as e:
+                j = {}
+                content = "<i>Error : " + str(e) + "</i>"
 
             poster = ""
             if "PictureUrl" in j:
