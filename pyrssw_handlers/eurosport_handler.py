@@ -324,7 +324,11 @@ class ArticleBuilder():
                 title = content_dict["title"]
             page = requests.get(
                 url="https://www.eurosport.fr/cors/feed_player_video_vid%s.json" % content_dict["databaseId"])
-            j = json.loads(page.text)
+            try:
+                j = json.loads(page.text)
+            except Exception as e:
+                j = {}
+                content = "<i>Error : " + str(e) + "</i>"
 
             if poster == "" and "PictureUrl" in j:
                 poster = j["PictureUrl"]
