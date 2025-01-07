@@ -286,11 +286,11 @@ def _complete_with_h1(dom: etree.HTML, summary: str) -> str:
     if h1 is None:
         h1 = get_first_node(dom, ["//h1"])
     if h1 is not None:
-        h1_str = re.sub('\s+(?=<)', '', to_string(h1))
+        h1_str = re.sub(r'\s+(?=<)', '', to_string(h1))
         if h1_str.strip() != "":
             h1_content = h1_str
 
-    if h1_content in re.sub('\s+(?=<)', '', summary):
+    if h1_content in re.sub(r'\s+(?=<)', '', summary):
         h1_content = ""
     elif h1_content == "":
         # if nothing found in h1, take a look in the title of the page
