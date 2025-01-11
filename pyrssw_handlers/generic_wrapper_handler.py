@@ -90,9 +90,14 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
             #f eed = feed.replace('<?xml version="1.0" encoding="utf-8"?>', '')
             dom = etree.fromstring(feed.encode("utf-8"))
             
+            urlp = urlparse(parameters["rssurl"])
+            domain = f"{urlp.scheme}://{urlp.netloc}"
             for item in xpath(dom, "//item"):
                 for link in xpath(item, ".//link"):
-                    link.text = f"{self.url_prefix}?url={quote_plus(cast(str, link.text))}"
+                    if link.text.find(domain) == -1:
+                        link.getparent().remove(link)
+                    else:
+                        link.text = f"{self.url_prefix}?url={quote_plus(cast(str, link.text))}"
             
             feed = to_string(dom)
 
