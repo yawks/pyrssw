@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.20.4
 EXPOSE 3031
 COPY . /app
 WORKDIR /app
