@@ -22,8 +22,6 @@ RUN apk add jpeg-dev zlib-dev freetype-dev lcms2-dev openjpeg-dev tiff-dev tk-de
 
 RUN python3 -m venv /opt/venv
 RUN . /opt/venv/bin/activate && pip install -r requirements.txt
-#RUN pip install --no-cache-dir -r requirements.txt
-
 
 CMD [ "/opt/venv/bin/python", \
         "-m", "main", "-c", "/config/config.ini"]

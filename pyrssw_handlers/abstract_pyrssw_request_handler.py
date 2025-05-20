@@ -1,18 +1,18 @@
 from abc import ABCMeta, abstractmethod
+from typing import Dict, List, Optional, cast
 import datetime
 import logging
 import re
+from urllib.parse import quote_plus
+import requests
 from lxml import etree
+from cryptography.fernet import Fernet
+from ftfy import fix_text
 from utils.dom_utils import get_first_node, text, to_string, xpath
 from utils.url_utils import is_url_valid
-from request.pyrssw_content import PyRSSWContent
-from typing import Dict, List, Optional, cast
-from urllib.parse import quote_plus
 from utils.readability import Document
-from ftfy import fix_text
+from request.pyrssw_content import PyRSSWContent
 
-import requests
-from cryptography.fernet import Fernet
 
 # this prefix is added to encrypted values to help the url parameters finder knowing which parameters must be decrypted
 ENCRYPTED_PREFIX = "!e:"

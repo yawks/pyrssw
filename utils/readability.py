@@ -3,7 +3,7 @@ from __future__ import print_function
 import logging
 import re
 import sys
-from lxml.etree import tounicode, Element
+from lxml.etree import tounicode, tostring
 from lxml.html import document_fromstring
 from lxml.html import fragment_fromstring
 
@@ -13,7 +13,6 @@ from readability.htmls import build_doc
 from readability.htmls import get_body
 from readability.htmls import get_title
 from readability.htmls import shorten_title
-from readability.compat import str_, bytes_, tostring_
 from readability.debug import describe, text_content
 
 
@@ -45,6 +44,8 @@ REGEXES = {
     # skipFootnoteLink:      /^\s*(\[?[a-z0-9]{1,2}\]?|^|edit|citation needed)\s*$/i,
 }
 
+def tostring_(s):
+    return tostring(s, encoding='utf-8')
 
 class Unparseable(ValueError):
     pass
@@ -78,9 +79,9 @@ def compile_pattern(elements):
         return None
     elif isinstance(elements, re.Pattern):
         return elements
-    elif isinstance(elements, (str_, bytes_)):
-        if isinstance(elements, bytes_):
-            elements = str_(elements, "utf-8")
+    elif isinstance(elements, (str, bytes)):
+        if isinstance(elements, bytes):
+            elements = str(elements, "utf-8")
         elements = elements.split(u",")
     if isinstance(elements, (list, tuple)):
         return re.compile(u"|".join([re.escape(x.strip()) for x in elements]), re.U)
@@ -265,7 +266,7 @@ class Document:
                 from .compat.two import raise_with_traceback
             else:
                 from .compat.three import raise_with_traceback
-            raise_with_traceback(Unparseable, sys.exc_info()[2], str_(e))
+            raise_with_traceback(Unparseable, sys.exc_info()[2], str(e))
 
     def get_article(self, candidates, best_candidate, html_partial=False):
         # Now that we have the top candidate, look through its siblings for
@@ -466,7 +467,7 @@ class Document:
             # This results in incorrect results in case there is an <img>
             # buried within an <a> for example
             if not REGEXES["divToPElementsRe"].search(
-                str_(b"".join(map(tostring_, list(elem))))
+                str(b"".join(map(tostring_, list(elem))))
             ):
                 # log.debug("Altering %s to p" % (describe(elem)))
                 elem.tag = "p"
@@ -648,7 +649,7 @@ class Document:
                             siblings.append(sib_content_length)
                             if j == x:
                                 break
-                    # log.debug(str_(siblings))
+                    # log.debug(str(siblings))
                     if siblings and sum(siblings) > 1000:
                         to_remove = False
                         log.debug("Allowing %s", describe(el))
