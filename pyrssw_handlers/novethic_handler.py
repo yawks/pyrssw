@@ -24,7 +24,7 @@ class NovethicHandler(PyRSSWRequestHandler):
         return "https://www.novethic.fr/"
 
     def get_rss_url(self) -> str:
-        return "https://www.novethic.fr/flux-rss/flux/rssall/tous-les-articles.xml"
+        return "https://www.novethic.fr/feed"
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:

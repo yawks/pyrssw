@@ -81,6 +81,11 @@ class FranceInfoHandler(PyRSSWRequestHandler):
         utils.dom_utils.delete_xpaths(
             dom,
             [
+                '//*[contains(@class, "current-lives")]',
+                '//*[contains(@class, "live-timeliner-wrapper")]',
+                '//*[contains(@class, "fi-button")]',
+                '//*[contains(@class, "related-tags")]',  # francetvinfo
+                '//*[contains(@class, "esi-block")]',  # francetvinfo
                 '//*[contains(@class, "block-share")]',
                 '//*[@id="newsletter-onvousrepond"]',
                 '//*[contains(@class, "partner-block")]',
