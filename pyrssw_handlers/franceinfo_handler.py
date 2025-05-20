@@ -84,7 +84,13 @@ class FranceInfoHandler(PyRSSWRequestHandler):
                 '//*[contains(@class, "current-lives")]',
                 '//*[contains(@class, "live-timeliner-wrapper")]',
                 '//*[contains(@class, "fi-button")]',
-                '//*[contains(@class, "related-tags")]',  # francetvinfo
+                '//*[contains(@class, "optin-newsletter-main__desc")]',
+                '//*[contains(@class, "optin-newsletter-main__frm")]',
+                '//*[contains(@class, "article_newsletter")]',
+                '//*[contains(@class, "last-content")]',  # la1ere
+                '//button[contains(@class, "show_more")]',
+                '//form',
+                '//*[contains(@class, "related-tags")]',
                 '//*[contains(@class, "esi-block")]',  # francetvinfo
                 '//*[contains(@class, "block-share")]',
                 '//*[@id="newsletter-onvousrepond"]',
