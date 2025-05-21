@@ -6,7 +6,7 @@ from handlers.constants import GENERIC_PARAMETERS
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 from utils.dom_utils import to_string, xpath
 
-TWEETS_REGEX = re.compile(r"(?:(?:https:)?//twitter.com/)(?:.*)/status/([^\?]*)")
+TWEETS_REGEX = re.compile(r"(?:(?:https:)?//(twitter|x).com/)(?:.*)/status/([^\?]*)")
 PERCENTAGE_REGEX = re.compile(r"\d+(?:\.\d+)?%")
 
 
@@ -104,11 +104,11 @@ class ContentProcessor:
         has_tweets: bool = False
         for a in xpath(
             dom,
-            "//a[contains(@href,'https://twitter.com/')]|//a[contains(@href,'//twitter.com/')]",
+            "//a[contains(@href,'https://twitter.com/')]|//a[contains(@href,'//twitter.com/')]|//a[contains(@href,'https://x.com/')]|//a[contains(@href,'//x.com/')]",
         ):
             m = re.match(TWEETS_REGEX, a.attrib["href"])
             if m is not None:
-                tweet_id: str = m.group(1)
+                tweet_id: str = m.group(2)
                 has_tweets = True
                 script = etree.Element("script")
                 script.text = """
