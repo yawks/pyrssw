@@ -1,13 +1,13 @@
 import json
-from request.pyrssw_content import PyRSSWContent
+from typing import Dict
 import re
-from typing import Dict, Optional, cast
 
 import requests
 from lxml import etree
 
-import utils.dom_utils
+from request.pyrssw_content import PyRSSWContent
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
+import utils.dom_utils
 from utils.dom_utils import text, to_string, xpath
 
 

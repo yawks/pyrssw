@@ -1,15 +1,11 @@
-import base64
-import re
-from typing import Optional
-from urllib.parse import unquote_plus
-from PIL import ImageFilter
-from urllib.parse import urlparse, parse_qs
-from handlers.request_handler import RequestHandler
-from handlers.launcher_handler import USER_AGENT
-from PIL import Image
-from io import BytesIO
 import io
+from io import BytesIO
+from typing import Optional
+from urllib.parse import unquote_plus, urlparse, parse_qs
+from PIL import ImageFilter
+from PIL import Image
 from utils.http_client import http_client
+from handlers.request_handler import RequestHandler
 
 
 class ThumbnailHandler(RequestHandler):

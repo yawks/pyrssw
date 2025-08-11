@@ -3,13 +3,10 @@ from datetime import datetime
 import html
 import json
 import logging
-import urllib.parse
-from base64 import b64decode
-from xml.sax import handler
-from request.pyrssw_content import PyRSSWContent
-from typing import Dict, List, Optional, cast
-
 import requests
+from request.pyrssw_content import PyRSSWContent
+from typing import Dict, Optional, cast
+
 from utils.http_client import http_client
 from lxml import etree
 
@@ -86,7 +83,6 @@ class EurosportHandler(PyRSSWRequestHandler):
         #    utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         # replace video links, they must be processed by getContent
-        utils.dom_utils.get_content(node)
         for node in xpath(dom, '//a[@class[contains(., "card-hover")]]'):
             title = node.xpath(".//h3/text()")[0]
             sport = node.xpath('.//div[@data-testid="atom-card-text"]/text()')[0]

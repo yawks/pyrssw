@@ -1,11 +1,4 @@
-mongo:
-    image: mongo
-    ports:
-      - 27017:27017
-
 pyrssw:
     image: pyrssw_wsgi
     ports:
         - 3031:3031
-    links:
-        - mongo
