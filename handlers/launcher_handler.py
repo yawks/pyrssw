@@ -11,6 +11,7 @@ from handlers.feed_type.rss2_arranger import RSS2Arranger
 from handlers.request_handler import RequestHandler
 from pyrssw_handlers.abstract_pyrssw_request_handler import (
     ENCRYPTED_PREFIX, PyRSSWRequestHandler)
+from utils.http_client import HTTPSession
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
@@ -72,7 +73,7 @@ class LauncherHandler(RequestHandler):
         self._log("content page requested: %s" % unquote_plus(url))
         requested_url = url
         self.content_type = HTML_CONTENT_TYPE
-        session: requests.Session = requests.Session()
+        session: requests.Session = HTTPSession()
         session.headers.update({"User-Agent": USER_AGENT})
 
         if "url" in parameters:
@@ -98,7 +99,7 @@ class LauncherHandler(RequestHandler):
     def _process_rss(self, parameters: Dict[str, str]):
         self._log("/rss requested for module '%s' (%s)" %
                   (self.module_name, self.url))
-        session: requests.Session = requests.Session()
+        session: requests.Session = HTTPSession()
         session.headers.update({"User-Agent": USER_AGENT})
 
         self.contents = self.handler.get_feed(parameters, session)

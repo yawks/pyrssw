@@ -1,13 +1,16 @@
 import base64
+from datetime import datetime
 import html
 import json
 import logging
+import urllib.parse
 from base64 import b64decode
 from xml.sax import handler
 from request.pyrssw_content import PyRSSWContent
 from typing import Dict, List, Optional, cast
 
 import requests
+from utils.http_client import http_client
 from lxml import etree
 
 import utils.dom_utils
@@ -83,6 +86,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         #    utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
 
         # replace video links, they must be processed by getContent
+        utils.dom_utils.get_content(node)
         for node in xpath(dom, '//a[@class[contains(., "card-hover")]]'):
             title = node.xpath(".//h3/text()")[0]
             sport = node.xpath('.//div[@data-testid="atom-card-text"]/text()')[0]
@@ -112,7 +116,7 @@ class EurosportHandler(PyRSSWRequestHandler):
     def _get_rss_link_description(self, link_url: str) -> str:
         """find in rss file the item having the link_url and returns the description"""
         description = ""
-        feed = requests.get(url=self.get_rss_url(), headers={}).text
+        feed = http_client.get(url=self.get_rss_url(), headers={}).text
         dom = etree.fromstring(feed.encode("utf-8"), parser=None)
         descriptions = xpath(
             dom, "//item/link/text()[contains(., '%s')]/../../description" % link_url
@@ -246,7 +250,7 @@ class EurosportHandler(PyRSSWRequestHandler):
                 end = content[idx:].find("</script>")
 
                 next_data = content[idx + 1 : idx + end]
-                
+
                 if (
                     next_data.find(f"ARTICLE|{source_article_id}") > -1
                 ):  # next_f containing the article
@@ -448,9 +452,7 @@ class JSONArticleBuilder:
                         f"<h2>{self.process_contents(content['contents'])}</h2>"
                     )
                 elif content["_type"] == "BodyBlockquote":
-                    html_content += (
-                        f"<blockquote>{self.process_contents(content['contents'])}</blockquote>"
-                    )
+                    html_content += f"<blockquote>{self.process_contents(content['contents'])}</blockquote>"
                 elif content["_type"] == "BodyParagraph":
                     html_content += (
                         f"<p>{self.process_contents(content['contents'])}</p>"
@@ -471,6 +473,9 @@ class JSONArticleBuilder:
                         url = content["url"]
                         label = content["label"]
                         html_content += f'<p><a href="{url}">{label}</a></p>'
+                elif content["_type"] == "BodyHyperLinkInternal":
+                    # internal_url = content["referenceHash"] # TODO handle this
+                    html_content += content["label"]
                 else:
                     print(f"Unknown content type: {content['_type']}")
 

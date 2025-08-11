@@ -239,7 +239,7 @@ class RedditHandler(PyRSSWRequestHandler):
 
     def _get_content_by_url(self, session: Session, url: str, post_hint: str) -> Optional[str]:
         external_content: Optional[str] = None
-        if url.startswith("https://twitter.com/"):
+        if url.startswith("https://twitter.com/") or url.startswith("https://x.com/"):
             external_content = "<p><a href=\"%s\">Tweet</a></p>" % url
         elif url.startswith("https://www.youtube.com/"):
             external_content = "<iframe class=\"pyrssw_youtube\" src=\"%s\">Youtube</iframe></p>" % url.replace(

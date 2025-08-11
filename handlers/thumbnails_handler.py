@@ -3,13 +3,13 @@ import re
 from typing import Optional
 from urllib.parse import unquote_plus
 from PIL import ImageFilter
-import requests
 from urllib.parse import urlparse, parse_qs
 from handlers.request_handler import RequestHandler
 from handlers.launcher_handler import USER_AGENT
 from PIL import Image
 from io import BytesIO
 import io
+from utils.http_client import http_client
 
 
 class ThumbnailHandler(RequestHandler):
@@ -41,7 +41,7 @@ class ThumbnailHandler(RequestHandler):
             url = unquote_plus(parse_qs(parsed.query)["url"][0])
             if try_to_replace_amp:
                 url = url.replace("&amp;", "&")
-            content = requests.get(url).content
+            content = http_client.get(url).content
         else:
             # returns an empty image
             content = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="

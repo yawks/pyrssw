@@ -824,7 +824,7 @@ def _process_tweet(dom: etree._Element):
         tweet_id = tweet.get("data-tweetid", "")
         if tweet_id != "":
             a = etree.Element("a")
-            a.attrib["href"] = f"https://twitter.com/NFL/status/{tweet_id}"
+            a.attrib["href"] = f"https://x.com/NFL/status/{tweet_id}"
             tweet.append(a)
 
 

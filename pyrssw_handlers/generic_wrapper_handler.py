@@ -9,6 +9,7 @@ from pyrssw_handlers.abstract_pyrssw_request_handler import \
 import favicon
 from ftfy import fix_text
 from utils.dom_utils import to_string, xpath
+from utils.http_client import http_client
 
 
 class GenericWrapperHandler(PyRSSWRequestHandler):
@@ -45,17 +46,17 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
             larger_favicon_url = ""
             larger_favicon_width = 0
             for fav in favicon.get(url):
-                    if requests.head(fav.url).status_code == 200 and fav.width >= larger_favicon_width:
-                        larger_favicon_url = fav.url
-                        larger_favicon_width = fav.width
+                if http_client.head(fav.url).status_code == 200 and fav.width >= larger_favicon_width:
+                    larger_favicon_url = fav.url
+                    larger_favicon_width = fav.width
             
             return larger_favicon_url
 
         if urlp.hostname is not None:
             try:
                 favicon_url = get_favicon("%s://%s" % (urlp.scheme, urlp.hostname))
-            except:
-                feed = requests.get(url).text
+            except Exception:
+                feed = http_client.get(url).text
                 dom = etree.fromstring(feed.encode("utf-8"))
                 site_urls = xpath(dom, "//link")
                 if len(site_urls) > 0:
@@ -69,7 +70,7 @@ class GenericWrapperHandler(PyRSSWRequestHandler):
         urlp = urlparse(parameters.get("rssurl", parameters.get("url", "")))
         if urlp.hostname is not None:
             site_name = urlp.hostname
-            html = requests.get("%s://%s" % (urlp.scheme, urlp.hostname)).text
+            html = http_client.get("%s://%s" % (urlp.scheme, urlp.hostname)).text
             dom = etree.HTML(html, parser=None)
             site_names = xpath(dom, '//meta[@property="og:site_name"]')
             if len(site_names) > 0:

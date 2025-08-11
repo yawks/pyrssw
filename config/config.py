@@ -7,7 +7,11 @@ from cryptography.fernet import Fernet
 from utils.singleton import Singleton
 
 DEFAULT_HOST_NAME = socket.gethostbyaddr(socket.gethostname())[0]
-DEFAULT_PORT_NUMBER = 8001
+DEFAULT_PORT_NUMBER = 8111
+
+# HTTP Client timeouts
+DEFAULT_HTTP_TIMEOUT = 30  # 30 seconds total timeout
+DEFAULT_HTTP_CONNECT_TIMEOUT = 10  # 10 seconds connection timeout
 
 SERVER_LISTENING_HOSTNAME_KEY = "server.listening_hostname"
 SERVER_LISTENING_PORT_KEY = "server.listening_port"
@@ -17,6 +21,8 @@ SERVER_BASICAUTH_LOGIN_KEY = "server.basicauth.login"
 SERVER_BASICAUTH_PASSWORD_KEY = "server.basicauth.password"
 SERVER_SERVING_URL_PREFIX = "server.serving_url_prefix"
 SERVER_CRYPTO_KEY = "server.crypto_key"
+HTTP_TIMEOUT_KEY = "http.timeout"
+HTTP_CONNECT_TIMEOUT_KEY = "http.connect_timeout"
 
 
 DEFAULT_CONFIG_FILE = "resources/config.ini"
@@ -44,6 +50,11 @@ class Config:
             self.load_config_file(DEFAULT_CONFIG_FILE)
 
         return cast(Dict[str, str], self.configuration)
+
+    def get_property(self, key: str, default_value: str = "") -> str:
+        """Get a property value from configuration, with optional default."""
+        config = self._get_configuration()
+        return config.get(key, default_value)
 
     def load_properties(self, sep: str = '=', comment_char: str = '#'):
         # credits: https://stackoverflow.com/questions/3595363/properties-file-in-python-similar-to-java-properties

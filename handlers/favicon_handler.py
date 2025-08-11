@@ -1,9 +1,9 @@
 from weakref import ref
-import requests
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
 from typing import Dict, Optional, Type
 from urllib.parse import urlparse
 from handlers.request_handler import RequestHandler
+from utils.http_client import http_client
 
 
 class FaviconHandler(RequestHandler):
@@ -28,7 +28,7 @@ class FaviconHandler(RequestHandler):
                 try:
                     #handler_instance = handler_type()
                     if handler_name in parsed.path:
-                        self.contents = str(requests.get(
+                        self.contents = str(http_client.get(
                             handler_type.get_favicon_url({})).content)
                         break
 
