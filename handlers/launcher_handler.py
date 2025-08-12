@@ -1,20 +1,23 @@
-
-from handlers.content.content_processor import ContentProcessor
 from typing import Dict, Optional, Tuple, Type, cast
 import traceback
-import requests
 import urllib.parse as urlparse
 from urllib.parse import parse_qs, unquote_plus
+import requests
 from cryptography.fernet import Fernet, InvalidToken
 from handlers.feed_type.atom_arranger import AtomArranger
 from handlers.feed_type.rss2_arranger import RSS2Arranger
 from handlers.request_handler import RequestHandler
+from handlers.content.content_processor import ContentProcessor
 from pyrssw_handlers.abstract_pyrssw_request_handler import (
-    ENCRYPTED_PREFIX, PyRSSWRequestHandler)
+    ENCRYPTED_PREFIX,
+    PyRSSWRequestHandler,
+)
 from utils.http_client import HTTPSession
 
 HTML_CONTENT_TYPE = "text/html; charset=utf-8"
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0"
+)
 
 # duration in minutes of a session
 SESSION_DURATION = 30 * 60
@@ -23,24 +26,26 @@ SESSION_DURATION = 30 * 60
 class LauncherHandler(RequestHandler):
     """Handler which launches custom PyRSSWRequestHandler"""
 
-    def __init__(self, module_name: str,
-                 handlers: Dict[str, Type[PyRSSWRequestHandler]],
-                 serving_url_prefix: Optional[str],
-                 url: str,
-                 crypto_key: bytes,
-                 session_id: str, source_ip: Optional[str]):
+    def __init__(
+        self,
+        module_name: str,
+        handlers: Dict[str, Type[PyRSSWRequestHandler]],
+        serving_url_prefix: Optional[str],
+        url: str,
+        crypto_key: bytes,
+        session_id: str,
+        source_ip: Optional[str],
+    ):
         super().__init__(source_ip)
         self.handler: PyRSSWRequestHandler
         self.serving_url_prefix: Optional[str] = serving_url_prefix
-        self.handler_url_prefix: str = "%s/%s" % (
-            serving_url_prefix, module_name)
+        self.handler_url_prefix: str = "%s/%s" % (serving_url_prefix, module_name)
         self.url: str = url
         self.module_name: str = module_name
         self.fernet: Fernet = Fernet(crypto_key)
         self.session_id: str = session_id
         if module_name in handlers:
-            self.handler = handlers[module_name](
-                self.fernet, self.handler_url_prefix)
+            self.handler = handlers[module_name](self.fernet, self.handler_url_prefix)
             self.process()
         else:
             raise Exception("No handler found for name '%s'" % module_name)
@@ -65,7 +70,11 @@ class LauncherHandler(RequestHandler):
                                         <br/>
                                         <pre>%s</pre>
                                     </body>
-                                </html>""" % (self.url, str(e), traceback.format_exc())
+                                </html>""" % (
+                self.url,
+                str(e),
+                traceback.format_exc(),
+            )
             self.content_type = "text/html; utf-8"
             self.status = 500
 
@@ -78,7 +87,9 @@ class LauncherHandler(RequestHandler):
 
         if "url" in parameters:
             requested_url = parameters["url"]
-        if not requested_url.startswith("https://") and not requested_url.startswith("http://"):
+        if not requested_url.startswith("https://") and not requested_url.startswith(
+            "http://"
+        ):
             requested_url += self.handler.get_original_website()
 
         if "plain" in parameters and parameters["plain"] == "true":
@@ -86,7 +97,8 @@ class LauncherHandler(RequestHandler):
             self.contents = session.get(requested_url).text
         else:
             pyrssw_content = self.handler.get_content(
-                requested_url, parameters, session)
+                requested_url, parameters, session
+            )
 
             self.contents = ContentProcessor(
                 handler=cast(PyRSSWRequestHandler, self.handler),
@@ -94,21 +106,35 @@ class LauncherHandler(RequestHandler):
                 contents=pyrssw_content.content,
                 additional_css=pyrssw_content.css,
                 handler_url_prefix=self.handler_url_prefix,
-                parameters=parameters).process()
+                parameters=parameters,
+            ).process()
 
     def _process_rss(self, parameters: Dict[str, str]):
-        self._log("/rss requested for module '%s' (%s)" %
-                  (self.module_name, self.url))
+        self._log("/rss requested for module '%s' (%s)" % (self.module_name, self.url))
         session: requests.Session = HTTPSession()
         session.headers.update({"User-Agent": USER_AGENT})
 
         self.contents = self.handler.get_feed(parameters, session)
         if self.contents.find("<rss ") > -1:
             self.contents, self.content_type = RSS2Arranger(
-                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url(parameters), self.handler)
+                self.module_name, self.serving_url_prefix, self.session_id
+            ).arrange(
+                parameters,
+                self.contents,
+                self.handler_url_prefix + "/rss",
+                self.handler.get_favicon_url(parameters),
+                self.handler,
+            )
         elif self.contents.find("<feed ") > -1:
             self.contents, self.content_type = AtomArranger(
-                self.module_name, self.serving_url_prefix, self.session_id).arrange(parameters, self.contents, self.handler_url_prefix + "/rss", self.handler.get_favicon_url(parameters), self.handler)
+                self.module_name, self.serving_url_prefix, self.session_id
+            ).arrange(
+                parameters,
+                self.contents,
+                self.handler_url_prefix + "/rss",
+                self.handler.get_favicon_url(parameters),
+                self.handler,
+            )
 
     def _extract_path_and_parameters(self, url: str) -> Tuple[str, dict]:
         """Extract url path and parameters (and decrypt them if they were crypted)
@@ -142,9 +168,10 @@ class LauncherHandler(RequestHandler):
         value = unquote_plus(v)
         if self.fernet is not None and value.find(ENCRYPTED_PREFIX) > -1:
             try:
-                crypted_value = value[len(ENCRYPTED_PREFIX):]
-                value = self.fernet.decrypt(
-                    crypted_value.encode("ascii")).decode("ascii")
+                crypted_value = value[len(ENCRYPTED_PREFIX) :]
+                value = self.fernet.decrypt(crypted_value.encode("ascii")).decode(
+                    "ascii"
+                )
             except InvalidToken as e:
                 self._log("Error decrypting : %s" % str(e))
 
