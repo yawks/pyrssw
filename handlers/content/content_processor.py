@@ -262,6 +262,7 @@ class ContentProcessor:
                     max-width:800px;
                     margin:auto;
                     padding:8px;
+                    overflow-x: hidden;
                     #ADDITIONAL_STYLES_PYRSSW_WRAPPER#
                 }
                 #pyrssw_wrapper * {max-width: 100%; word-break: break-word}

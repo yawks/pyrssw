@@ -39,7 +39,7 @@ class Sport24Handler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
-        return "https://static-s.aa-cdn.net/img/ios/378095281/153e14a0a7986d4fe3e1802129113c66"
+        return "https://www.lefigaro.fr/favicon.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         if parameters.get("filter") == ("tennis" or "football" or "rugby" or "cyclisme" or "golf" or "basket" or "jeux-olympiques" or "voile" or "handball" or "formule-1" or "football-transfert"):

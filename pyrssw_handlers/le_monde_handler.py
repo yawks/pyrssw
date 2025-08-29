@@ -63,7 +63,7 @@ class LeMondeHandler(PyRSSWRequestHandler):
 
     @staticmethod
     def get_favicon_url(_: Dict[str, str]) -> str:
-        return "https://www.lemonde.fr/dist/assets/img/logos/favicon.ico"
+        return "https://www.lemonde.fr/bucket/resources/front/img/logos/favicon.e92b44c2b7f5c147.ico"
 
     def get_feed(self, parameters: dict, session: requests.Session) -> str:
         feed_urls: List[str] = self._get_feed_urls(parameters)
