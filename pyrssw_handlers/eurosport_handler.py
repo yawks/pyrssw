@@ -73,40 +73,82 @@ class EurosportHandler(PyRSSWRequestHandler):
 """
         page = session.get(url=self.get_rss_url(), headers={}).text
 
-        dom = etree.HTML(page.encode("utf-8"), parser=None)
+        # --- Extraction et agrégation des articles depuis tous les blocs self.__next_f.push ---
+        articles_data = []
+        search_start = 0
+        while True:
+            idx = page.find("self.__next_f.push", search_start)
+            if idx == -1:
+                break
+            end = page.find("</script>", idx)
+            if end == -1:
+                break
+            next_data = page[idx:end]
+            try:
+                start_json = next_data.find('[')
+                end_json = next_data.rfind(']')
+                if start_json != -1 and end_json != -1:
+                    json_str = next_data[start_json:end_json+1]
+                    arr = json.loads(json_str)
+                    # On cherche la chaîne contenant un JSON imbriqué (avec "netsportId")
+                    nested_json_str = None
+                    for el in arr:
+                        if isinstance(el, str) and "netsportId" in el:
+                            nested_json_str = el
+                            break
+                    if nested_json_str:
+                        # Nettoyage du préfixe éventuel (ex: '6:')
+                        if ':' in nested_json_str and nested_json_str.index(':') < 5:
+                            nested_json_str = nested_json_str.split(':', 1)[1]
+                        nested_json = json.loads(nested_json_str)
+                        # Recherche des articles
+                        entities = json_utils.get_nodes_by_name(nested_json, "articles")
+                        if entities:
+                            for article in entities[0].get("entityState", {}).get("entities", {}).values():
+                                if article.get("_type") == "Article":
+                                    articles_data.append((article, nested_json))
+                else:
+                    logging.getLogger().info("No JSON array found in self.__next_f.push block.")
+            except Exception as e:
+                logging.getLogger().info(f"Unable to parse self.__next_f.push JSON for articles: {e}")
+            search_start = end + 9  # len("</script>")
 
-        # if "filter" in parameters:
-        #    # filter only on passed category, eg /eurosport/rss/tennis
-        #    xpath_expression = utils.dom_utils.get_xpath_expression_for_filters(
-        #        parameters, "category/text() = '%s'", "not(category/text() = '%s')")
-        #
-        #    utils.dom_utils.delete_nodes(dom.xpath(xpath_expression))
+        # --- Génération du flux RSS à partir des articles JSON ---
+        for article, json_data in articles_data:
+            title = article.get("title", "")
+            url = article.get("url", "")
+            pub_date = article.get("publicationTime", "")
+            teaser = article.get("teaser", "")
+            # Recherche de la meilleure image
+            picture_ids = article.get("pictureFormatIds", [])
+            best_url = ""
+            best_width = 0
+            for pic_id in picture_ids:
+                pic =  json_utils.get_node(json_data, 3, "children", 3, "state", "pictures", "entityState", "entities", pic_id)
+                if pic and "formats" in pic:
+                    for fmt in pic["formats"].values():
+                        if "width" in fmt and fmt["width"] > best_width and "url" in fmt:
+                            best_width = fmt["width"]
+                            best_url = fmt["url"]
+                elif pic and "url" in pic:
+                    best_url = pic["url"]
+            article_url = self.get_handler_url_with_parameters({"url": url})
+            feed += f'''<item>
+        <title>{title}</title>
+        <link>{article_url}</link>
+        <guid isPermaLink='false'>{article_url}</guid>
+        <pubDate>{pub_date}</pubDate>
+        <media:thumbnail url='{best_url}'></media:thumbnail>
+        <media:content medium='image' url='{best_url}'>
+            <media:title type='html'>{title}</media:title>
+        </media:content>
+        <description>&#x3C;img src=&#x22;{best_url}&#x22;/&#x3E;{teaser}</description>
+</item>'''
 
-        # replace video links, they must be processed by getContent
-        for node in xpath(dom, '//a[@class[contains(., "card-hover")]]'):
-            title = node.xpath(".//h3/text()")[0]
-            sport = node.xpath('.//div[@data-testid="atom-card-text"]/text()')[0]
-            thumbnail_url = ""  # node.xpath(".//picture/source/@srcset")
-            article_url = self.get_handler_url_with_parameters(
-                {"url": node.attrib["href"]}
-            )
-            feed += f"""<item>
-		<title>{sport} - {title}</title>
-		<link>{article_url}</link>
-		<guid isPermaLink="false">{article_url}</guid>
-        <media:thumbnail url="{thumbnail_url}"></media:thumbnail>
-		<media:content medium="image" url="{thumbnail_url}">
-			<media:title type="html">{sport} - {title}</media:title>
-		</media:content>
-        <description>&#x3C;img src=&#x22;{thumbnail_url}&#x22;/&#x3E;{sport} - {title}</description>
-</item>"""
-
-        # page = to_string(dom).replace("\\u0027", "'").replace("\\u0022", "'")
         feed += """
     </channel>
 </rss>
 """
-
         return feed
 
     def _get_rss_link_description(self, link_url: str) -> str:
@@ -123,7 +165,7 @@ class EurosportHandler(PyRSSWRequestHandler):
         return description
 
     def _get_story_content(self, url: str, session: requests.Session) -> str:
-        content = page = session.get(url=url, headers=self._get_headers()).content
+        content = session.get(url=url, headers=self._get_headers()).content
         dom = etree.HTML(content, parser=None)
         story_content = utils.dom_utils.get_content(
             dom,
