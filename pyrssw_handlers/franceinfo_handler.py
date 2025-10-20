@@ -130,6 +130,8 @@ class FranceInfoHandler(PyRSSWRequestHandler):
                 '//*[contains(@class, "rf-player-wrapper")]',  # podcast
                 '//*[contains(@class, "signature__images")]',
                 '//*[contains(@class, "content-banner-nl")]',
+                '//*[contains(@class, "sticky-nav ")]',
+                '//*[contains(@class, "shuffle-videos")]'
             ],
         )
 
