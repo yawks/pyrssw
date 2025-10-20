@@ -377,7 +377,18 @@ class FeedArranger(metaclass=ABCMeta):
                     quote_plus(img_url),
                 )
             if img_url != "":
-                img = f"""
+                parsed_url = urlparse(img_url)
+                path = parsed_url.path.lower()
+                if path.endswith((".mp4", ".webm")):
+                    vtype = "mp4" if path.endswith(".mp4") else "webm"
+                    img = f"""
+        <video class="item-img" preload="metadata">
+            <source src="{img_url}" type="video/{vtype}">
+            Your browser does not support the video tag.
+        </video>
+"""
+                else:
+                    img = f"""
         <img src="{img_url}" class="item-img"/>
 """
             html_items += f"""

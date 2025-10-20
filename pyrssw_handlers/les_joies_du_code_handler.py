@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict
 from request.pyrssw_content import PyRSSWContent
 import re
 
@@ -7,7 +7,7 @@ from lxml import etree
 
 import utils.dom_utils
 from pyrssw_handlers.abstract_pyrssw_request_handler import PyRSSWRequestHandler
-from utils.dom_utils import to_string, xpath
+from utils.dom_utils import to_string
 
 
 class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
@@ -22,8 +22,8 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
         return "https://lesjoiesducode.fr/"
 
     def get_rss_url(self) -> str:
-        return "http://lesjoiesducode.fr/rss"
-    
+        return "http://lesjoiesducode.fr/atom"
+
     @staticmethod
     def get_favicon_url(parameters: Dict[str, str]) -> str:
         return "https://lesjoiesducode.fr/wp-content/uploads/2020/03/cropped-59760110_2118870124856761_2769282087964901376_n-32x32.png"
@@ -33,22 +33,75 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
 
         # force encoding
         r.encoding = "utf-8"
-        feed = r.text.replace("<link>", "<link>%s?url=" % self.url_prefix)
-        feed = re.sub(
-            r'<guid isPermaLink="false">https://lesjoiesducode.fr/\?p=[^<]*</guid>', r"", feed)
 
+        dom = etree.fromstring(r.text.encode("utf-8"))
 
-        dom = etree.fromstring(feed.encode("utf-8"))
-        for item in xpath(dom, "//item"):
-            for child in item.getchildren():  # did not find how to xpath content:encoded tag
-                if child.tag.endswith("encoded"):
-                    c = self._clean_content(
-                        '<div class="blog-post">' + child.text + '</div>')
-                    child.text = c  # "<![CDATA[" + c + "]]>"
+        # Ensure media namespace is declared so the output uses the media: prefix
+        media_ns = "http://search.yahoo.com/mrss/"
+        # Ensure the media namespace is declared on the root element.
+        # Creating or updating xmlns declarations via dom.attrib can lead to
+        # incorrect bindings like 'ns0:media'. Instead, rebuild the root element
+        # with an nsmap that includes the 'media' prefix merged with existing
+        # namespaces.
+        try:
+            root = dom.getroottree().getroot()
+        except Exception:
+            root = dom
 
-        return to_string(dom)
+        # Merge existing nsmap (may be None) with the media prefix.
+        existing_nsmap = getattr(root, 'nsmap', None) or {}
+        # If media already present with the correct URI, skip rebuilding.
+        if existing_nsmap.get('media') == media_ns:
+            pass
+        else:
+            new_nsmap = dict(existing_nsmap)
+            new_nsmap['media'] = media_ns
 
-    def get_content(self, url: str, parameters: dict, session: requests.Session) -> PyRSSWContent:
+            # Build a new root element with the same tag, attrib, and children
+            # but with the updated nsmap.
+            new_root = etree.Element(root.tag, nsmap=new_nsmap)
+            # copy attributes except xmlns declarations (they'll come from nsmap)
+            for k, v in root.attrib.items():
+                new_root.set(k, v)
+            # move children
+            for child in list(root):
+                root.remove(child)
+                new_root.append(child)
+
+            # If dom is the root node itself, replace dom reference; otherwise
+            # try to replace in-place by assigning into the tree.
+            dom = new_root
+
+        # Find entries and add a media:thumbnail element when a suitable media link is found
+        entries = dom.xpath('//*[local-name()="entry"]')
+        for entry in entries:
+            thumb_url = None
+            links = entry.xpath('./*[local-name()="link"]')
+            for link in links:
+                href = link.get("href")
+                if href and re.search(
+                    r"\.(webm|gif|mp4)(?:[?#].*)?$", href, re.IGNORECASE
+                ):
+                    thumb_url = href
+                    break
+
+            if thumb_url:
+                thumb = etree.Element("{%s}thumbnail" % media_ns)
+                thumb.set("url", thumb_url)
+                entry.append(thumb)
+
+        xml_str = etree.tostring(dom, encoding="utf-8").decode("utf-8")
+        # Replace only hrefs that start with the site and have at least one
+        # character after the trailing slash (i.e. not ending with "/").
+        # Match the prefix and ensure the next character is not a double-quote.
+        pattern = r'(href="https://lesjoiesducode.fr/)(?!\")'
+        replacement = f'href="{self.url_prefix}?url=https://lesjoiesducode.fr/'
+        xml_str = re.sub(pattern, replacement, xml_str)
+        return xml_str
+
+    def get_content(
+        self, url: str, parameters: dict, session: requests.Session
+    ) -> PyRSSWContent:
         page = session.get(url=url, headers={})
         content = self._clean_content(page.text)
         return PyRSSWContent(content)
@@ -57,37 +110,10 @@ class LesJoiesDuCodeHandler(PyRSSWRequestHandler):
         content = ""
         if c is not None:
             dom = etree.HTML(c)
-            utils.dom_utils.delete_xpaths(dom, [
-                '//*[@class="permalink-pagination"]',
-                '//*[@class="social-share"]',
-                '//*[@class="post-author"]'
-            ])
+            objs = dom.xpath("//main/div/article/div")
+            if len(objs) > 0:
+                obj = objs[0]
+                utils.dom_utils.delete_nodes(obj.xpath('//div[@class=""]'))
+                content = to_string(obj)
 
-            objs = dom.xpath('//object')
-            for obj in objs:
-                if obj.attrib["data"].lower().endswith(".gif"):
-                    src = obj.attrib["data"]
-                    img = etree.Element("img")
-                    img.set("src", src)
-                    obj.getparent().getparent().getparent().getparent().append(img)
-
-            video_content = utils.dom_utils.get_content(
-                dom, ['//*[contains(@class,"blog-post-content")]//video'])
-
-            utils.dom_utils.delete_nodes(dom.xpath('//video'))
-            content = utils.dom_utils.get_content(
-                dom, ['//div[contains(@class, "blog-post")]', '//div[contains(@class,"blog-post-content")]'])
-
-            if len(content) < 50:
-                # means there is no gif
-                content = video_content
-            else:
-                content = content.replace('<div class="blog-post">', '')
-                content = content.replace(
-                    '<div class="blog-post-content">', '')
-                content = content.replace('</div>', '')
-                content = re.sub(r'src="data:image[^"]*', '', content)
-                content = content.replace(
-                    "data-src", "style='height:100%;width:100%' src")
-                content = re.sub(r'<!--(.*)-->', r"", content, flags=re.S)
         return content
