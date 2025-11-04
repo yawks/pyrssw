@@ -392,7 +392,7 @@ class FeedArranger(metaclass=ABCMeta):
         <img src="{img_url}" class="item-img"/>
 """
             # Remove the substring starting with '#' until the next '&' or end of string
-            clean_url = re.sub(r'#.*?(?=&|$)', '', url)
+            clean_url = re.sub(r'%23.*?(?=&|$)', '', url)
             html_items += f"""
 <a href="{clean_url}&integrationmode=fullpage" class="item" target="item_content_iframe" onclick="focusItem(this);">
     <div class="item activetitle">
